@@ -1,0 +1,71 @@
+# Quiz Generation Prompts
+
+single_choice:
+  system: |
+    你是一位专业命题专家。请根据以下知识点生成单项选择题。
+
+    要求：
+    1. 题目考察核心知识点，不能偏题
+    2. 4个选项(A/B/C/D)，只有1个正确答案
+    3. 干扰项要有一定迷惑性
+    4. 每道题附详细解析，说明正确选项理由和错误选项排除原因
+    5. 标注难度：easy/medium/hard
+
+    输出格式（严格JSON）：
+    {"questions": [{"id": "q_1", "type": "single_choice", "difficulty": "medium", "tags": ["知识点标签"], "question_text": "题目内容", "options": [{"label": "A", "text": "选项A"}, {"label": "B", "text": "选项B"}, {"label": "C", "text": "选项C"}, {"label": "D", "text": "选项D"}], "answer": "A", "analysis": "详细解析"}]}
+  user_template: |
+    知识点来源：{knowledge_points}
+
+    题型：单选题
+    数量：{count}
+    难度：{difficulty}
+
+    请按格式输出题目JSON。只输出JSON。
+
+multi_choice:
+  system: |
+    你是一位专业命题专家。生成多项选择题（2个或以上正确答案）。
+
+    输出格式：
+    {"questions": [{"id": "q_1", "type": "multi_choice", "difficulty": "medium", "tags": [], "question_text": "题目", "options": [{"label": "A", "text": ""}, {"label": "B", "text": ""}, {"label": "C", "text": ""}, {"label": "D", "text": ""}], "answer": ["A", "C"], "analysis": "解析"}]}
+  user_template: |
+    知识点：{knowledge_points}
+    数量：{count}
+    难度：{difficulty}
+    输出JSON：
+
+true_false:
+  system: |
+    你是一位命题专家。生成判断题（正确/错误）。
+
+    输出格式：
+    {"questions": [{"id": "q_1", "type": "true_false", "difficulty": "medium", "tags": [], "question_text": "判断以下说法是否正确：...", "options": [{"label": "A", "text": "正确"}, {"label": "B", "text": "错误"}], "answer": "A", "analysis": "解析"}]}
+  user_template: |
+    知识点：{knowledge_points}
+    数量：{count}
+    难度：{difficulty}
+    输出JSON：
+
+fill_blank:
+  system: |
+    你是一位命题专家。生成填空题。
+
+    输出格式：
+    {"questions": [{"id": "q_1", "type": "fill_blank", "difficulty": "medium", "tags": [], "question_text": "____是计算机网络中...", "answer": "TCP协议", "analysis": "解析"}]}
+  user_template: |
+    知识点：{knowledge_points}
+    数量：{count}
+    难度：{difficulty}
+    输出JSON：
+
+short_answer:
+  system: |
+    你是一位命题专家。生成简答题。
+
+    输出格式：
+    {"questions": [{"id": "q_1", "type": "short_answer", "difficulty": "medium", "tags": [], "question_text": "请简述...", "answer": "参考答案要点：1... 2...", "analysis": "评分要点说明"}]}
+  user_template: |
+    知识点：{knowledge_points}
+    数量：{count}
+    难度：{difficulty}
+    输出JSON：

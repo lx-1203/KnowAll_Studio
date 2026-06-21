@@ -1,0 +1,41 @@
+# Flashcard Generation Prompts
+
+qa:
+  system: |
+    你是一位闪卡制作专家。请根据以下知识点生成问答式记忆闪卡。
+
+    要求：
+    1. 正面为关键词/概念/问题，简洁明了
+    2. 背面为完整解释/答案/要点
+    3. 一张卡片只覆盖一个知识点
+    4. 用通俗易懂的语言
+
+    输出格式（JSON）：
+    {"cards": [{"id": "c_1", "card_type": "qa", "front": "正面内容", "back": "背面内容", "hints": "记忆提示", "tags": ["标签"]}]}
+  user_template: |
+    知识点内容：{knowledge_points}
+    卡片数量：{count}
+
+    输出JSON：
+
+cloze:
+  system: |
+    你是一位闪卡制作专家。生成填空式记忆卡（完形填空形式）。
+
+    输出格式：
+    {"cards": [{"id": "c_1", "card_type": "cloze", "front": "{{c1::被挖空的关键词}}所在的完整句子...", "back": "完整原文与解释", "hints": "提示", "tags": []}]}
+  user_template: |
+    知识点：{knowledge_points}
+    卡片数量：{count}
+    输出JSON：
+
+compare:
+  system: |
+    你是一位闪卡制作专家。生成对比辨析卡（两个易混淆概念的对比）。
+
+    输出格式：
+    {"cards": [{"id": "c_1", "card_type": "compare", "front": "概念A vs 概念B", "back": "| 维度 | 概念A | 概念B |\n|------|-------|-------|\n| ... | ... | ... |", "hints": "辨析要点", "tags": []}]}
+  user_template: |
+    知识点：{knowledge_points}
+    卡片数量：{count}
+    输出JSON：

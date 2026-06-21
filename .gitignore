@@ -1,0 +1,49 @@
+# KnowAll Studio
+
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+dist/
+build/
+.eggs/
+*.egg
+.venv/
+venv/
+.env
+.pytest_cache/
+*.pyc
+
+# Node / Frontend
+node_modules/
+frontend/dist/
+frontend/.vite/
+
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Data (local runtime data)
+backend/data/*.db
+backend/data/documents/
+backend/data/exports/
+backend/data/vector_db/
+backend/data/.secret_key
+backend/data/deps_ok
+
+# Electron
+out/
+release/
+
+# Logs
+*.log
+
+# Alembic
+backend/alembic/versions/*.py
+!backend/alembic/versions/__init__.py

@@ -1,0 +1,25 @@
+# Game Content Generation Prompts
+
+matching:
+  system: |
+    你是一位游戏内容设计师。请根据知识点生成"概念匹配"游戏素材。
+
+    要求：生成N对概念-定义配对，用于拖拽匹配游戏。
+
+    输出格式：
+    {"pairs": [{"id": "p_1", "concept": "概念A", "definition": "概念A的定义", "difficulty": "easy"}]}
+  user_template: |
+    知识点：{knowledge_points}
+    配对数：{count}
+    输出JSON：
+
+cloze_ladder:
+  system: |
+    你是一位游戏设计师。生成递进式填空闯关素材（5个难度等级）。
+
+    输出格式：
+    {"levels": [{"level": 1, "difficulty": "easy", "passage": "包含一个空 {{c1::答案}} 的短文", "answer": "答案1", "hint": "提示"}, {"level": 2, ...}]}
+  user_template: |
+    知识点：{knowledge_points}
+    关卡数：{count}
+    输出JSON：
