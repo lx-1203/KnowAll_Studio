@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react'
-import { Card, Button, Select, message, Space, Spin, Modal, Input, Tag, Dropdown } from 'antd'
+import { Card, Button, Select, App, Space, Spin, Modal, Input, Tag, Dropdown } from 'antd'
 import { RobotOutlined, ApartmentOutlined, BranchesOutlined, DownloadOutlined, ExpandOutlined, MergeCellsOutlined } from '@ant-design/icons'
 import ReactFlow, {
   Node, Edge, Background, Controls, MiniMap,
@@ -73,6 +73,7 @@ function flowToTree(nodes: Node[]): any {
 
 function KnowledgePageInner() {
   const { selectedDoc, trees, setTrees, selectedTree, setSelectedTree } = useAppStore()
+  const { message } = App.useApp()
   const [nodes, setNodes, onNodesChange] = useNodesState([])
   const [edges, setEdges, onEdgesChange] = useEdgesState([])
   const [generating, setGenerating] = useState(false)

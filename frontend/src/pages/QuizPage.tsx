@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { Card, Button, Select, message, Space, Progress, Tag, Spin } from 'antd'
+import { Card, Button, Select, App, Space, Progress, Tag, Spin } from 'antd'
 import { RobotOutlined, FormOutlined, TrophyOutlined, DownloadOutlined } from '@ant-design/icons'
 import { generateQuestions, createExam, submitExam } from '../api'
 import { useAppStore, useQuizStore } from '../stores'
@@ -17,6 +17,7 @@ const questionTypes = [
 export default function QuizPage() {
   const { selectedDoc } = useAppStore()
   const { currentExam, userAnswers, results, setCurrentExam, setAnswer, setResults, reset } = useQuizStore()
+  const { message } = App.useApp()
   const [generating, setGenerating] = useState(false)
   const [genConfig, setGenConfig] = useState({ question_type: 'single_choice', count: 10, difficulty: 'medium' })
   const [showResults, setShowResults] = useState(false)

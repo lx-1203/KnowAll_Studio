@@ -18,7 +18,11 @@ export default function XlsxPreview({ fileUrl }: XlsxPreviewProps) {
     setLoading(true)
     setError('')
     fetch(fileUrl)
-      .then(r => { if (!r.ok) throw new Error('加载失败'); return r.arrayBuffer() })
+      .then(r => {
+        if (r.status === 204) throw new Error('原始文件暂不可用，可能已被删除')
+        if (!r.ok) throw new Error('加载失败')
+        return r.arrayBuffer()
+      })
       .then(buf => {
         const wb = XLSX.read(buf, { type: 'array' })
         const parsed = wb.SheetNames.map(name => {

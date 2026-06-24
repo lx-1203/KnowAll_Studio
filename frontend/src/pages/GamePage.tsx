@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { Card, Button, Select, message, Space, Tag, InputNumber, Progress, Input } from 'antd'
+import { Card, Button, Select, App, Space, Tag, InputNumber, Progress, Input } from 'antd'
 import { PlayCircleOutlined, CheckCircleOutlined, TrophyOutlined, ArrowRightOutlined } from '@ant-design/icons'
 import { useAppStore } from '../stores'
 
@@ -14,6 +14,7 @@ interface MatchPair {
 
 export default function GamePage() {
   const { selectedDoc } = useAppStore()
+  const { message } = App.useApp()
   const [gameType, setGameType] = useState('matching')
   const [count, setCount] = useState(8)
   const [loading, setLoading] = useState(false)
@@ -125,7 +126,10 @@ export default function GamePage() {
               { value: 'matching', label: '概念匹配' },
               { value: 'cloze_ladder', label: '填空闯关' },
             ]} />
-          <InputNumber value={count} onChange={v => setCount(v || 8)} min={4} max={20} addonAfter="对" />
+          <Space.Compact>
+            <InputNumber value={count} onChange={v => setCount(v || 8)} min={4} max={20} />
+            <span style={{ display: 'inline-flex', alignItems: 'center', padding: '0 8px', backgroundColor: '#fafafa', border: '1px solid #d9d9d9', borderLeft: 0, borderRadius: '0 6px 6px 0', fontSize: 14 }}>对</span>
+          </Space.Compact>
           <Button icon={<PlayCircleOutlined />} type="primary" loading={loading} onClick={handleGenerate}>
             {gameStarted ? '重新生成' : '开始游戏'}
           </Button>

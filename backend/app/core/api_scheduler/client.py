@@ -9,6 +9,7 @@ from typing import Any
 from app.config import settings
 from .adapters.base import BaseModelAdapter, AdapterConfig, AdapterResponse
 from .adapters.openai import OpenAICompatAdapter, DeepSeekAdapter, OllamaAdapter
+from .adapters.anthropic import AnthropicAdapter
 from .cache import cache_manager, compute_cache_key, compute_config_hash
 from .rate_limiter import rate_limiter
 
@@ -77,6 +78,12 @@ class UnifiedAPIClient:
                 api_key=api_key,
                 base_url=base_url or "https://api.openai.com/v1",
                 model_name=model_name or "gpt-4o",
+            )
+        elif provider == "anthropic":
+            adapter = AnthropicAdapter(
+                api_key=api_key,
+                base_url=base_url or "https://api.anthropic.com/v1",
+                model_name=model_name or "claude-sonnet-4-6",
             )
         elif provider == "deepseek":
             adapter = DeepSeekAdapter(api_key=api_key)

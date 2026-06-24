@@ -12,20 +12,51 @@ logger = logging.getLogger("knowall")
 
 async def startup_init():
     """Initialize databases on startup."""
+    import os
+    from pathlib import Path
+
     logger.info("Initializing database...")
     await init_db()
     logger.info("Database initialized")
 
-    # Auto-configure API adapter from environment
-    import os
-    api_key = os.getenv("ANTHROPIC_AUTH_TOKEN") or os.getenv("OPENAI_API_KEY") or os.getenv("DEEPSEEK_API_KEY")
-    api_base = os.getenv("ANTHROPIC_BASE_URL") or os.getenv("OPENAI_BASE_URL")
+    # Load .env file explicitly for API configuration.
+    # The .env file holds the project's intended API settings and should
+    # take precedence over host-environment variables (e.g. Claude Code proxy).
+    _env_vals = {}
+    _env_path = Path(__file__).resolve().parent.parent / ".env"
+    if _env_path.exists():
+        for _line in _env_path.read_text(encoding="utf-8").splitlines():
+            _line = _line.strip()
+            if _line and not _line.startswith("#") and "=" in _line:
+                _k, _, _v = _line.partition("=")
+                _env_vals[_k.strip()] = _v.strip().strip('"').strip("'")
+
+    # .env file values take priority over shell env for API config
+    api_key = _env_vals.get("ANTHROPIC_AUTH_TOKEN") or os.getenv("ANTHROPIC_AUTH_TOKEN") or os.getenv("OPENAI_API_KEY") or _env_vals.get("DEEPSEEK_API_KEY") or os.getenv("DEEPSEEK_API_KEY")
+    api_base = _env_vals.get("ANTHROPIC_BASE_URL") or os.getenv("ANTHROPIC_BASE_URL") or os.getenv("OPENAI_BASE_URL")
+    model = _env_vals.get("ANTHROPIC_MODEL") or os.getenv("ANTHROPIC_MODEL") or settings.default_model
+
     if api_key:
         from app.core.api_scheduler import api_client
-        provider = "openai"
-        model = os.getenv("ANTHROPIC_MODEL") or settings.default_model
-        api_client.configure_adapter(provider, api_key, base_url=api_base or "https://api.openai.com/v1", model_name=model)
-        logger.info("API adapter configured: model=%s base=%s", model, api_base or "default")
+
+        # Detect provider from the base URL / env vars
+        if _env_vals.get("DEEPSEEK_API_KEY") or (os.getenv("DEEPSEEK_API_KEY") and not _env_vals.get("ANTHROPIC_AUTH_TOKEN")):
+            provider = "deepseek"
+            model = "deepseek-chat"
+            api_base = api_base or "https://api.deepseek.com/v1"
+        elif api_base and "deepseek" in api_base.lower():
+            # DeepSeek's Anthropic-compatible endpoint uses the Anthropic adapter
+            provider = "anthropic"
+            api_base = api_base.rstrip("/")  # e.g. https://api.deepseek.com/anthropic
+        elif os.getenv("ANTHROPIC_AUTH_TOKEN") and not _env_vals.get("ANTHROPIC_AUTH_TOKEN"):
+            provider = "anthropic"
+            api_base = api_base or "https://api.anthropic.com/v1"
+        else:
+            provider = "openai"
+            api_base = api_base or "https://api.openai.com/v1"
+
+        api_client.configure_adapter(provider, api_key, base_url=api_base, model_name=model)
+        logger.info("API adapter configured: provider=%s model=%s base=%s", provider, model, api_base)
 
 
 @asynccontextmanager
@@ -57,7 +88,7 @@ from app.api.questions import router as quiz_router
 from app.api import (
     flashcards_router, chat_router, admin_router,
     search_router, pipeline_router, stats_router,
-    backup_router, game_router,
+    backup_router, game_router, study_router, share_router,
 )
 from app.middleware import setup_middleware
 
@@ -74,6 +105,8 @@ app.include_router(pipeline_router)
 app.include_router(stats_router)
 app.include_router(backup_router)
 app.include_router(game_router)
+app.include_router(study_router)
+app.include_router(share_router)
 app.include_router(admin_router)
 
 

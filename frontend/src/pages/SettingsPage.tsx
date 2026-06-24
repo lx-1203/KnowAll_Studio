@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react'
-import { Card, Button, Input, Select, Space, message, Table, Tag, Statistic, Row, Col } from 'antd'
+import { Card, Button, Input, Select, Space, App, Table, Tag, Statistic, Row, Col } from 'antd'
 import { KeyOutlined, ApiOutlined, DatabaseOutlined, BarChartOutlined } from '@ant-design/icons'
 import { addAPIKey, getQuotaStatus, getCacheStats } from '../api'
 
@@ -9,6 +9,7 @@ export default function SettingsPage() {
   const [saving, setSaving] = useState(false)
   const [quota, setQuota] = useState<any>({})
   const [cacheStats, setCacheStats] = useState<any>({})
+  const { message } = App.useApp()
 
   useEffect(() => {
     getQuotaStatus().then(setQuota).catch(console.error)
@@ -79,7 +80,7 @@ export default function SettingsPage() {
             { model: 'Qwen Turbo', input: '$0.40/M', output: '$1.20/M', suitable: '中文内容优化' },
             { model: 'Ollama 本地', input: '免费', output: '免费', suitable: '100%离线/无成本' },
           ]}
-          pagination={false}
+          rowKey="model"
           columns={[
             { title: '模型', dataIndex: 'model', key: 'model' },
             { title: '输入价格', dataIndex: 'input', key: 'input' },

@@ -40,7 +40,7 @@ export default function DocumentViewer({ documentId, title, onSearch }: Props) {
     }
   }
 
-  if (loading) return <Spin tip="加载文档..." />
+  if (loading) return <Spin tip="加载文档..."><div style={{ minHeight: 200 }} /></Spin>
   if (!chunks.length) return <Empty description="暂无文档内容" />
 
   return (

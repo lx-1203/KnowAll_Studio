@@ -1,6 +1,6 @@
 """Game content generator (M5)"""
 import json
-from app.core.api_scheduler import api_client, TaskType
+from app.core.api_scheduler import api_client, TaskType, GenerationConfig
 
 
 class GameContentGenerator:
@@ -19,6 +19,8 @@ class GameContentGenerator:
         template_map = {
             "matching": ("game", "matching"),
             "cloze_ladder": ("game", "cloze_ladder"),
+            "fix": ("game", "fix"),
+            "coding": ("game", "coding"),
         }
 
         cat, name = template_map.get(game_type, ("game", "matching"))
@@ -34,6 +36,7 @@ class GameContentGenerator:
             messages=messages,
             prompt_template_id=f"{cat}.{name}",
             generation_content=knowledge_text + game_type + str(count),
+            config=GenerationConfig(model=model),
         )
         return self._parse_levels(result.content, game_type)
 
@@ -44,6 +47,8 @@ class GameContentGenerator:
                 return data.get("pairs", data if isinstance(data, list) else [])
             elif game_type == "cloze_ladder":
                 return data.get("levels", data if isinstance(data, list) else [])
+            elif game_type in ("fix", "coding"):
+                return data.get("pairs", data if isinstance(data, list) else [])
             return data if isinstance(data, list) else []
         except json.JSONDecodeError:
             return []

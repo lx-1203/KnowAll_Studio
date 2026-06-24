@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react'
-import { Upload, Button, Card, List, message, Tag, Space, Popconfirm, Modal, Input } from 'antd'
+import { Upload, Button, Card, List, App, Tag, Space, Popconfirm, Modal, Input } from 'antd'
 import { UploadOutlined, FilePdfOutlined, FileTextOutlined, FileMarkdownOutlined, DeleteOutlined, FileImageOutlined, BranchesOutlined, LinkOutlined, CodeOutlined, EyeOutlined } from '@ant-design/icons'
 import { uploadDocument, listDocuments, deleteDocument } from '../api'
 import { useAppStore } from '../stores'
@@ -22,6 +22,7 @@ const typeIcons: Record<string, React.ReactNode> = {
 
 export default function UploadPage() {
   const { documents, setDocuments, setSelectedDoc, selectedDoc, loading, setLoading } = useAppStore()
+  const { message } = App.useApp()
   const [uploading, setUploading] = useState(false)
   const [urlModalOpen, setUrlModalOpen] = useState(false)
   const [importUrl, setImportUrl] = useState('')
@@ -167,7 +168,7 @@ export default function UploadPage() {
         width="90vw"
         style={{ top: 20 }}
         styles={{ body: { padding: 0 } }}
-        destroyOnClose
+        destroyOnHidden
       >
         {previewDoc && (
           <FilePreview

@@ -2,7 +2,7 @@
 import os
 import hashlib
 from fastapi import APIRouter, UploadFile, File, HTTPException, Depends, Form
-from fastapi.responses import FileResponse
+from fastapi.responses import FileResponse, Response
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select
 from pydantic import BaseModel
@@ -247,7 +247,7 @@ async def get_document_raw(doc_id: str, db: AsyncSession = Depends(get_db)):
     if not doc:
         raise HTTPException(404, "Document not found")
     if not doc.local_path or not os.path.exists(doc.local_path):
-        raise HTTPException(404, "原始文件不可用")
+        return Response(status_code=204)  # document exists but raw file unavailable — not an error
     media_type = MIME_TYPES.get(doc.file_type, "application/octet-stream")
     return FileResponse(
         doc.local_path,

@@ -1,7 +1,7 @@
 import { Suspense, lazy } from 'react'
 import { Routes, Route, Link, useLocation } from 'react-router-dom'
 import { Layout, Menu, Button, Spin } from 'antd'
-import { FileTextOutlined, ApartmentOutlined, FormOutlined, IdcardOutlined, RobotOutlined, SettingOutlined, BulbOutlined, ThunderboltOutlined, DashboardOutlined, PlayCircleOutlined } from '@ant-design/icons'
+import { FileTextOutlined, ApartmentOutlined, FormOutlined, IdcardOutlined, RobotOutlined, SettingOutlined, BulbOutlined, ThunderboltOutlined, DashboardOutlined, PlayCircleOutlined, ScheduleOutlined, ShareAltOutlined } from '@ant-design/icons'
 import { useTheme } from './components/ThemeProvider'
 import ErrorBoundary from './components/ErrorBoundary'
 
@@ -15,13 +15,15 @@ const GamePage = lazy(() => import('./pages/GamePage'))
 const ChatPage = lazy(() => import('./pages/ChatPage'))
 const PipelinePage = lazy(() => import('./pages/PipelinePage'))
 const SettingsPage = lazy(() => import('./pages/SettingsPage'))
+const StudyPage = lazy(() => import('./pages/StudyPage'))
+const SharePage = lazy(() => import('./pages/SharePage'))
 
 const { Header, Sider, Content } = Layout
 
 function PageLoader() {
   return (
     <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '60vh' }}>
-      <Spin size="large" tip="加载中..." />
+      <Spin size="large" tip="加载中..."><div style={{ minHeight: 200 }} /></Spin>
     </div>
   )
 }
@@ -40,6 +42,8 @@ export default function App() {
     { key: '/game', icon: <PlayCircleOutlined />, label: <Link to="/game">互动游戏</Link> },
     { key: '/chat', icon: <RobotOutlined />, label: <Link to="/chat">AI 对话</Link> },
     { key: '/pipeline', icon: <ThunderboltOutlined />, label: <Link to="/pipeline">全链路</Link> },
+    { key: '/study', icon: <ScheduleOutlined />, label: <Link to="/study">学习计划</Link> },
+    { key: '/share', icon: <ShareAltOutlined />, label: <Link to="/share">分享协作</Link> },
     { key: '/settings', icon: <SettingOutlined />, label: <Link to="/settings">设置</Link> },
   ]
 
@@ -76,6 +80,8 @@ export default function App() {
                 <Route path="/game" element={<GamePage />} />
                 <Route path="/chat" element={<ChatPage />} />
                 <Route path="/pipeline" element={<PipelinePage />} />
+                <Route path="/study" element={<StudyPage />} />
+                <Route path="/share" element={<SharePage />} />
                 <Route path="/settings" element={<SettingsPage />} />
               </Routes>
             </Suspense>

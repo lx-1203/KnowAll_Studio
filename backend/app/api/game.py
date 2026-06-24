@@ -20,7 +20,7 @@ async def generate_game_levels(req: GameLevelRequest):
         levels = await game_generator.generate_levels(
             req.knowledge_text, req.game_type, req.count, req.model
         )
-        return {"pairs": levels if req.game_type == "matching" else [],
+        return {"pairs": levels if req.game_type in ("matching", "fix", "coding") else [],
                 "levels": levels if req.game_type == "cloze_ladder" else [],
                 "count": len(levels)}
     except Exception as e:

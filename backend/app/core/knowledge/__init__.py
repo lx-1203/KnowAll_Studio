@@ -1,6 +1,6 @@
 """Knowledge structure generation (M2)"""
 import json
-from app.core.api_scheduler import api_client, TaskType
+from app.core.api_scheduler import api_client, TaskType, GenerationConfig
 
 
 class KnowledgeGenerator:
@@ -22,6 +22,7 @@ class KnowledgeGenerator:
                 messages=messages,
                 prompt_template_id="knowledge_tree.standard",
                 generation_content=chunk_texts[0],
+                config=GenerationConfig(model=model),
             )
             return self._parse_tree_json(result.content)
 
@@ -56,6 +57,7 @@ class KnowledgeGenerator:
             messages=messages,
             prompt_template_id="knowledge_tree.simple",
             generation_content=combined,
+            config=GenerationConfig(model=model),
         )
         return result.content
 

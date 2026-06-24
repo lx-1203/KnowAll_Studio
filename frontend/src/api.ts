@@ -78,5 +78,24 @@ export const getTopicStats = () => api.get('/stats/topics').then(r => r.data)
 // Backup
 export const exportBackup = () => api.get('/backup/export').then(r => r.data)
 export const exportFiles = () => api.get('/backup/files', { responseType: 'blob' }).then(r => r.data)
+export const importBackup = (file: File) => {
+  const form = new FormData()
+  form.append('file', file)
+  return api.post('/backup/import', form).then(r => r.data)
+}
+
+// Study Plan
+export const listPlans = () => api.get('/study/plans').then(r => r.data)
+export const getPlan = (planId: string) => api.get(`/study/plans/${planId}`).then(r => r.data)
+export const createPlan = (params: object) => api.post('/study/plans', params).then(r => r.data)
+export const deletePlan = (planId: string) => api.delete(`/study/plans/${planId}`).then(r => r.data)
+export const createGoal = (params: object) => api.post('/study/goals', params).then(r => r.data)
+export const toggleGoal = (goalId: string) => api.put(`/study/goals/${goalId}/toggle`).then(r => r.data)
+export const getDueReminders = () => api.get('/study/reminders/due').then(r => r.data)
+
+// Share
+export const createShareLink = (params: object) => api.post('/share/create', params).then(r => r.data)
+export const listShareLinks = () => api.get('/share/my-links').then(r => r.data)
+export const deleteShareLink = (shareId: string) => api.delete(`/share/${shareId}`).then(r => r.data)
 
 export default api

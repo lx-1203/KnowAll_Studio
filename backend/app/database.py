@@ -1,5 +1,6 @@
 """SQLAlchemy database setup with async support + Alembic migrations"""
 import logging
+from sqlalchemy import event
 from sqlalchemy.ext.asyncio import AsyncSession, create_async_engine, async_sessionmaker
 from sqlalchemy.orm import DeclarativeBase
 from app.config import settings
@@ -7,7 +8,17 @@ from app.config import settings
 logger = logging.getLogger("knowall.db")
 
 # Single SQLite database for MVP (simplifies deployment)
-engine = create_async_engine(settings.database_url, echo=settings.debug)
+engine = create_async_engine(
+    settings.database_url,
+    echo=settings.debug,
+    connect_args={"timeout": 30},  # wait up to 30s for lock
+)
+
+# Enable WAL mode for concurrent reads/writes
+@event.listens_for(engine.sync_engine, "connect")
+def _set_sqlite_pragma(dbapi_connection, connection_record):
+    dbapi_connection.execute("PRAGMA journal_mode=WAL;")
+    dbapi_connection.execute("PRAGMA busy_timeout=5000;")
 async_session = async_sessionmaker(engine, class_=AsyncSession, expire_on_commit=False)
 
 
@@ -25,21 +36,26 @@ async def get_db() -> AsyncSession:
 
 async def init_db():
     """Run Alembic migrations to bring DB up to date."""
+    import subprocess
+    import sys
     from pathlib import Path
 
     alembic_cfg_path = Path(__file__).resolve().parent.parent / "alembic.ini"
 
     if alembic_cfg_path.exists():
-        from alembic.config import Config
-        from alembic import command
-
-        alembic_cfg = Config(str(alembic_cfg_path))
-        alembic_cfg.set_main_option("script_location", str(alembic_cfg_path.parent / "alembic"))
-
         logger.info("Running Alembic migrations...")
-        async with engine.begin() as conn:
-            await conn.run_sync(command.upgrade, alembic_cfg, "head")
-        logger.info("Alembic migrations complete.")
+        result = subprocess.run(
+            [sys.executable, "-m", "alembic", "-c", str(alembic_cfg_path), "upgrade", "head"],
+            cwd=str(alembic_cfg_path.parent),
+            capture_output=True,
+            text=True,
+            timeout=30,
+        )
+        if result.returncode != 0:
+            stderr = result.stderr.strip()
+            if stderr:
+                logger.warning("Alembic stderr: %s", stderr[:500])
+        logger.info("Alembic migrations complete. stdout: %s", result.stdout.strip()[:200] or "(no output)")
     else:
         logger.warning("alembic.ini not found, using create_all (no migration support)")
         async with engine.begin() as conn:

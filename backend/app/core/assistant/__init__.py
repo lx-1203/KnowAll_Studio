@@ -41,10 +41,9 @@ class Assistant:
         history: list[dict] | None = None,
         model: str = "deepseek-chat",
     ) -> AsyncGenerator[str, None]:
-        """Stream chat response using SSE via httpx streaming.
+        """Stream chat response using SSE via httpx streaming."""
+        from app.core.api_scheduler.adapters.anthropic import AnthropicAdapter
 
-        Yields content chunks as they arrive from the model API.
-        """
         preset = ROLE_PRESETS.get(role_preset, ROLE_PRESETS["tutor"])
         messages = [{"role": "system", "content": preset["system"]}]
         if history:
@@ -52,32 +51,72 @@ class Assistant:
         messages.append({"role": "user", "content": user_message})
 
         adapter = api_client.get_adapter(model)
-        url = f"{adapter.base_url.rstrip('/')}/chat/completions"
-        headers = adapter._build_headers()
-        payload = {
-            "model": adapter.model_name,
-            "messages": messages,
-            "temperature": 0.7,
-            "max_tokens": 2048,
-            "stream": True,
-        }
 
-        async with httpx.AsyncClient(timeout=120) as client:
-            async with client.stream("POST", url, json=payload, headers=headers) as response:
-                response.raise_for_status()
-                async for line in response.aiter_lines():
-                    if line.startswith("data: "):
-                        data = line[6:]
-                        if data == "[DONE]":
-                            break
-                        try:
-                            chunk = json.loads(data)
-                            delta = chunk.get("choices", [{}])[0].get("delta", {})
-                            content = delta.get("content", "")
-                            if content:
-                                yield content
-                        except json.JSONDecodeError:
-                            continue
+        if isinstance(adapter, AnthropicAdapter):
+            # Anthropic Messages API streaming format
+            url = f"{adapter.base_url.rstrip('/')}/messages"
+            headers = adapter._build_headers()
+            # Convert to Anthropic message format
+            system_content = None
+            anthropic_msgs = []
+            for msg in messages:
+                if msg["role"] == "system":
+                    system_content = msg["content"]
+                else:
+                    anthropic_msgs.append({"role": msg["role"], "content": [{"type": "text", "text": msg["content"]}]})
+            payload = {
+                "model": adapter.model_name,
+                "max_tokens": 2048,
+                "messages": anthropic_msgs,
+                "stream": True,
+            }
+            if system_content:
+                payload["system"] = [{"type": "text", "text": system_content}]
+
+            async with httpx.AsyncClient(timeout=120) as client:
+                async with client.stream("POST", url, json=payload, headers=headers) as response:
+                    response.raise_for_status()
+                    async for line in response.aiter_lines():
+                        if line.startswith("data: "):
+                            data_str = line[6:]
+                            try:
+                                event = json.loads(data_str)
+                                if event.get("type") == "content_block_delta":
+                                    delta = event.get("delta", {})
+                                    if delta.get("type") == "text_delta":
+                                        yield delta.get("text", "")
+                                elif event.get("type") == "message_stop":
+                                    break
+                            except json.JSONDecodeError:
+                                continue
+        else:
+            # OpenAI-compatible SSE streaming
+            url = f"{adapter.base_url.rstrip('/')}/chat/completions"
+            headers = adapter._build_headers()
+            payload = {
+                "model": adapter.model_name,
+                "messages": messages,
+                "temperature": 0.7,
+                "max_tokens": 2048,
+                "stream": True,
+            }
+
+            async with httpx.AsyncClient(timeout=120) as client:
+                async with client.stream("POST", url, json=payload, headers=headers) as response:
+                    response.raise_for_status()
+                    async for line in response.aiter_lines():
+                        if line.startswith("data: "):
+                            data = line[6:]
+                            if data == "[DONE]":
+                                break
+                            try:
+                                chunk = json.loads(data)
+                                delta = chunk.get("choices", [{}])[0].get("delta", {})
+                                content = delta.get("content", "")
+                                if content:
+                                    yield content
+                            except json.JSONDecodeError:
+                                continue
 
     async def chat(
         self,

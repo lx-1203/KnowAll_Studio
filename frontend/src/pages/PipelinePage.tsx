@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { Card, Button, Select, message, Space, InputNumber, Steps, Tag } from 'antd'
+import { Card, Button, Select, App, Space, InputNumber, Steps, Tag } from 'antd'
 import { ThunderboltOutlined, RocketOutlined } from '@ant-design/icons'
 import PipelineProgress from '../components/PipelineProgress'
 import { useAppStore } from '../stores'
@@ -16,6 +16,7 @@ interface PipelineState {
 
 export default function PipelinePage() {
   const { selectedDoc } = useAppStore()
+  const { message } = App.useApp()
   const [running, setRunning] = useState(false)
   const [state, setState] = useState<PipelineState | null>(null)
   const [config, setConfig] = useState({
@@ -101,15 +102,21 @@ export default function PipelinePage() {
               { value: 'multi_choice', label: '多选题' },
               { value: 'true_false', label: '判断题' },
             ]} style={{ width: 100 }} />
-          <InputNumber value={config.question_count} onChange={v => setConfig(c => ({ ...c, question_count: v || 10 }))}
-            min={5} max={50} addonAfter="题" style={{ width: 100 }} />
+          <Space.Compact>
+            <InputNumber value={config.question_count} onChange={v => setConfig(c => ({ ...c, question_count: v || 10 }))}
+              min={5} max={50} style={{ width: 80 }} />
+            <span style={{ display: 'inline-flex', alignItems: 'center', padding: '0 8px', backgroundColor: '#fafafa', border: '1px solid #d9d9d9', borderLeft: 0, borderRadius: '0 6px 6px 0', fontSize: 14 }}>题</span>
+          </Space.Compact>
           <Select value={config.card_type} onChange={v => setConfig(c => ({ ...c, card_type: v }))}
             options={[
               { value: 'qa', label: '问答卡' },
               { value: 'cloze', label: '填空卡' },
             ]} style={{ width: 100 }} />
-          <InputNumber value={config.card_count} onChange={v => setConfig(c => ({ ...c, card_count: v || 10 }))}
-            min={5} max={100} addonAfter="张" style={{ width: 100 }} />
+          <Space.Compact>
+            <InputNumber value={config.card_count} onChange={v => setConfig(c => ({ ...c, card_count: v || 10 }))}
+              min={5} max={100} style={{ width: 80 }} />
+            <span style={{ display: 'inline-flex', alignItems: 'center', padding: '0 8px', backgroundColor: '#fafafa', border: '1px solid #d9d9d9', borderLeft: 0, borderRadius: '0 6px 6px 0', fontSize: 14 }}>张</span>
+          </Space.Compact>
           <Button icon={<RocketOutlined />} type="primary" loading={running} onClick={handleRun} size="large">
             一键生成全部
           </Button>

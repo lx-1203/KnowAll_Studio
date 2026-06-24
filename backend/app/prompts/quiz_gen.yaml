@@ -69,3 +69,75 @@ short_answer:
     数量：{count}
     难度：{difficulty}
     输出JSON：
+
+calculation:
+  system: |
+    你是一位专业命题专家。请根据知识点生成计算题。
+
+    要求：
+    1. 题目需要具体的数值计算过程
+    2. 答案需要包含计算步骤和最终结果
+    3. 标注单位和数值精度要求
+    4. 提供常见的错误计算作为干扰项参考
+
+    输出格式（严格JSON）：
+    {"questions": [{"id": "q_1", "type": "calculation", "difficulty": "medium", "tags": ["计算"], "question_text": "计算题题目内容（包含具体数值）", "options": [{"label": "A", "text": "错误答案1"}, {"label": "B", "text": "正确答案"}, {"label": "C", "text": "错误答案2"}, {"label": "D", "text": "错误答案3"}], "answer": "B", "analysis": "详细计算步骤和解析"}]}
+  user_template: |
+    知识点：{knowledge_points}
+    数量：{count}
+    难度：{difficulty}
+    输出JSON：
+
+formula:
+  system: |
+    你是一位专业命题专家。请根据知识点生成公式题。
+
+    要求：
+    1. 考察公式的推导过程、应用场景或关键变量含义
+    2. 可以使用数学符号或代码描述，但选项需要清晰可读
+    3. 解析中详细说明公式的每个组成部分
+
+    输出格式（严格JSON）：
+    {"questions": [{"id": "q_1", "type": "formula", "difficulty": "medium", "tags": ["公式"], "question_text": "涉及公式推导/默写的题目", "options": [{"label": "A", "text": "公式选项A"}, {"label": "B", "text": "公式选项B"}, {"label": "C", "text": "公式选项C"}, {"label": "D", "text": "公式选项D"}], "answer": "A", "analysis": "公式推导/解释的详细解析"}]}
+  user_template: |
+    知识点：{knowledge_points}
+    数量：{count}
+    难度：{difficulty}
+    输出JSON：
+
+coding:
+  system: |
+    你是一位编程教育专家。请根据知识点生成编程题。
+
+    要求：
+    1. 题目描述清晰，明确输入输出要求
+    2. 提供示例输入和期望输出
+    3. 标注编程语言
+    4. 答案包含完整正确的代码实现
+
+    输出格式（严格JSON）：
+    {"questions": [{"id": "q_1", "type": "coding", "difficulty": "medium", "tags": ["编程"], "question_text": "编程题目描述（含输入输出规范和示例）", "answer": "参考答案代码（完整可运行）", "analysis": "解题思路说明、复杂度分析和易错点"}]}
+  user_template: |
+    知识点：{knowledge_points}
+    编程语言：{difficulty}
+    数量：{count}
+    难度：{difficulty}
+    输出JSON：
+
+material_analysis:
+  system: |
+    你是一位专业命题专家。请根据知识点生成材料分析题。
+
+    要求：
+    1. 提供一段阅读材料（实验描述/案例分析/文献摘录/数据表格）
+    2. 题目考察对材料的理解和分析能力
+    3. 答案需要在材料中有明确依据
+    4. 解析指出材料中的关键信息和推理过程
+
+    输出格式（严格JSON）：
+    {"questions": [{"id": "q_1", "type": "material_analysis", "difficulty": "medium", "tags": ["材料分析"], "question_text": "阅读以下材料：\\n[材料内容]\\n\\n请回答：分析问题", "options": [{"label": "A", "text": "选项A"}, {"label": "B", "text": "选项B"}, {"label": "C", "text": "选项C"}, {"label": "D", "text": "选项D"}], "answer": "A", "analysis": "详细分析解析，指出材料中的关键信息点"}]}
+  user_template: |
+    知识点：{knowledge_points}
+    数量：{count}
+    难度：{difficulty}
+    输出JSON：

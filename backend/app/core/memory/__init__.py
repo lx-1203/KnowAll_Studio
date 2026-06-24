@@ -2,7 +2,7 @@
 import json
 import math
 from datetime import datetime, timedelta, timezone
-from app.core.api_scheduler import api_client, TaskType
+from app.core.api_scheduler import api_client, TaskType, GenerationConfig
 
 
 class FlashcardGenerator:
@@ -29,6 +29,7 @@ class FlashcardGenerator:
             messages=messages,
             prompt_template_id=f"flashcard.{card_type}",
             generation_content=knowledge_text + card_type + str(count),
+            config=GenerationConfig(model=model),
         )
         return self._parse_cards(result.content)
 

@@ -29,7 +29,9 @@ class ReviewRequest(BaseModel):
 @router.post("/generate")
 async def generate_cards(req: GenerateCardsRequest, db: AsyncSession = Depends(get_db)):
     """Generate flashcards from knowledge text via API."""
-    # Ensure deck exists
+    # Ensure deck exists — commit immediately so the AI call below
+    # (which writes to quota/cache/log tables via its own sessions)
+    # is not blocked by this transaction's write lock.
     from sqlalchemy import select
     result = await db.execute(select(Deck).where(Deck.name == req.deck_name))
     deck = result.scalar_one_or_none()
@@ -37,6 +39,9 @@ async def generate_cards(req: GenerateCardsRequest, db: AsyncSession = Depends(g
         deck = Deck(name=req.deck_name, description="")
         db.add(deck)
         await db.flush()
+        await db.commit()
+        # Start a fresh transaction for the rest of the request
+        await db.begin()
 
     try:
         cards = await card_generator.generate(req.knowledge_text, req.card_type, req.count, req.model)

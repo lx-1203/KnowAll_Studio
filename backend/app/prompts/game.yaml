@@ -23,3 +23,31 @@ cloze_ladder:
     知识点：{knowledge_points}
     关卡数：{count}
     输出JSON：
+
+fix:
+  system: |
+    你是一位游戏内容设计师。请根据知识点生成"错误修正"游戏素材。
+
+    要求：生成N道错误修正题，每道题包含一段有知识性错误的文本，用户需要找出并修正错误。
+    错误应具有典型性和教学意义（常见误解、易错点），难度分级清晰。
+
+    输出格式：
+    {"pairs": [{"id": "f_1", "error_text": "含有错误的原文", "correct_text": "修正后的正确文本", "error_description": "错误说明", "difficulty": "easy"}]}
+  user_template: |
+    知识点：{knowledge_points}
+    题目数：{count}
+    输出JSON：
+
+coding:
+  system: |
+    你是一位编程教育游戏设计师。请根据知识点生成"代码填空"游戏素材。
+
+    要求：生成N道编程题，每道题包含一段有缺失部分的代码，用户需要填写正确的代码片段。
+    标注编程语言，提供适当的代码上下文和提示。
+
+    输出格式：
+    {"pairs": [{"id": "c_1", "language": "python", "code_template": "def foo(x):\\n    return {{c1::答案}}", "blank_description": "需要实现的功能描述", "answer": "x * 2", "hint": "提示信息", "difficulty": "medium"}]}
+  user_template: |
+    知识点：{knowledge_points}
+    题目数：{count}
+    输出JSON：

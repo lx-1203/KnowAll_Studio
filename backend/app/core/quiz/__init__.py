@@ -2,7 +2,7 @@
 import json
 import random
 from dataclasses import dataclass
-from app.core.api_scheduler import api_client, TaskType
+from app.core.api_scheduler import api_client, TaskType, GenerationConfig
 
 
 @dataclass
@@ -21,6 +21,10 @@ class QuizGenerator:
         "true_false": ("quiz_gen", "true_false"),
         "fill_blank": ("quiz_gen", "fill_blank"),
         "short_answer": ("quiz_gen", "short_answer"),
+        "calculation": ("quiz_gen", "calculation"),
+        "formula": ("quiz_gen", "formula"),
+        "coding": ("quiz_gen", "coding"),
+        "material_analysis": ("quiz_gen", "material_analysis"),
     }
 
     async def generate(
@@ -48,6 +52,7 @@ class QuizGenerator:
             messages=messages,
             prompt_template_id=f"{cat}.{name}",
             generation_content=knowledge_text + config.question_type + str(config.count),
+            config=GenerationConfig(model=model),
         )
         return self._parse_questions(result.content)
 
@@ -83,6 +88,7 @@ class QuizGenerator:
             messages=messages,
             prompt_template_id=f"{cat}.{name}",
             generation_content=prompt_text,
+            config=GenerationConfig(model=model),
         )
         return self._parse_questions(result.content)
 
@@ -191,9 +197,32 @@ class ExamEngine:
             correct_set = set(correct.replace(",", "").replace(" ", ""))
             return user_set == correct_set
 
-        if qtype in ("short_answer", "fill_blank"):
+        if qtype in ("short_answer", "fill_blank", "material_analysis"):
             # Case-insensitive substring match for text answers
             return user.lower() in correct.lower() or correct.lower() in user.lower()
+
+        if qtype == "calculation":
+            # Try numeric comparison with tolerance
+            try:
+                user_num = float(user.replace(",", ""))
+                correct_num = float(correct.replace(",", ""))
+                return abs(user_num - correct_num) < 0.01
+            except (ValueError, TypeError):
+                return user == correct
+
+        if qtype == "coding":
+            # Normalize whitespace and compare
+            import re
+            user_norm = re.sub(r"\s+", "", user)
+            correct_norm = re.sub(r"\s+", "", correct)
+            return user_norm == correct_norm
+
+        if qtype == "formula":
+            # Normalize whitespace and case-insensitive
+            import re
+            user_norm = re.sub(r"\s+", "", user).lower()
+            correct_norm = re.sub(r"\s+", "", correct).lower()
+            return user_norm == correct_norm
 
         # Default: exact match
         return user == correct

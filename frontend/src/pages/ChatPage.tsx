@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from 'react'
-import { Card, Button, Input, Select, Space, message, Switch, Tag, Modal } from 'antd'
+import { Card, Button, Input, Select, Space, App, Switch, Tag, Modal } from 'antd'
 import { SendOutlined, RobotOutlined, UserOutlined, PlusOutlined, ThunderboltOutlined, SearchOutlined, FileTextOutlined } from '@ant-design/icons'
 import { listConversations, getConversation, listRoles } from '../api'
 import { useAppStore } from '../stores'
@@ -13,6 +13,7 @@ const apiBase = '/api/v1'
 
 export default function ChatPage() {
   const { selectedDoc } = useAppStore()
+  const { message } = App.useApp()
   const [convs, setConvs] = useState<Conv[]>([])
   const [currentConv, setCurrentConv] = useState<Conv | null>(null)
   const [messages, setMessages] = useState<Message[]>([])
@@ -234,7 +235,7 @@ export default function ChatPage() {
       </Card>
 
       <Modal title="文档浏览" open={docViewerOpen} onCancel={() => setDocViewerOpen(false)}
-        footer={null} width={800} destroyOnClose>
+        footer={null} width={800} destroyOnHidden>
         {selectedDoc && <DocumentViewer documentId={selectedDoc}
           onSearch={(text) => { setInput(text); setDocViewerOpen(false); setRagMode(true); }} />}
       </Modal>

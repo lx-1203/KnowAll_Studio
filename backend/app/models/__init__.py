@@ -293,3 +293,77 @@ class APICache(Base):
     tokens_output = Column(Integer)
     created_at = Column(DateTime, default=now)
     ttl_days = Column(Integer, default=30)
+
+
+# ==================== Study Plan Models ====================
+
+class StudyPlan(Base):
+    __tablename__ = "study_plans"
+
+    id = Column(String, primary_key=True, default=gen_uuid)
+    user_id = Column(String, nullable=False, default="local_user")
+    name = Column(String, nullable=False)
+    description = Column(Text)
+    target_end_date = Column(DateTime)  # 计划截止日期
+    progress = Column(Float, default=0.0)  # 0-100
+    status = Column(String, default="active")  # active/completed/paused
+    created_at = Column(DateTime, default=now)
+    updated_at = Column(DateTime, default=now, onupdate=now)
+
+
+class StudyGoal(Base):
+    __tablename__ = "study_goals"
+
+    id = Column(String, primary_key=True, default=gen_uuid)
+    plan_id = Column(String, ForeignKey("study_plans.id", ondelete="CASCADE"), nullable=False)
+    title = Column(String, nullable=False)
+    description = Column(Text)
+    priority = Column(String, default="medium")  # high/medium/low
+    completed = Column(Boolean, default=False)
+    completed_at = Column(DateTime)
+    due_date = Column(DateTime)
+    order_index = Column(Integer, default=0)
+    created_at = Column(DateTime, default=now)
+
+
+class StudyReminder(Base):
+    __tablename__ = "study_reminders"
+
+    id = Column(String, primary_key=True, default=gen_uuid)
+    user_id = Column(String, nullable=False, default="local_user")
+    plan_id = Column(String, ForeignKey("study_plans.id", ondelete="CASCADE"))
+    goal_id = Column(String, ForeignKey("study_goals.id", ondelete="CASCADE"))
+    message = Column(Text, nullable=False)
+    remind_at = Column(DateTime, nullable=False)
+    is_read = Column(Boolean, default=False)
+    repeat_daily = Column(Boolean, default=False)
+    created_at = Column(DateTime, default=now)
+
+
+# ==================== Knowledge Graph Models ====================
+
+class KnowledgeEdge(Base):
+    __tablename__ = "knowledge_edges"
+
+    id = Column(String, primary_key=True, default=gen_uuid)
+    tree_id = Column(String, ForeignKey("knowledge_trees.id", ondelete="CASCADE"), nullable=False)
+    source_node_id = Column(String, nullable=False)
+    target_node_id = Column(String, nullable=False)
+    relation_type = Column(String, default="related_to")  # related_to/prerequisite/extends/contradicts/example_of
+    description = Column(Text)
+    created_at = Column(DateTime, default=now)
+
+
+# ==================== Share / Collaboration Models ====================
+
+class ShareLink(Base):
+    __tablename__ = "share_links"
+
+    id = Column(String, primary_key=True, default=gen_uuid)
+    user_id = Column(String, nullable=False, default="local_user")
+    resource_type = Column(String, nullable=False)  # knowledge_tree/question_bank/flashcard_deck
+    resource_id = Column(String, nullable=False)
+    access_code = Column(String, nullable=False)  # 6-digit access code
+    expires_at = Column(DateTime)  # None = never expires
+    view_count = Column(Integer, default=0)
+    created_at = Column(DateTime, default=now)

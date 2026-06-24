@@ -3,7 +3,7 @@ from fastapi import APIRouter, HTTPException, Depends
 from sqlalchemy.ext.asyncio import AsyncSession
 from pydantic import BaseModel
 from app.database import get_db
-from app.models import DocumentChunk, KnowledgeTree, Outline
+from app.models import DocumentChunk, KnowledgeTree, Outline, KnowledgeEdge
 from app.core.knowledge import knowledge_generator
 
 router = APIRouter(prefix="/api/v1/knowledge", tags=["knowledge"])
@@ -212,3 +212,64 @@ async def generate_outline(req: GenerateOutlineRequest, db: AsyncSession = Depen
         "title": outline.title,
         "content": outline.content_markdown,
     }
+
+
+# ===== Knowledge Graph Cross-References (Edges) =====
+
+class CreateEdgeRequest(BaseModel):
+    tree_id: str
+    source_node_id: str
+    target_node_id: str
+    relation_type: str = "related_to"  # related_to/prerequisite/extends/contradicts/example_of
+    description: str = ""
+
+
+@router.post("/edges")
+async def create_edge(req: CreateEdgeRequest, db: AsyncSession = Depends(get_db)):
+    """Create a cross-reference edge between two knowledge nodes."""
+    valid_types = {"related_to", "prerequisite", "extends", "contradicts", "example_of"}
+    if req.relation_type not in valid_types:
+        raise HTTPException(400, f"Invalid relation_type. Must be one of: {valid_types}")
+
+    edge = KnowledgeEdge(
+        tree_id=req.tree_id,
+        source_node_id=req.source_node_id,
+        target_node_id=req.target_node_id,
+        relation_type=req.relation_type,
+        description=req.description,
+    )
+    db.add(edge)
+    await db.commit()
+    await db.refresh(edge)
+    return {"edge_id": edge.id, "source": edge.source_node_id, "target": edge.target_node_id, "relation_type": edge.relation_type}
+
+
+@router.get("/edges/{tree_id}")
+async def list_edges(tree_id: str, db: AsyncSession = Depends(get_db)):
+    """Get all cross-reference edges for a knowledge tree."""
+    result = await db.execute(
+        select(KnowledgeEdge).where(KnowledgeEdge.tree_id == tree_id)
+    )
+    edges = result.scalars().all()
+    return [
+        {
+            "id": e.id,
+            "source_node_id": e.source_node_id,
+            "target_node_id": e.target_node_id,
+            "relation_type": e.relation_type,
+            "description": e.description,
+        }
+        for e in edges
+    ]
+
+
+@router.delete("/edges/{edge_id}")
+async def delete_edge(edge_id: str, db: AsyncSession = Depends(get_db)):
+    """Delete a cross-reference edge."""
+    result = await db.execute(select(KnowledgeEdge).where(KnowledgeEdge.id == edge_id))
+    edge = result.scalar_one_or_none()
+    if not edge:
+        raise HTTPException(404, "Edge not found")
+    await db.delete(edge)
+    await db.commit()
+    return {"status": "deleted"}

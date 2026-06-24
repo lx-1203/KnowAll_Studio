@@ -20,7 +20,11 @@ export default function MarkdownPreview({ fileUrl, fileName }: MarkdownPreviewPr
     setLoading(true)
     setError('')
     fetch(fileUrl)
-      .then(r => { if (!r.ok) throw new Error('加载失败'); return r.text() })
+      .then(r => {
+        if (r.status === 204) throw new Error('原始文件暂不可用，可能已被删除')
+        if (!r.ok) throw new Error('加载失败')
+        return r.text()
+      })
       .then(text => { setContent(text); setLoading(false) })
       .catch(err => { setError(err.message); setLoading(false) })
   }, [fileUrl])

@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react'
-import { Card, Button, Space, message, Spin, Tag, Select, Input, Modal, Dropdown } from 'antd'
+import { Card, Button, Space, App, Spin, Tag, Select, Input, Modal, Dropdown } from 'antd'
 import { RobotOutlined, SwapOutlined, RightOutlined, IdcardOutlined, DownloadOutlined, ReloadOutlined } from '@ant-design/icons'
 import { getDueCards, reviewCard, generateCards, listDecks } from '../api'
 import { useAppStore, useFlashcardStore } from '../stores'
@@ -7,6 +7,7 @@ import { useAppStore, useFlashcardStore } from '../stores'
 export default function FlashcardPage() {
   const { selectedDoc } = useAppStore()
   const { dueCards, currentIndex, isFlipped, setDueCards, flip, next } = useFlashcardStore()
+  const { message } = App.useApp()
   const [loading, setLoading] = useState(false)
   const [decks, setDecks] = useState<any[]>([])
   const [genConfig, setGenConfig] = useState({ card_type: 'qa', count: 20, deck_name: '默认牌组' })
