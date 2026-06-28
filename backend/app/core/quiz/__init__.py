@@ -779,12 +779,53 @@ class ExamEngine:
         and local rule-based grading for objective types (choice/true_false/calculation).
         """
         questions = paper.get("questions", [])
-        results = []
         correct_count = 0
         total_time = 0
         semantic_graded = 0
 
-        for q in questions:
+        # ---- Phase 1: Run all semantic grading in parallel ----
+        semantic_tasks: list[tuple[int, str, str, str]] = []  # (index, qid, question_text, reference_answer)
+        for i, q in enumerate(questions):
+            qtype = q.get("question_type", q.get("type", ""))
+            user_answer = user_answers.get(q["id"], "")
+            if (
+                enable_semantic
+                and qtype in self.SEMANTIC_GRADE_TYPES
+                and len(user_answer.strip()) > 5
+            ):
+                semantic_tasks.append((
+                    i,
+                    q["id"],
+                    q.get("question_text", ""),
+                    str(q.get("answer", q.get("correct_answer", ""))),
+                ))
+
+        semantic_results: dict[int, dict | None] = {}
+        if semantic_tasks:
+            import asyncio
+            tasks = [
+                self.grade_semantic(qt, ra, user_answers.get(qid, ""), model)
+                for (_, qid, qt, ra) in semantic_tasks
+            ]
+            t0 = time.time()
+            results_list = await asyncio.gather(*tasks, return_exceptions=True)
+            elapsed = round(time.time() - t0, 3)
+            for (idx, _, _, _), result in zip(semantic_tasks, results_list):
+                if isinstance(result, Exception):
+                    logger.warning(f"Semantic grading failed for question {idx}: {result}")
+                    semantic_results[idx] = None
+                else:
+                    semantic_results[idx] = result if isinstance(result, dict) else None
+            semantic_graded = sum(1 for r in semantic_results.values() if r is not None)
+            if semantic_tasks:
+                logger.info(
+                    f"[Grade] Semantic grading: {semantic_graded}/{len(semantic_tasks)} "
+                    f"in {elapsed}s (parallel)"
+                )
+
+        # ---- Phase 2: Build results (local grading for objective + semantic for open-ended) ----
+        results = []
+        for i, q in enumerate(questions):
             qid = q["id"]
             qtype = q.get("question_type", q.get("type", ""))
             user_answer = user_answers.get(qid, "")
@@ -792,28 +833,10 @@ class ExamEngine:
             q_time = time_spent_ms.get(qid, 0) if time_spent_ms else 0
             q_kp = knowledge_point_ids.get(qid, "") if knowledge_point_ids else ""
 
-            # Decide grading strategy
-            use_semantic = (
-                enable_semantic
-                and qtype in self.SEMANTIC_GRADE_TYPES
-                and len(user_answer.strip()) > 5
-            )
+            semantic_result = semantic_results.get(i)
 
-            semantic_result = None
-            if use_semantic:
-                semantic_result = await self.grade_semantic(
-                    question_text=q.get("question_text", ""),
-                    reference_answer=str(correct_answer),
-                    user_answer=user_answer,
-                    model=model,
-                )
-                if semantic_result:
-                    semantic_graded += 1
-                    # Pass threshold: total_score >= 6.0
-                    is_correct = semantic_result.get("passed", semantic_result.get("total_score", 0) >= 6.0)
-                else:
-                    # Fall back to local grading
-                    is_correct = self._check_answer(user_answer, correct_answer, qtype)
+            if semantic_result:
+                is_correct = semantic_result.get("passed", semantic_result.get("total_score", 0) >= 6.0)
             else:
                 is_correct = self._check_answer(user_answer, correct_answer, qtype)
 
