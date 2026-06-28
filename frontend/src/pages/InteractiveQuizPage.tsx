@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
-import { Card, Button, Spin, message, Progress, Space, Typography, Radio, Input, Tag, Result } from 'antd'
+import { Card, Button, Spin, App, Progress, Space, Typography, Radio, Input, Tag, Result } from 'antd'
 import { ArrowLeftOutlined, CheckOutlined, CloseOutlined } from '@ant-design/icons'
 import { startInteractiveQuiz, submitInteractiveAnswer } from '../api'
 import type { Question } from '../types'
