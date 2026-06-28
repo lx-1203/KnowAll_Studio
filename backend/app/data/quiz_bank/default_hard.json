@@ -1,0 +1,206 @@
+[
+  {
+    "id": "h001",
+    "question_type": "single_choice",
+    "difficulty": "hard",
+    "question_text": "在分布式系统中，CAP 定理指出在一个分布式系统中最多只能同时满足三项中的两项，这三项不包括？",
+    "options": [
+      { "label": "A", "text": "一致性（Consistency）" },
+      { "label": "B", "text": "可用性（Availability）" },
+      { "label": "C", "text": "分区容错性（Partition Tolerance）" },
+      { "label": "D", "text": "可维护性（Maintainability）" }
+    ],
+    "answer": "D",
+    "analysis": "CAP 定理由 Eric Brewer 提出，包含一致性、可用性和分区容错性。可维护性不属于 CAP。"
+  },
+  {
+    "id": "h002",
+    "question_type": "true_false",
+    "difficulty": "hard",
+    "question_text": "在 React 18 中，`useTransition` 可以将某些状态更新标记为非紧急更新，从而避免阻塞用户交互。",
+    "options": [
+      { "label": "A", "text": "正确" },
+      { "label": "B", "text": "错误" }
+    ],
+    "answer": "A",
+    "analysis": "`useTransition` 是 React 18 的并发特性，允许将更新标记为低优先级（transition）。"
+  },
+  {
+    "id": "h003",
+    "question_type": "single_choice",
+    "difficulty": "hard",
+    "question_text": "以下哪种加密算法属于非对称加密？",
+    "options": [
+      { "label": "A", "text": "AES-256" },
+      { "label": "B", "text": "ChaCha20" },
+      { "label": "C", "text": "RSA" },
+      { "label": "D", "text": "SHA-256" }
+    ],
+    "answer": "C",
+    "analysis": "RSA 使用公钥/私钥对（非对称），AES 和 ChaCha20 是对称加密，SHA-256 是哈希算法。"
+  },
+  {
+    "id": "h004",
+    "question_type": "multi_choice",
+    "difficulty": "hard",
+    "question_text": "以下关于 Docker 镜像分层的说法，哪些是正确的？（多选）",
+    "options": [
+      { "label": "A", "text": "每个 RUN 指令创建一个新的镜像层" },
+      { "label": "B", "text": "镜像层是只读的" },
+      { "label": "C", "text": "相同层可以在不同镜像间共享" },
+      { "label": "D", "text": "层越多镜像体积越小" }
+    ],
+    "answer": "A,B,C",
+    "analysis": "层越多通常导致镜像体积越大（虽然层可共享），应合并 RUN 指令减少层数。"
+  },
+  {
+    "id": "h005",
+    "question_type": "single_choice",
+    "difficulty": "hard",
+    "question_text": "MySQL InnoDB 引擎的默认事务隔离级别是？",
+    "options": [
+      { "label": "A", "text": "READ UNCOMMITTED" },
+      { "label": "B", "text": "READ COMMITTED" },
+      { "label": "C", "text": "REPEATABLE READ" },
+      { "label": "D", "text": "SERIALIZABLE" }
+    ],
+    "answer": "C",
+    "analysis": "InnoDB 默认使用 REPEATABLE READ，通过 MVCC 和 Next-Key Lock 解决幻读。"
+  },
+  {
+    "id": "h006",
+    "question_type": "true_false",
+    "difficulty": "hard",
+    "question_text": "在 Python 中，`async/await` 语法允许在单个线程内实现并发，这意味着多个协程可以同时执行 CPU 密集型计算。",
+    "options": [
+      { "label": "A", "text": "正确" },
+      { "label": "B", "text": "错误" }
+    ],
+    "answer": "B",
+    "analysis": "async/await 适合 I/O 密集型任务，CPU 密集型计算仍会阻塞事件循环，应使用线程池或多进程。"
+  },
+  {
+    "id": "h007",
+    "question_type": "single_choice",
+    "difficulty": "hard",
+    "question_text": "在 Nginx 中，实现负载均衡时 `ip_hash` 策略的作用是？",
+    "options": [
+      { "label": "A", "text": "随机分配请求到后端服务器" },
+      { "label": "B", "text": "根据客户端 IP 将请求始终路由到同一台服务器" },
+      { "label": "C", "text": "根据服务器当前连接数分配请求" },
+      { "label": "D", "text": "轮询分配请求" }
+    ],
+    "answer": "B",
+    "analysis": "`ip_hash` 根据客户端 IP 的哈希值分配，保证同一客户端始终访问同一后端（会话保持）。"
+  },
+  {
+    "id": "h008",
+    "question_type": "single_choice",
+    "difficulty": "hard",
+    "question_text": "JavaScript 事件循环中，微任务（microtask）队列在何时被清空？",
+    "options": [
+      { "label": "A", "text": "在每个宏任务执行之前" },
+      { "label": "B", "text": "在当前宏任务执行完毕后、下一个宏任务开始前" },
+      { "label": "C", "text": "在所有宏任务执行完毕后" },
+      { "label": "D", "text": "在浏览器空闲时" }
+    ],
+    "answer": "B",
+    "analysis": "事件循环：执行一个宏任务 → 清空所有微任务 → 渲染更新 → 下一个宏任务。"
+  },
+  {
+    "id": "h009",
+    "question_type": "multi_choice",
+    "difficulty": "hard",
+    "question_text": "设计一个高并发系统时，以下哪些策略有助于应对流量峰值？（多选）",
+    "options": [
+      { "label": "A", "text": "引入消息队列削峰填谷" },
+      { "label": "B", "text": "使用限流器（Rate Limiter）保护后端" },
+      { "label": "C", "text": "数据库不做任何缓存，直接查询" },
+      { "label": "D", "text": "采用多级缓存（CDN + 本地 + Redis）" }
+    ],
+    "answer": "A,B,D",
+    "analysis": "直接查数据库会在大流量下成为瓶颈，应使用缓存减少数据库压力。"
+  },
+  {
+    "id": "h010",
+    "question_type": "true_false",
+    "difficulty": "hard",
+    "question_text": "在 Rust 编程语言中，同一个作用域内可以同时存在一个值的多个可变引用。",
+    "options": [
+      { "label": "A", "text": "正确" },
+      { "label": "B", "text": "错误" }
+    ],
+    "answer": "B",
+    "analysis": "Rust 的所有权规则：同一作用域内，要么只有一个可变引用，要么多个不可变引用，不能同时存在可变和不可变引用。"
+  },
+  {
+    "id": "h011",
+    "question_type": "single_choice",
+    "difficulty": "hard",
+    "question_text": "以下哪种一致性模型允许不同副本之间短暂不一致，但保证最终达到一致状态？",
+    "options": [
+      { "label": "A", "text": "强一致性" },
+      { "label": "B", "text": "最终一致性" },
+      { "label": "C", "text": "线性一致性" },
+      { "label": "D", "text": "顺序一致性" }
+    ],
+    "answer": "B",
+    "analysis": "最终一致性（Eventual Consistency）允许短暂不一致，适用于 DNS、Cassandra 等系统。"
+  },
+  {
+    "id": "h012",
+    "question_type": "single_choice",
+    "difficulty": "hard",
+    "question_text": "WebSocket 与 HTTP 长轮询的主要区别是？",
+    "options": [
+      { "label": "A", "text": "WebSocket 更快，但只能单向通信" },
+      { "label": "B", "text": "WebSocket 是全双工协议，建立连接后服务端可主动推送" },
+      { "label": "C", "text": "HTTP 长轮询不需要服务器支持" },
+      { "label": "D", "text": "WebSocket 每次通信都需要重新握手" }
+    ],
+    "answer": "B",
+    "analysis": "WebSocket 通过一次握手升级为全双工通信；长轮询本质仍是 HTTP 请求-响应模式。"
+  },
+  {
+    "id": "h013",
+    "question_type": "single_choice",
+    "difficulty": "hard",
+    "question_text": "在 PostgreSQL 中，MVCC（多版本并发控制）主要通过什么机制实现？",
+    "options": [
+      { "label": "A", "text": "读写锁" },
+      { "label": "B", "text": "事务 ID 和元组可见性规则" },
+      { "label": "C", "text": "全局互斥锁" },
+      { "label": "D", "text": "分区表" }
+    ],
+    "answer": "B",
+    "analysis": "PG 的 MVCC 通过 XID（事务ID）、xmin/xmax 系统列和可见性检查实现，避免锁竞争。"
+  },
+  {
+    "id": "h014",
+    "question_type": "multi_choice",
+    "difficulty": "hard",
+    "question_text": "关于 JWT（JSON Web Token），以下哪些描述是正确的？（多选）",
+    "options": [
+      { "label": "A", "text": "JWT 由 Header、Payload、Signature 三部分组成" },
+      { "label": "B", "text": "Payload 部分经过加密，不可被客户端读取" },
+      { "label": "C", "text": "Signature 用于验证 token 是否被篡改" },
+      { "label": "D", "text": "JWT 天然支持 token 主动失效" }
+    ],
+    "answer": "A,C",
+    "analysis": "Payload 仅为 Base64 编码（非加密），可被解码；JWT 无法主动失效，需借助黑名单等机制。"
+  },
+  {
+    "id": "h015",
+    "question_type": "single_choice",
+    "difficulty": "hard",
+    "question_text": "在 Linux 内核中，CFS（完全公平调度器）使用什么数据结构来组织可运行进程？",
+    "options": [
+      { "label": "A", "text": "链表" },
+      { "label": "B", "text": "哈希表" },
+      { "label": "C", "text": "红黑树" },
+      { "label": "D", "text": "二叉堆" }
+    ],
+    "answer": "C",
+    "analysis": "CFS 使用红黑树按虚拟运行时间（vruntime）组织进程，保证 O(log n) 的插入和查找。"
+  }
+]
