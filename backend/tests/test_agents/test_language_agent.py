@@ -66,7 +66,7 @@ class TestLanguageAgentAutoDetect:
         async def mock_check():
             return True
 
-        with patch("app.core.agents.language_agent.asyncio.run", return_value=True):
+        with patch("asyncio.run", return_value=True):
             result = agent._auto_detect_language_material("doc_1")
         assert result is True
 
@@ -76,7 +76,7 @@ class TestLanguageAgentAutoDetect:
 
         # When the auto_detect runs the internal async function, we mock asyncio.run
         agent = LanguageAgent()
-        with patch("app.core.agents.language_agent.asyncio.run", return_value=True):
+        with patch("asyncio.run", return_value=True):
             result = agent._auto_detect_language_material("doc_1")
         assert result is True
 
@@ -85,7 +85,7 @@ class TestLanguageAgentAutoDetect:
         from app.core.agents.language_agent import LanguageAgent
 
         agent = LanguageAgent()
-        with patch("app.core.agents.language_agent.asyncio.run", return_value=False):
+        with patch("asyncio.run", return_value=False):
             result = agent._auto_detect_language_material("doc_1")
         assert result is False
 
@@ -94,7 +94,7 @@ class TestLanguageAgentAutoDetect:
         from app.core.agents.language_agent import LanguageAgent
 
         agent = LanguageAgent()
-        with patch("app.core.agents.language_agent.asyncio.run", side_effect=RuntimeError("DB down")):
+        with patch("asyncio.run", side_effect=RuntimeError("DB down")):
             result = agent._auto_detect_language_material("doc_1")
         assert result is False
 
