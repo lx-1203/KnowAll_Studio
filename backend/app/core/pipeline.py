@@ -40,6 +40,8 @@ class PipelineState:
     outline_id: str = ""
     question_ids: list[str] = field(default_factory=list)
     deck_id: str = ""
+    structure_context: str = ""
+    image_descriptions: list[str] | None = None
 
 
 class PipelineOrchestrator:
