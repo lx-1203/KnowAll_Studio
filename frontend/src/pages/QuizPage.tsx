@@ -35,6 +35,7 @@ const typeLabels: Record<string, string> = {
   single_choice: '单选', multi_choice: '多选', true_false: '判断',
   fill_blank: '填空', short_answer: '简答', calculation: '计算',
   formula: '公式', coding: '编程', material_analysis: '材料分析',
+  term_definition: '名词解释',
 }
 function diffLabel(v: number): string {
   if (v <= 0.25) return '很简单'
