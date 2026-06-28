@@ -2,11 +2,44 @@
 import json
 import random
 import logging
+import time
 from dataclasses import dataclass, field
 
 from app.core.api_scheduler import api_client, TaskType, GenerationConfig
 
 logger = logging.getLogger(__name__)
+
+
+# ============================================================
+# Pipeline Stats — Track each stage of question generation
+# ============================================================
+
+@dataclass
+class PipelineStats:
+    """Track timing and counts for each stage of the quiz generation pipeline."""
+    stage_times: dict[str, float] = field(default_factory=dict)
+    stage_counts: dict[str, int] = field(default_factory=dict)
+    _current_stage: str = ""
+    _start_time: float = 0.0
+
+    def start_stage(self, name: str):
+        self._current_stage = name
+        self._start_time = time.time()
+
+    def end_stage(self, count: int = 0):
+        elapsed = round(time.time() - self._start_time, 3)
+        self.stage_times[self._current_stage] = elapsed
+        if count:
+            self.stage_counts[self._current_stage] = count
+        logger.info(f"[Pipeline] {self._current_stage}: {elapsed}s, count={count}")
+        return elapsed
+
+    def summary(self) -> dict:
+        return {
+            "stages": self.stage_times,
+            "counts": self.stage_counts,
+            "total_time": round(sum(self.stage_times.values()), 3),
+        }
 
 # ============================================================
 # Bloom's Revised Taxonomy — Cognitive Level Definitions
