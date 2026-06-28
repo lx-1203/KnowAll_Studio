@@ -83,6 +83,7 @@ export default function App() {
       { key: '/upload', icon: <UploadIcon />, label: <Link to="/upload">资料导入</Link> },
       { key: '/search', icon: <SearchIcon />, label: <Link to="/search">全局搜索</Link> },
       { key: '/chat', icon: <AIIcon />, label: <Link to="/chat">AI助手</Link> },
+      { key: '/pipeline', icon: <NodeIndexOutlined />, label: <Link to="/pipeline">处理流水线</Link> },
     ]},
     { type: 'group', label: '互动评估', children: [
       { key: '/review', icon: <ReviewIcon />, label: <Link to="/review">答题回顾</Link> },
