@@ -4,8 +4,9 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select
 from pydantic import BaseModel
 from app.database import get_db
-from app.models import Document, DocumentChunk, KnowledgeTree, Outline, KnowledgeEdge
+from app.models import Document, DocumentChunk, KnowledgeTree, Outline, KnowledgeEdge, KnowledgeSummary, KnowledgePointNode, KnowledgeCoverage
 from app.core.knowledge import knowledge_generator
+from app.core.knowledge.summary_generator import summary_generator
 from app.core.parsing.outline_extractor import outline_extractor
 from app.core.auth import get_optional_user, get_user_id, load_user_api_keys
 
