@@ -178,7 +178,10 @@ class PipelineOrchestrator:
             from app.core.knowledge import knowledge_generator
             from app.models import Outline
 
-            outline_md = await knowledge_generator.generate_outline(state.chunk_texts, model)
+            outline_md = await knowledge_generator.generate_outline(
+                state.chunk_texts, model,
+                structure_context=state.structure_context,
+            )
 
             async with async_session() as db:
                 outline = Outline(
