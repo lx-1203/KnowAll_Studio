@@ -185,7 +185,7 @@ function FillBlankInput({ q, userAnswer, onAnswerChange, disabled }: {
   userAnswer: string; onAnswerChange: (qid: string, ans: string) => void; disabled: boolean
 }) {
   const blanks = q.blanks || []
-  const inputRefs = useRef<(Input | null)[]>([])
+  const inputRefs = useRef<(InputRef | null)[]>([])
 
   // Parse existing answers (delimited by ;)
   const answers = userAnswer ? userAnswer.split(';').map(s => s.trim()) : []
