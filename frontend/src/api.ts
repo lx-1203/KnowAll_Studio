@@ -111,6 +111,12 @@ export const saveGameProgress = (params: object) => api.post('/generate/game-pro
 export const getGameProgress = (gameType?: string) =>
   api.get('/generate/game-progress', { params: { game_type: gameType } }).then(r => r.data)
 
+// Game Quiz (new)
+export const getGameQuizQuestions = (difficulty: string, count = 5, source = 'local') =>
+  api.get('/game/quiz', { params: { difficulty, count, source } }).then(r => r.data)
+export const getLocalQuizInfo = () =>
+  api.get('/game/quiz/local').then(r => r.data)
+
 // URL Import
 export const importURL = (url: string) => api.post('/documents/import-url', { url }).then(r => r.data)
 
