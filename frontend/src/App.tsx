@@ -6,6 +6,7 @@ import { useTheme } from './components/ThemeProvider'
 import ErrorBoundary from './components/ErrorBoundary'
 import LoginPage from './pages/LoginPage'
 import { useAuthStore } from './stores'
+import { SyncProvider } from './hooks/useSync'
 
 // Lazy-load all pages for code splitting
 const DashboardPage = lazy(() => import('./pages/DashboardPage'))
