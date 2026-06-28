@@ -324,7 +324,7 @@ class BOISAnalyzer:
         if m.hierarchy_balance < 0.5:
             suggestions.append(
                 "【层级均衡】各层节点数分布不均，建议调整知识结构使上层简洁、"
-                "下层充分展开，形成"倒金字塔"形状。"
+                "下层充分展开，形成\u201c倒金字塔\u201d形状。"
             )
 
         if m.coverage_completeness < 0.7:
