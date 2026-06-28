@@ -97,6 +97,7 @@ from app.api.language import router as language_router
 from app.api.memory_feedback import router as memory_router
 from app.api.coverage import router as coverage_router
 from app.api.interactive_quiz import router as interactive_quiz_router
+from app.api.answer_review import router as answer_review_router
 from app.api.sync_upload import router as sync_upload_router
 from app.api.version_control import router as version_control_router
 from app.websocket import sync_router
