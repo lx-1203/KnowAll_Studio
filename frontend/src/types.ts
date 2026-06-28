@@ -38,11 +38,15 @@ export interface Question {
   id: string
   question_type: QuestionType
   difficulty: 'easy' | 'medium' | 'hard'
+  difficulty_score: number           // NEW: continuous 0.0-1.0
+  cognitive_level: CognitiveLevel    // NEW: Bloom level
   tags: string[]
   question_text: string
   options: Option[]
   answer: string
   analysis: string | null
+  review_scores?: Record<string, number>  // NEW: LLM-as-Judge quality scores
+  review_total?: number                   // NEW: total review score
 }
 
 export type QuestionType =
@@ -56,6 +60,32 @@ export type QuestionType =
   | 'formula'
   | 'coding'
   | 'material_analysis'
+
+export type CognitiveLevel =
+  | 'L1_remember'
+  | 'L2_understand'
+  | 'L3_apply'
+  | 'L4_analyze'
+  | 'L5_evaluate'
+  | 'L6_create'
+
+export const COGNITIVE_LEVEL_LABELS: Record<CognitiveLevel, string> = {
+  L1_remember: '记忆',
+  L2_understand: '理解',
+  L3_apply: '应用',
+  L4_analyze: '分析',
+  L5_evaluate: '评价',
+  L6_create: '创造',
+}
+
+export const COGNITIVE_LEVEL_COLORS: Record<CognitiveLevel, string> = {
+  L1_remember: 'blue',
+  L2_understand: 'cyan',
+  L3_apply: 'green',
+  L4_analyze: 'orange',
+  L5_evaluate: 'red',
+  L6_create: 'purple',
+}
 
 export interface Option {
   label: string
