@@ -390,3 +390,95 @@ class ShareLink(Base):
     expires_at = Column(DateTime)  # None = never expires
     view_count = Column(Integer, default=0)
     created_at = Column(DateTime, default=now)
+
+
+# ==================== Knowledge Summary Models ====================
+
+class KnowledgeSummary(Base):
+    """完整知识点总结（Markdown格式）"""
+    __tablename__ = "knowledge_summaries"
+
+    id = Column(String(36), primary_key=True, default=gen_uuid)
+    document_id = Column(String(36), ForeignKey("documents.id", ondelete="CASCADE"), nullable=False)
+    content_md = Column(Text, nullable=False)  # 完整 Markdown 内容
+    node_count = Column(Integer, default=0)
+    level_stats = Column(JSON, default=dict)  # {"L1":3,"L2":12,"L3":45}
+    model_used = Column(String(64))
+    generation_cache_key = Column(String(128), unique=True)
+    generated_at = Column(DateTime, default=now)
+    created_at = Column(DateTime, default=now)
+
+
+class KnowledgePointNode(Base):
+    """知识点节点（结构化拆分，3级层级）"""
+    __tablename__ = "knowledge_point_nodes"
+
+    id = Column(String(64), primary_key=True)  # kp_{doc_id}_L{level}_{seq}
+    summary_id = Column(String(36), ForeignKey("knowledge_summaries.id", ondelete="CASCADE"))
+    document_id = Column(String(36), ForeignKey("documents.id", ondelete="CASCADE"), nullable=False)
+    parent_id = Column(String(64))
+    level = Column(Integer, nullable=False)  # 1/2/3
+    sequence = Column(Integer, nullable=False)  # 同级排序序号
+    title = Column(String(256), nullable=False)
+    explanation = Column(Text, nullable=False)  # 详细解释
+    related_concepts = Column(Text)  # 关联概念（以逗号分隔或 JSON 数组）
+    examples = Column(Text)  # 示例（Markdown 格式）
+    tags = Column(JSON, default=list)
+    created_at = Column(DateTime, default=now)
+
+
+# ==================== Knowledge Coverage Model ====================
+
+class KnowledgeCoverage(Base):
+    """知识点覆盖率映射（知识点↔题目/记忆卡多对多关系）"""
+    __tablename__ = "knowledge_coverage"
+    __table_args__ = (
+        UniqueConstraint("knowledge_point_id", "resource_type", "resource_id"),
+    )
+
+    id = Column(String(36), primary_key=True, default=gen_uuid)
+    knowledge_point_id = Column(String(64), ForeignKey("knowledge_point_nodes.id", ondelete="CASCADE"), nullable=False)
+    resource_type = Column(String(32), nullable=False)  # 'question' | 'flashcard'
+    resource_id = Column(String(36), nullable=False)  # question_bank.id 或 flashcards.id
+    is_primary = Column(Boolean, default=True)  # 是否为主要覆盖
+    created_at = Column(DateTime, default=now)
+
+
+# ==================== Review Queue Model ====================
+
+class ReviewQueue(Base):
+    """复习推送队列（薄弱环节自动推送）"""
+    __tablename__ = "review_queue"
+
+    id = Column(String(36), primary_key=True, default=gen_uuid)
+    user_id = Column(String(36), ForeignKey("users.id", ondelete="CASCADE"), nullable=False, default="local_user")
+    resource_type = Column(String(32), nullable=False)  # 'flashcard' | 'question'
+    resource_id = Column(String(36), nullable=False)
+    knowledge_point_id = Column(String(64))  # 关联知识点 ID
+    priority = Column(Integer, default=0)  # 优先级（正确率越低越高）
+    reason = Column(String(64))  # 'low_accuracy' | 'overdue' | 'manual'
+    pushed_at = Column(DateTime, default=now)
+    completed = Column(Boolean, default=False)
+    completed_at = Column(DateTime)
+
+
+# ==================== Language Vocabulary Model ====================
+
+class LanguageVocabulary(Base):
+    """生词表（外语学习 Agent 生成）"""
+    __tablename__ = "language_vocabulary"
+    __table_args__ = (
+        UniqueConstraint("document_id", "word"),
+    )
+
+    id = Column(String(36), primary_key=True, default=gen_uuid)
+    document_id = Column(String(36), ForeignKey("documents.id", ondelete="CASCADE"), nullable=False)
+    word = Column(String(128), nullable=False)
+    phonetic = Column(String(64))  # 音标
+    part_of_speech = Column(String(32))  # 词性
+    definition = Column(Text, nullable=False)  # 释义
+    example_sentence = Column(Text)  # 例句
+    difficulty = Column(String(16), default="medium")  # easy/medium/hard
+    knowledge_point_id = Column(String(64))  # 关联知识点
+    mastered = Column(Boolean, default=False)
+    created_at = Column(DateTime, default=now)
