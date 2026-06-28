@@ -120,6 +120,10 @@ function KnowledgePageInner() {
 
   useEffect(() => {
     if (selectedTree) {
+      // Clear previous tree while loading new one
+      setNodes([])
+      setEdges([])
+      setKnowledgeEdges([])
       getTree(selectedTree).then(tree => {
         if (tree?.tree_data) {
           const flow = treeToFlow(tree.tree_data)
@@ -127,9 +131,13 @@ function KnowledgePageInner() {
           setEdges(flow.edges)
           setTimeout(() => fitView({ padding: 0.2, duration: 300 }), 100)
         }
+        // Load cross-reference edges
+        listEdges(selectedTree).then(setKnowledgeEdges).catch(console.error)
       }).catch(console.error)
-      // Load cross-reference edges
-      listEdges(selectedTree).then(setKnowledgeEdges).catch(console.error)
+    } else {
+      setNodes([])
+      setEdges([])
+      setKnowledgeEdges([])
     }
   }, [selectedTree])
 
