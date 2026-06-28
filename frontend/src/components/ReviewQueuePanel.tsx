@@ -7,6 +7,7 @@ import type { ReviewQueueItem } from '../types'
 const { Text } = Typography
 
 export default function ReviewQueuePanel() {
+  const { message } = App.useApp()
   const [items, setItems] = useState<ReviewQueueItem[]>([])
   const [loading, setLoading] = useState(false)
   const [scanning, setScanning] = useState(false)
