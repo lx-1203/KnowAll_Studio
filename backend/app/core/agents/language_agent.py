@@ -45,7 +45,7 @@ class LanguageAgent(BaseAgent):
             # Simple sync check using document metadata
             import asyncio
             async def check():
-                async for session in get_session_ctx():
+                async with async_session() as session:
                     doc = await session.get(Document, document_id)
                     if not doc:
                         return False
