@@ -9,6 +9,7 @@ def _register_agents():
     from app.core.agents.mindmap_agent import MindMapAgent  # noqa: F401
     from app.core.agents.study_plan_agent import StudyPlanAgent  # noqa: F401
     from app.core.agents.language_agent import LanguageAgent  # noqa: F401
+    from app.core.agents.flashcard_agent import FlashcardAgent  # noqa: F401
 
 
 # Register on first access via AgentRegistry
