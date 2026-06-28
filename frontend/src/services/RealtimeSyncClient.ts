@@ -197,6 +197,7 @@ export class RealtimeSyncClient {
     switch (msg.type) {
       case 'ack':
         this.localVersion = msg.data?.new_version ?? this.localVersion;
+        this.flushOfflineQueue();
         break;
 
       case 'operation':
@@ -208,6 +209,7 @@ export class RealtimeSyncClient {
       case 'sync_full':
         this.localVersion = msg.data?.version ?? 0;
         this.options.onMessage(msg);
+        this.flushOfflineQueue();
         break;
 
       case 'sync_diff': {
@@ -216,6 +218,7 @@ export class RealtimeSyncClient {
           this.options.onMessage({ type: 'operation', data: op } as SyncMessage);
         }
         this.localVersion = msg.data?.version ?? this.localVersion;
+        this.flushOfflineQueue();
         break;
       }
 
