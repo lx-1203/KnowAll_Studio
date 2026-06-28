@@ -18,7 +18,7 @@ class MindMapAgent(BaseAgent):
         from sqlalchemy import select
 
         try:
-            async for session in get_session():
+            async with async_session() as session:
                 summary = await session.get(KnowledgeSummary, summary_id)
                 if not summary:
                     return AgentResult(agent=self.name, status="error", error="Summary not found")
