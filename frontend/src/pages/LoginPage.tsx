@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { Tabs, Form, Input, Button, Typography, App } from 'antd'
+import { Tabs, Form, Input, Button, Typography, App, theme } from 'antd'
 import { UserOutlined, LockOutlined, MailOutlined } from '@ant-design/icons'
 import { login, register } from '../api'
 import { useAuthStore } from '../stores'
@@ -10,6 +10,7 @@ export default function LoginPage() {
   const { message } = App.useApp()
   const authLogin = useAuthStore(s => s.login)
   const [loading, setLoading] = useState(false)
+  const { token } = theme.useToken()
 
   const handleLogin = async (values: { username: string; password: string }) => {
     setLoading(true)
@@ -38,68 +39,134 @@ export default function LoginPage() {
   }
 
   return (
-    <div style={{
-      display: 'flex', justifyContent: 'center', alignItems: 'center',
-      minHeight: '100vh', background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
-    }}>
-      <div style={{ width: 400, padding: '0 16px' }}>
-        <div style={{ textAlign: 'center', marginBottom: 32 }}>
-          <Title level={2} style={{ color: '#fff', marginBottom: 4 }}>KnowAll Studio</Title>
-          <Text style={{ color: 'rgba(255,255,255,0.8)' }}>大学生学习系统</Text>
+    <div
+      className="page-fade"
+      style={{
+        display: 'flex',
+        justifyContent: 'center',
+        alignItems: 'center',
+        minHeight: '100vh',
+        background: token.colorBgLayout,
+        transition: 'background 0.3s ease',
+      }}
+    >
+      <div style={{ width: 420, padding: '0 16px' }}>
+        {/* Brand */}
+        <div style={{ textAlign: 'center', marginBottom: 28 }}>
+          <Title
+            level={2}
+            style={{
+              marginBottom: 4,
+              fontWeight: 700,
+              letterSpacing: '-0.02em',
+              color: token.colorTextHeading,
+            }}
+          >
+            KnowAll Studio
+          </Title>
+          <Text style={{ fontSize: 15, color: token.colorTextSecondary }}>
+            大学生学习系统
+          </Text>
         </div>
 
-        <Tabs
-          centered
-          items={[
-            {
-              key: 'login',
-              label: '登录',
-              children: (
-                <Form onFinish={handleLogin} size="large">
-                  <Form.Item name="username" rules={[{ required: true, message: '请输入用户名或邮箱' }]}>
-                    <Input prefix={<UserOutlined />} placeholder="用户名 / 邮箱" autoComplete="username" />
-                  </Form.Item>
-                  <Form.Item name="password" rules={[{ required: true, message: '请输入密码' }]}>
-                    <Input.Password prefix={<LockOutlined />} placeholder="密码" autoComplete="current-password" />
-                  </Form.Item>
-                  <Form.Item>
-                    <Button type="primary" htmlType="submit" loading={loading} block>
-                      登录
-                    </Button>
-                  </Form.Item>
-                </Form>
-              ),
-            },
-            {
-              key: 'register',
-              label: '注册',
-              children: (
-                <Form onFinish={handleRegister} size="large">
-                  <Form.Item name="username" rules={[{ required: true, message: '请输入用户名' }]}>
-                    <Input prefix={<UserOutlined />} placeholder="用户名" maxLength={50} />
-                  </Form.Item>
-                  <Form.Item name="email" rules={[
-                    { required: true, message: '请输入邮箱' },
-                    { type: 'email', message: '邮箱格式不正确' },
-                  ]}>
-                    <Input prefix={<MailOutlined />} placeholder="邮箱" autoComplete="email" />
-                  </Form.Item>
-                  <Form.Item name="password" rules={[
-                    { required: true, message: '请输入密码' },
-                    { min: 6, message: '密码至少 6 位' },
-                  ]}>
-                    <Input.Password prefix={<LockOutlined />} placeholder="密码" autoComplete="new-password" />
-                  </Form.Item>
-                  <Form.Item>
-                    <Button type="primary" htmlType="submit" loading={loading} block>
-                      注册
-                    </Button>
-                  </Form.Item>
-                </Form>
-              ),
-            },
-          ]}
-        />
+        {/* Card */}
+        <div
+          style={{
+            background: token.colorBgContainer,
+            borderRadius: 12,
+            padding: '28px 24px 12px',
+            boxShadow: token.boxShadowTertiary,
+            transition: 'background 0.3s ease, box-shadow 0.3s ease',
+          }}
+        >
+          <Tabs
+            centered
+            items={[
+              {
+                key: 'login',
+                label: '登录',
+                children: (
+                  <Form onFinish={handleLogin} size="large">
+                    <Form.Item
+                      name="username"
+                      rules={[{ required: true, message: '请输入用户名或邮箱' }]}
+                    >
+                      <Input
+                        prefix={<UserOutlined />}
+                        placeholder="用户名 / 邮箱"
+                        autoComplete="username"
+                      />
+                    </Form.Item>
+                    <Form.Item
+                      name="password"
+                      rules={[{ required: true, message: '请输入密码' }]}
+                    >
+                      <Input.Password
+                        prefix={<LockOutlined />}
+                        placeholder="密码"
+                        autoComplete="current-password"
+                      />
+                    </Form.Item>
+                    <Form.Item style={{ marginBottom: 12 }}>
+                      <Button type="primary" htmlType="submit" loading={loading} block>
+                        登录
+                      </Button>
+                    </Form.Item>
+                  </Form>
+                ),
+              },
+              {
+                key: 'register',
+                label: '注册',
+                children: (
+                  <Form onFinish={handleRegister} size="large">
+                    <Form.Item
+                      name="username"
+                      rules={[{ required: true, message: '请输入用户名' }]}
+                    >
+                      <Input
+                        prefix={<UserOutlined />}
+                        placeholder="用户名"
+                        maxLength={50}
+                      />
+                    </Form.Item>
+                    <Form.Item
+                      name="email"
+                      rules={[
+                        { required: true, message: '请输入邮箱' },
+                        { type: 'email', message: '邮箱格式不正确' },
+                      ]}
+                    >
+                      <Input
+                        prefix={<MailOutlined />}
+                        placeholder="邮箱"
+                        autoComplete="email"
+                      />
+                    </Form.Item>
+                    <Form.Item
+                      name="password"
+                      rules={[
+                        { required: true, message: '请输入密码' },
+                        { min: 6, message: '密码至少 6 位' },
+                      ]}
+                    >
+                      <Input.Password
+                        prefix={<LockOutlined />}
+                        placeholder="密码"
+                        autoComplete="new-password"
+                      />
+                    </Form.Item>
+                    <Form.Item style={{ marginBottom: 12 }}>
+                      <Button type="primary" htmlType="submit" loading={loading} block>
+                        注册
+                      </Button>
+                    </Form.Item>
+                  </Form>
+                ),
+              },
+            ]}
+          />
+        </div>
       </div>
     </div>
   )
