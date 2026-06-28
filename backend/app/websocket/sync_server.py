@@ -96,7 +96,9 @@ async def _broadcast(room_id: str, message: dict, exclude: WebSocket | None = No
         return
     dead: list = []
     raw = json.dumps(message, ensure_ascii=False)
-    for ws, _uid, _uname in _rooms[room_id]:
+    # Snapshot iteration to avoid "Set changed size during iteration"
+    # when _rooms[room_id] is modified by concurrent connection/disconnection
+    for ws, _uid, _uname in list(_rooms[room_id]):
         if ws == exclude:
             continue
         try:
