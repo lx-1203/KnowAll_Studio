@@ -177,7 +177,7 @@ class TestQuestionBankRun:
                 return_value=extracted_nodes,
             ):
                 with patch(
-                    "app.core.agents.question_bank_agent.relation_extractor.extract",
+                    "app.core.quiz.relation_extractor.relation_extractor.extract",
                     new_callable=AsyncMock,
                 ) as mock_rel_extract:
                     mock_rel_extract.return_value = ([], [])
@@ -229,7 +229,7 @@ class TestQuestionBankRun:
             mock_session_ctx.return_value.__aexit__ = AsyncMock(return_value=None)
 
             with patch(
-                "app.core.agents.question_bank_agent.relation_extractor.extract",
+                "app.core.quiz.relation_extractor.relation_extractor.extract",
                 new_callable=AsyncMock,
             ) as mock_rel:
                 mock_rel.return_value = ([], [])
@@ -282,7 +282,7 @@ class TestQuestionBankRun:
             mock_session_ctx.return_value.__aexit__ = AsyncMock(return_value=None)
 
             with patch(
-                "app.core.agents.question_bank_agent.relation_extractor.extract",
+                "app.core.quiz.relation_extractor.relation_extractor.extract",
                 new_callable=AsyncMock,
                 side_effect=RuntimeError("KG extraction failed"),
             ):
@@ -334,7 +334,7 @@ class TestQuestionBankRun:
             mock_session_ctx.return_value.__aexit__ = AsyncMock(return_value=None)
 
             with patch(
-                "app.core.agents.question_bank_agent.relation_extractor.extract",
+                "app.core.quiz.relation_extractor.relation_extractor.extract",
                 new_callable=AsyncMock,
             ) as mock_rel_extract:
                 with patch(
