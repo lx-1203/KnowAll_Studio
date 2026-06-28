@@ -57,6 +57,25 @@ async def _heartbeat_checker() -> None:
 _background_tasks: set[asyncio.Task] = set()
 
 
+def start_background_tasks() -> None:
+    """Start sync server background tasks (heartbeat checker).
+    Called from FastAPI lifespan startup."""
+    if not any(t.get_name() == "heartbeat_checker" for t in _background_tasks):
+        task = asyncio.create_task(_heartbeat_checker(), name="heartbeat_checker")
+        _background_tasks.add(task)
+        task.add_done_callback(_background_tasks.discard)
+        logger.info("后台心跳检查任务已启动")
+
+
+async def stop_background_tasks() -> None:
+    """Cancel all background tasks on shutdown."""
+    for task in list(_background_tasks):
+        task.cancel()
+    await asyncio.gather(*_background_tasks, return_exceptions=True)
+    _background_tasks.clear()
+    logger.info("后台任务已停止")
+
+
 def _verify_token(token: str) -> dict | None:
     """Verify JWT token and return payload or None."""
     if not token or not settings.jwt_secret:
