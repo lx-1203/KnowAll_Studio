@@ -11,6 +11,7 @@ const { Title, Text } = Typography
 export default function InteractiveQuizPage() {
   const { summaryId } = useParams<{ summaryId: string }>()
   const navigate = useNavigate()
+  const { message } = App.useApp()
   const [sessionId, setSessionId] = useState('')
   const [questions, setQuestions] = useState<Question[]>([])
   const [currentIndex, setCurrentIndex] = useState(0)
