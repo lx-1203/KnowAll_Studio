@@ -174,6 +174,8 @@ class TestLanguageAgentRun:
         """run() with valid LLM JSON response parses and stores vocab."""
         from app.core.agents.language_agent import LanguageAgent
 
+        agent = LanguageAgent()
+
         vocab_json = '[{"word":"hello","phonetic":"həˈloʊ","part_of_speech":"interjection","definition":"你好","example_sentence":"Hello, how are you?"},{"word":"world","phonetic":"wɜːld","part_of_speech":"noun","definition":"世界","example_sentence":"The world is beautiful."}]'
 
         mock_summary = MagicMock()
