@@ -203,7 +203,93 @@ class PipelineOrchestrator:
 
         yield self._progress(state, PipelineStage.OUTLINE, 40, "知识大纲生成完成")
 
-        # ---- Stage 3: Generate quiz questions ----
+        # ---- Stage 3: Generate knowledge summary for Agent orchestration ----
+        yield self._progress(state, PipelineStage.AGENTS, 45, "正在生成知识点总结...")
+        try:
+            from app.core.knowledge.summary_generator import SummaryGenerator
+            from app.models import KnowledgeSummary, KnowledgePointNode
+
+            summary_generator = SummaryGenerator()
+            summary_result = await summary_generator.generate(
+                chunk_texts=state.chunk_texts,
+                document_id=document_id,
+                model=model,
+                structure_context=state.structure_context,
+                image_descriptions=state.image_descriptions,
+            )
+
+            async with async_session() as db:
+                summary = KnowledgeSummary(
+                    document_id=document_id,
+                    content_md=summary_result["content_md"],
+                    node_count=summary_result["node_count"],
+                    level_stats=summary_result.get("level_stats", {}),
+                    model_used=model,
+                )
+                db.add(summary)
+                await db.flush()
+                state.summary_id = summary.id
+
+                # Persist extracted nodes
+                for node_data in summary_result.get("nodes", []):
+                    node = KnowledgePointNode(
+                        id=node_data["id"],
+                        summary_id=summary.id,
+                        document_id=document_id,
+                        parent_id=node_data.get("parent_id"),
+                        level=node_data["level"],
+                        sequence=node_data["sequence"],
+                        title=node_data["title"],
+                        explanation=node_data.get("explanation", ""),
+                        related_concepts=node_data.get("related_concepts"),
+                        examples=node_data.get("examples"),
+                        tags=node_data.get("tags", []),
+                    )
+                    db.add(node)
+
+                await db.commit()
+                logger.info("Knowledge summary created: %s with %d nodes", summary.id, summary_result["node_count"])
+        except Exception as e:
+            # Summary generation failure is non-fatal; agents will fall back to Markdown extraction
+            logger.warning(f"Summary generation failed: {e}, agents will use fallback")
+            yield self._progress(state, PipelineStage.AGENTS, 50, f"知识点总结生成失败（将跳过Agent调度）: {e}")
+
+        # ---- Stage 3.5: Parallel Agent orchestration ----
+        if state.summary_id:
+            yield self._progress(state, PipelineStage.AGENTS, 55, "正在并行调度学习Agent...")
+            try:
+                from app.core.agents.orchestrator import orchestrator as agent_orch
+
+                agent_config = {
+                    "question_count": question_count,
+                    "question_types": [question_type] if isinstance(question_type, str) else question_type,
+                    "card_count": card_count,
+                    "card_type": card_type,
+                }
+                agent_result = await agent_orch.orchestrate_from_pipeline(
+                    summary_id=state.summary_id,
+                    document_id=document_id,
+                    config=agent_config,
+                )
+                state.agent_results = agent_result
+                state.result = state.result or {}
+                state.result["agent_results"] = agent_result.get("results", {})
+                state.result["coverage_report"] = agent_result.get("coverage_report")
+
+                total_agents = len(agent_result.get("results", {}))
+                succeeded = sum(1 for r in agent_result.get("results", {}).values()
+                               if isinstance(r, dict) and r.get("status") == "success")
+                yield self._progress(state, PipelineStage.AGENTS, 85,
+                                     f"Agent调度完成 ({succeeded}/{total_agents} 成功)")
+            except Exception as e:
+                logger.error(f"Agent orchestration failed: {e}", exc_info=True)
+                state.result = state.result or {}
+                state.result["agent_error"] = str(e)
+                yield self._progress(state, PipelineStage.AGENTS, 85, f"Agent调度失败: {e}")
+        else:
+            yield self._progress(state, PipelineStage.AGENTS, 85, "跳过Agent调度（无知识点总结）")
+
+        # ---- Stage 4: Generate quiz questions ----
         yield self._progress(state, PipelineStage.QUIZ, 40, f"正在生成 {question_count} 道题目...")
         try:
             from app.core.quiz import quiz_generator, QuizGenerationConfig
