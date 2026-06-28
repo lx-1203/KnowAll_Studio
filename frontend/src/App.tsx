@@ -116,7 +116,7 @@ export default function App() {
           <img src="/logo.png" alt="全息坚果 Logo"
             style={{ height: 36, width: 36, borderRadius: 8, objectFit: 'cover' }} />
           <h1 style={{ color: '#fff', margin: 0, fontSize: 20, fontWeight: 700, whiteSpace: 'nowrap' }}>
-            全息坚果
+            KnowAll Studio
           </h1>
         </div>
         <Space size="middle">
