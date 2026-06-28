@@ -1,7 +1,8 @@
 import { useState, useEffect } from 'react'
+import { useNavigate } from 'react-router-dom'
 import { Upload, Button, Card, Table, App, Tag, Space, Popconfirm, Modal, Input } from 'antd'
-import { UploadOutlined, FilePdfOutlined, FileTextOutlined, FileMarkdownOutlined, DeleteOutlined, FileImageOutlined, BranchesOutlined, LinkOutlined, CodeOutlined, EyeOutlined, DatabaseOutlined, PictureOutlined, ApartmentOutlined } from '@ant-design/icons'
-import { uploadDocument, listDocuments, deleteDocument, indexDocument, getDocumentDetail, analyzeDocumentImages } from '../api'
+import { UploadOutlined, FilePdfOutlined, FileTextOutlined, FileMarkdownOutlined, DeleteOutlined, FileImageOutlined, BranchesOutlined, LinkOutlined, CodeOutlined, EyeOutlined, DatabaseOutlined, PictureOutlined, ApartmentOutlined, RocketOutlined, CheckSquareOutlined } from '@ant-design/icons'
+import { uploadDocument, listDocuments, deleteDocument, indexDocument, getDocumentDetail, analyzeDocumentImages, generateSummary } from '../api'
 import { useAppStore } from '../stores'
 import FilePreview from '../components/previews/FilePreview'
 
