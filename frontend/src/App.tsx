@@ -1,7 +1,7 @@
 import { Suspense, lazy, useState, useEffect } from 'react'
 import { Routes, Route, Link, useLocation } from 'react-router-dom'
 import { Layout, Menu, Button, Spin, Drawer, Grid, Space } from 'antd'
-import { BulbOutlined, MenuOutlined, LogoutOutlined, BookOutlined, NodeIndexOutlined } from '@ant-design/icons'
+import { BulbOutlined, MenuOutlined, LogoutOutlined, BookOutlined } from '@ant-design/icons'
 import { useTheme } from './components/ThemeProvider'
 import ErrorBoundary from './components/ErrorBoundary'
 import LoginPage from './pages/LoginPage'
