@@ -132,16 +132,16 @@ cd /d "%~dp0"
 :: ============================================================
 echo.
 echo Starting services...
-echo   Backend  (hot-reload on) -> http://localhost:8000
+echo   Backend  (hot-reload on) -> http://localhost:8001
 echo   Frontend (HMR on)        -> http://localhost:5173
 echo.
-start "KnowAll-Backend" /D "%~dp0backend" cmd /k python -m uvicorn app.main:app --host 127.0.0.1 --port 8000 --reload --reload-dir app
+start "KnowAll-Backend" /D "%~dp0backend" cmd /k python -m uvicorn app.main:app --host 127.0.0.1 --port 8001 --reload --reload-dir app
 start "KnowAll-Frontend" /D "%~dp0frontend" cmd /k npm run dev
 
-start "" /b powershell -NoProfile -WindowStyle Hidden -Command "$ok=$false; for ($i=0; $i -lt 60; $i++) { try { $c = New-Object Net.Sockets.TcpClient; $c.Connect('127.0.0.1', 8000); $c.Close(); $ok=$true; break } catch { Start-Sleep 1 } }; if ($ok) { Start-Process 'http://localhost:5173' }"
+start "" /b powershell -NoProfile -WindowStyle Hidden -Command "$ok=$false; for ($i=0; $i -lt 60; $i++) { try { $c = New-Object Net.Sockets.TcpClient; $c.Connect('127.0.0.1', 8001); $c.Close(); $ok=$true; break } catch { Start-Sleep 1 } }; if ($ok) { Start-Process 'http://localhost:5173' }"
 
 echo.
-echo   Backend  -> http://localhost:8000/docs
+echo   Backend  -> http://localhost:8001/docs
 echo   Frontend -> http://localhost:5173
 echo.
 echo   Close CMD windows to stop all services.
