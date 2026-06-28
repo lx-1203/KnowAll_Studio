@@ -393,6 +393,7 @@ async def sync_websocket(
             _rooms[doc_id].discard((ws, user_id, user_name))
             if not _rooms[doc_id]:
                 del _rooms[doc_id]
+        _last_heartbeat.pop(id(ws), None)
         await _broadcast_presence(doc_id)
 
 
