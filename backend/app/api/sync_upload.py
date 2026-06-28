@@ -117,7 +117,7 @@ async def upload_chunk(
     # 校验 hash（可选）
     if x_chunk_hash:
         algo, _, expected = x_chunk_hash.partition("=")
-        actual = hashlib.new(algo.replace("sha256", "sha256") or "sha256", chunk_data).hexdigest()
+        actual = hashlib.new(algo or "sha256", chunk_data).hexdigest()
         if actual != expected:
             raise HTTPException(400, f"分片 hash 校验失败")
 
