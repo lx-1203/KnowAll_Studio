@@ -487,3 +487,46 @@ class LanguageVocabulary(Base):
     knowledge_point_id = Column(String(64))  # 关联知识点
     mastered = Column(Boolean, default=False)
     created_at = Column(DateTime, default=now)
+
+
+# ==================== Sync Persistence Models ====================
+
+class SyncOfflineMessage(Base):
+    """离线消息持久化（替代 Redis user:{uid}:offline_msgs）"""
+    __tablename__ = "sync_offline_messages"
+
+    id = Column(Integer, primary_key=True, autoincrement=True)
+    user_id = Column(String(36), nullable=False, index=True)
+    room_id = Column(String(64), default="")
+    msg_type = Column(String(32), nullable=False)
+    msg_data = Column(JSON, default=dict)
+    version = Column(Integer, default=0)
+    delivered = Column(Boolean, default=False)
+    created_at = Column(DateTime, default=now)
+
+
+class SyncOpLog(Base):
+    """操作日志（替代 Redis room:{rid}:event_log）"""
+    __tablename__ = "sync_op_log"
+
+    id = Column(Integer, primary_key=True, autoincrement=True)
+    room_id = Column(String(64), nullable=False, index=True)
+    version = Column(Integer, nullable=False)
+    user_id = Column(String(36), default="")
+    operation = Column(String(32), default="")
+    data = Column(JSON, default=dict)
+    created_at = Column(DateTime, default=now)
+
+
+class SyncFileVersion(Base):
+    """文件版本历史持久化"""
+    __tablename__ = "sync_file_versions"
+
+    id = Column(Integer, primary_key=True, autoincrement=True)
+    file_id = Column(String(36), nullable=False, index=True)
+    version = Column(Integer, nullable=False)
+    filename = Column(String(256))
+    file_size = Column(Integer, default=0)
+    storage_path = Column(String(500))
+    updated_by = Column(String(64), default="")
+    created_at = Column(DateTime, default=now)
