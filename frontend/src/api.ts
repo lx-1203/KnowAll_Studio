@@ -173,6 +173,53 @@ export const getReadingArticle = (id: number) =>
 export const convertReadingText = (text: string, level: number) =>
   api.post('/reading/convert', { text, level }).then(r => r.data)
 
+// ===== Knowledge Summary (NEW) =====
+export const generateSummary = (params: object) => api.post('/knowledge/summary/generate', params).then(r => r.data)
+export const getSummary = (summaryId: string) => api.get(`/knowledge/summary/${summaryId}`).then(r => r.data)
+export const getSummaryNodes = (summaryId: string, level?: number) =>
+  api.get(`/knowledge/summary/${summaryId}/nodes`, { params: { level } }).then(r => r.data)
+export const getSummaryMindmap = (summaryId: string) =>
+  api.get(`/knowledge/summary/${summaryId}/mindmap`).then(r => r.data)
+
+// ===== Agent Orchestration (NEW) =====
+export const orchestrateAgents = (params: object) => api.post('/agents/orchestrate', params).then(r => r.data)
+export const listAgents = () => api.get('/agents/list').then(r => r.data)
+
+// ===== Interactive Quiz (NEW) =====
+export const startInteractiveQuiz = (params: object) =>
+  api.get('/quiz/interactive/start', { params }).then(r => r.data)
+export const submitInteractiveAnswer = (params: object) =>
+  api.post('/quiz/interactive/submit', params).then(r => r.data)
+
+// ===== Language Vocabulary (NEW) =====
+export const generateVocabulary = (params: object) => api.post('/language/vocabulary/generate', params).then(r => r.data)
+export const getVocabulary = (params?: object) => api.get('/language/vocabulary', { params }).then(r => r.data)
+export const markVocabularyMastered = (vocabId: string, mastered: boolean) =>
+  api.patch(`/language/vocabulary/${vocabId}`, { mastered }).then(r => r.data)
+
+// ===== Coverage Report (NEW) =====
+export const getCoverageReport = (summaryId: string) =>
+  api.get(`/knowledge/coverage/${summaryId}`).then(r => r.data)
+export const refreshCoverage = (params: object) =>
+  api.post('/knowledge/coverage/refresh', params).then(r => r.data)
+
+// ===== Memory Feedback (NEW) =====
+export const scanFeedback = (threshold?: number) =>
+  api.post('/memory/feedback/scan', { threshold: threshold || 0.7 }).then(r => r.data)
+export const getReviewQueue = (limit?: number) =>
+  api.get('/memory/review-queue', { params: { limit: limit || 20 } }).then(r => r.data)
+export const completeReviewItem = (queueId: string) =>
+  api.post('/memory/review-queue/complete', { queue_id: queueId }).then(r => r.data)
+export const getMemoryStats = () => api.get('/memory/stats').then(r => r.data)
+export const recordFlashcardResult = (cardId: string, isCorrect: boolean) =>
+  api.post(`/memory/flashcards/${cardId}/record`, null, { params: { is_correct: isCorrect } }).then(r => r.data)
+
+// ===== Enhanced Study Plan (NEW) =====
+export const generateEnhancedPlan = (params: object) =>
+  api.post('/study/generate-plan-enhanced', params).then(r => r.data)
+export const getEbbinghausNodes = (planId: string) =>
+  api.get(`/study/plans/${planId}/ebbinghaus`).then(r => r.data)
+
 // Attach token to all requests after login
 export const setAuthToken = (token: string | null) => {
   if (token) {
