@@ -19,9 +19,42 @@ router = APIRouter(prefix="/ws", tags=["sync"])
 # ── 房间管理（进程内，通过 sync_store 持久化消息和日志） ──────────
 _rooms: dict[str, set[tuple[WebSocket, str, str]]] = {}
 _room_versions: dict[str, int] = {}
+_last_heartbeat: dict[int, float] = {}  # id(ws) → last_ping_time
+HEARTBEAT_INTERVAL = 15      # 客户端心跳间隔（秒）
+HEARTBEAT_TIMEOUT = 30       # 超时断连（秒）
+HEARTBEAT_CHECK_PERIOD = 10  # 服务端检查周期（秒）
 
 MAX_OP_LOG = 100
 MAX_OFFLINE_MSGS = 200
+
+
+async def _heartbeat_checker() -> None:
+    """Background task: disconnect clients that haven't sent heartbeat in HEARTBEAT_TIMEOUT seconds."""
+    while True:
+        await asyncio.sleep(HEARTBEAT_CHECK_PERIOD)
+        now = time.time()
+        stale: list[tuple[WebSocket, str, str, str]] = []  # (ws, uid, uname, room_id)
+        for room_id, members in list(_rooms.items()):
+            for ws, uid, uname in list(members):
+                last = _last_heartbeat.get(id(ws), 0)
+                if last > 0 and now - last > HEARTBEAT_TIMEOUT:
+                    stale.append((ws, uid, uname, room_id))
+        for ws, uid, uname, room_id in stale:
+            logger.warning("心跳超时，断开: user=%s(%s) room=%s", uid, uname, room_id)
+            try:
+                await ws.close(code=4002, reason="心跳超时")
+            except Exception:
+                pass
+            _rooms.get(room_id, set()).discard((ws, uid, uname))
+            _last_heartbeat.pop(id(ws), None)
+        # 广播 presence 更新给受影响的房间
+        affected = set(room_id for _, _, _, room_id in stale)
+        for room_id in affected:
+            await _broadcast_presence(room_id)
+
+
+# 启动心跳检查后台任务
+_background_tasks: set[asyncio.Task] = set()
 
 
 def _verify_token(token: str) -> dict | None:
