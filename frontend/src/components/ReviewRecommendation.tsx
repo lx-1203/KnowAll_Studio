@@ -6,6 +6,7 @@ import {
   RobotOutlined, ThunderboltOutlined, ClockCircleOutlined,
   BookOutlined, CaretRightOutlined, ReloadOutlined,
 } from '@ant-design/icons'
+import { TrophyOutlined } from '@ant-design/icons'
 import { generateReviewRecommendations } from '../api'
 import type { ReviewRecommendations, AIRecommendation } from '../types'
 
