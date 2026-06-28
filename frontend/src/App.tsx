@@ -34,8 +34,9 @@ const { useBreakpoint } = Grid
 
 function PageLoader() {
   return (
-    <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '60vh' }}>
-      <Spin size="large" tip="加载中..."><div style={{ minHeight: 200 }} /></Spin>
+    <div style={{ display: 'flex', flexDirection: 'column', justifyContent: 'center', alignItems: 'center', height: '60vh', gap: 16 }}>
+      <Spin size="large" />
+      <span style={{ color: '#999' }}>加载中...</span>
     </div>
   )
 }
