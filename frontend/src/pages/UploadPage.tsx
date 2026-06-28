@@ -53,6 +53,7 @@ export default function UploadPage() {
       }
       message.success(successMsg)
       setSelectedDoc(result.document_id)
+      setSelectedDocIds(prev => [...prev, result.document_id])
       // Refresh list
       const docs = await listDocuments()
       setDocuments(docs)
