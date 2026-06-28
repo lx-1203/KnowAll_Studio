@@ -390,3 +390,66 @@ async def mark_reminder_read(reminder_id: str, db: AsyncSession = Depends(get_db
     rem.is_read = True
     await db.commit()
     return {"status": "read"}
+
+
+class GenerateEnhancedPlanRequest(BaseModel):
+    summary_id: str
+    plan_type: str = "both"  # short / long / both
+    daily_hours: float = 2.0
+    start_date: str | None = None
+    ebbinghaus_enabled: bool = True
+
+
+@router.post("/generate-plan-enhanced")
+async def generate_plan_enhanced(
+    req: GenerateEnhancedPlanRequest,
+    db: AsyncSession = Depends(get_db),
+    current_user=Depends(get_optional_user),
+):
+    """Generate enhanced study plan with Ebbinghaus review nodes."""
+    await load_user_api_keys(get_user_id(current_user), db)
+
+    from app.core.agents.study_plan_agent import StudyPlanAgent
+
+    config = {
+        "study_plan": {
+            "type": req.plan_type,
+            "daily_hours": req.daily_hours,
+        },
+        "start_date": req.start_date,
+    }
+
+    # Get document_id from summary
+    from app.models import KnowledgeSummary
+    summary = await db.get(KnowledgeSummary, req.summary_id)
+    if not summary:
+        raise HTTPException(404, "Summary not found")
+
+    agent = StudyPlanAgent()
+    result = await agent.run(
+        summary_id=req.summary_id,
+        document_id=summary.document_id,
+        config=config,
+    )
+
+    if result.status == "error":
+        raise HTTPException(500, result.error or "Plan generation failed")
+
+    return result
+
+
+@router.get("/plans/{plan_id}/ebbinghaus")
+async def get_plan_ebbinghaus(
+    plan_id: str,
+    db: AsyncSession = Depends(get_db),
+):
+    """Get Ebbinghaus review nodes for a study plan."""
+    from app.models import StudyPlan
+    plan = await db.get(StudyPlan, plan_id)
+    if not plan:
+        raise HTTPException(404, "Plan not found")
+
+    return {
+        "plan_id": plan.id,
+        "ebbinghaus_nodes": plan.ebbinghaus_nodes,
+    }
