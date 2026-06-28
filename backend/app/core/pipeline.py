@@ -149,7 +149,11 @@ class PipelineOrchestrator:
             from app.core.knowledge import knowledge_generator
             from app.models import KnowledgeTree
 
-            tree_data = await knowledge_generator.generate_tree(state.chunk_texts, model)
+            tree_data = await knowledge_generator.generate_tree(
+                state.chunk_texts, model,
+                structure_context=state.structure_context,
+                image_descriptions=state.image_descriptions,
+            )
 
             async with async_session() as db:
                 tree = KnowledgeTree(
