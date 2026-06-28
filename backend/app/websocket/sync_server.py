@@ -281,9 +281,30 @@ async def sync_websocket(
                         "data": {"ops": diff_ops, "version": server_version},
                     }, ensure_ascii=False))
                 else:
+                    # 加载文档实际内容
+                    doc_content = None
+                    try:
+                        from app.database import async_session
+                        from app.models import Document
+                        from sqlalchemy import select
+                        async with async_session() as db:
+                            result = await db.execute(
+                                select(Document).where(Document.id == doc_id)
+                            )
+                            doc = result.scalar_one_or_none()
+                            if doc:
+                                doc_content = {
+                                    "id": doc.id,
+                                    "filename": doc.filename,
+                                    "file_type": doc.file_type,
+                                    "status": doc.status,
+                                }
+                    except Exception as e:
+                        logger.warning("Failed to load doc content for sync_full: %s", e)
+
                     await ws.send_text(json.dumps({
                         "type": "sync_full",
-                        "data": {"version": server_version, "content": None},
+                        "data": {"version": server_version, "content": doc_content},
                     }))
 
             elif msg_type == "operation":
