@@ -55,8 +55,16 @@ function parseHeadings(md: string): Heading[] {
     if (match) {
       const level = match[1].length
       const text = match[2].replace(/[🔴🟡🟢🟠]【[^】]*】/, '').trim()
-      // 过滤孤立代理对，避免 encodeURIComponent 抛出 URIError
-      const safe = text.replace(/[\uD800-\uDFFF]/g, '\uFFFD')
+      // 安全编码：过滤所有可能导致 encodeURIComponent 抛出 URIError 的字符
+      let safe = text
+      try {
+        encodeURIComponent(safe)
+      } catch {
+        // 如果编码失败，逐步移除问题字符
+        safe = safe.replace(/[\uD800-\uDFFF]/g, '\uFFFD')
+        safe = safe.replace(/[^\u0000-\uD7FF\uE000-\uFFFF]/g, '')
+        try { encodeURIComponent(safe) } catch { safe = 'section' }
+      }
       const id = 'heading-' + encodeURIComponent(safe)
       headings.push({ id, level, text })
     }
