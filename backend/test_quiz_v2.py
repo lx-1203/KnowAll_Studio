@@ -7,6 +7,31 @@ import os
 # Ensure backend is on path
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 
+# Load .env for API configuration
+from dotenv import load_dotenv
+load_dotenv(os.path.join(os.path.dirname(__file__), ".env"))
+
+# Configure the API adapter (mirrors main.py startup logic)
+from app.core.api_scheduler.client import api_client
+
+anthropic_token = os.getenv("ANTHROPIC_AUTH_TOKEN")
+anthropic_base = os.getenv("ANTHROPIC_BASE_URL", "https://api.deepseek.com/anthropic")
+anthropic_model = os.getenv("ANTHROPIC_MODEL", "deepseek-v4-pro")
+
+if anthropic_token:
+    api_client.configure_adapter(
+        "anthropic",
+        anthropic_token,
+        base_url=anthropic_base,
+        model_name=anthropic_model,
+    )
+    print(f"Adapter configured: anthropic -> {anthropic_model} @ {anthropic_base}")
+else:
+    print("ERROR: ANTHROPIC_AUTH_TOKEN not found in .env")
+    sys.exit(1)
+
+MODEL = f"anthropic/{anthropic_model}"
+
 # Test knowledge content - 计算机网络基础 (a self-contained topic for testing)
 TEST_KNOWLEDGE = """
 ## 1. OSI七层模型
