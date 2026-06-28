@@ -270,8 +270,6 @@ export default function QuizPage() {
     try {
       const exam = await createExam({ title: `刷题练习-${new Date().toLocaleDateString()}`, question_ids: ids })
       setCurrentExam(exam)
-      setResults(null as any)
-      reset()
       setActiveTab('exam')
       message.success(`已加载 ${exam.question_count} 题，开始刷题！`)
     } catch (e: any) { message.error('创建失败') }
@@ -286,8 +284,6 @@ export default function QuizPage() {
     try {
       const exam = await createExam({ title: `随机刷题-${new Date().toLocaleDateString()}`, question_ids: ids })
       setCurrentExam(exam)
-      setResults(null as any)
-      reset()
       setActiveTab('exam')
       message.success(`随机抽取 ${exam.question_count} 题，开始刷题！`)
     } catch (e: any) { message.error('创建失败') }
@@ -298,8 +294,6 @@ export default function QuizPage() {
     try {
       const exam = await createExam({ title: `单题练习-${new Date().toLocaleDateString()}`, question_ids: [qid] })
       setCurrentExam(exam)
-      setResults(null as any)
-      reset()
       setActiveTab('exam')
       message.success('开始单题练习')
     } catch (e: any) { message.error('创建失败') }
