@@ -34,7 +34,7 @@ cloze:
     记忆策略标签可选值：需记忆、需理解、需推导、需计算、需应用、易混淆、核心重点、基础知识
 
     输出格式：
-    {"cards": [{"id": "c_1", "card_type": "cloze", "front": "{{c1::被挖空的关键词}}所在的完整句子...", "back": "完整原文与解释", "hints": "提示", "tags": {"domain_tags": [], "memory_tags": []}}]}
+    {{"cards": [{{"id": "c_1", "card_type": "cloze", "front": "{{c1::被挖空的关键词}}所在的完整句子...", "back": "完整原文与解释", "hints": "提示", "tags": {{"domain_tags": [], "memory_tags": []}}}}]}}
   user_template: |
     知识点：{knowledge_points}
     卡片数量：{count}
