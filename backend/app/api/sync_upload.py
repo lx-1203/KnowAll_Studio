@@ -175,12 +175,20 @@ async def upload_complete(upload_id: str):
     import datetime
     now = datetime.datetime.utcnow().isoformat() + "Z"
 
-    # 记录版本（简易实现，生产环境应持久化）
-    version_key = f"file:{file_id}"
-    file_version = _upload_sessions.get(version_key, 0) + 1
-    _upload_sessions[version_key] = file_version
+    # 持久化文件版本
+    from app.core.sync import sync_store
+    current_version = await sync_store.get_current_file_version(file_id)
+    new_version = current_version + 1
+    await sync_store.record_file_version(
+        file_id=file_id,
+        version=new_version,
+        filename=filename,
+        file_size=file_size,
+        storage_path=str(final_path),
+        updated_by="user",
+    )
 
-    logger.info("上传完成: file_id=%s name=%s size=%d", file_id, final_name, file_size)
+    logger.info("上传完成: file_id=%s name=%s size=%d version=%d", file_id, final_name, file_size, new_version)
 
     return {
         "code": 0,
@@ -189,7 +197,7 @@ async def upload_complete(upload_id: str):
             "filename": filename,
             "size": file_size,
             "url": f"/api/download/{file_id}",
-            "version": file_version,
+            "version": new_version,
             "created_at": now,
         },
     }
