@@ -341,7 +341,7 @@ export default function QuizPage() {
             const variants = result.questions || []
             if (variants.length > 0) {
               const exam = await createExam({ title: `变式练习-${new Date().toLocaleDateString()}`, question_ids: variants.map((q: any) => q.id) })
-              setCurrentExam(exam); setResults(null as any); reset(); setActiveTab('exam')
+              setCurrentExam(exam); setActiveTab('exam')
               message.success(`已生成 ${variants.length} 道变式题`)
             }
           } catch { message.error('变式题生成失败') }
