@@ -107,7 +107,7 @@ export default function ReadingPage() {
   const [statLevel, setStatLevel] = useState('-')
   const [statRatio, setStatRatio] = useState('-')
   const [statWords, setStatWords] = useState('-')
-  const [titleText, setTitleText] = useState('📚 选择一篇文章开始阅读')
+  const [titleText, setTitleText] = useState('选择一篇文章开始阅读')
   const [convertSource, setConvertSource] = useState('')
 
   const customTextRef = useRef<HTMLTextAreaElement>(null)
@@ -278,7 +278,7 @@ export default function ReadingPage() {
 
   const savedCount = Object.keys(savedWords).length
   const levelLabels: Record<number, string> = { 1: '10-25%英文', 2: '25-50%英文', 3: '50-80%英文' }
-  const levelEmojis: Record<number, string> = { 1: '🌱 初级', 2: '🌿 中级', 3: '🌳 高级' }
+  const levelNames: Record<number, string> = { 1: '初级', 2: '中级', 3: '高级' }
 
   return (
     <div className={`reading-app${isDark ? ' dark' : ''}`}>
@@ -296,7 +296,7 @@ export default function ReadingPage() {
               className={`reading-level-btn${currentLevel === level ? ` active l${level}` : ''}`}
               onClick={() => setCurrentLevel(level)}
             >
-              {levelEmojis[level]}
+              {levelNames[level]}
               <span className="reading-level-label">{levelLabels[level]}</span>
             </button>
           ))}
