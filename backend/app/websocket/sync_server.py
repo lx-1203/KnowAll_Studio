@@ -176,6 +176,54 @@ def _ot_transform_insert_insert(op_a: dict, op_b: dict) -> tuple[dict, dict]:
     return a_new, b_new
 
 
+def _ot_transform_insert_delete(op_a: dict, op_b: dict) -> tuple[dict, dict]:
+    """insert(a) vs delete(b) 的 OT 变换"""
+    pos_a = op_a.get("position", 0)
+    pos_b = op_b.get("position", 0)
+    len_b = op_b.get("length", 0)
+    a_new = dict(op_a)
+    b_new = dict(op_b)
+    if pos_a <= pos_b:
+        b_new["position"] = pos_b + len(op_a.get("value", ""))
+    elif pos_a > pos_b + len_b:
+        a_new["position"] = pos_a - len_b
+    # else: insert 在 delete 范围内，insert 操作插入到删除起始位置
+    return a_new, b_new
+
+
+def _ot_transform_delete_insert(op_a: dict, op_b: dict) -> tuple[dict, dict]:
+    """delete(a) vs insert(b) 的 OT 变换"""
+    return _ot_transform_insert_delete(op_b, op_a)[::-1]
+
+
+def _ot_transform_delete_delete(op_a: dict, op_b: dict) -> tuple[dict, dict]:
+    """两个 delete 操作的 OT 变换"""
+    pos_a = op_a.get("position", 0)
+    len_a = op_a.get("length", 0)
+    pos_b = op_b.get("position", 0)
+    len_b = op_b.get("length", 0)
+    a_new = dict(op_a)
+    b_new = dict(op_b)
+    if pos_a < pos_b:
+        if pos_a + len_a <= pos_b:
+            b_new["position"] = pos_b - len_a
+        else:
+            # a 范围覆盖了 b 的起始，调整 b 到 a 的起始位置
+            b_new["position"] = pos_a
+            b_new["length"] = max(0, pos_b + len_b - pos_a - len_a)
+            len_a = max(0, pos_b - pos_a)
+    elif pos_a > pos_b:
+        if pos_b + len_b <= pos_a:
+            a_new["position"] = pos_a - len_b
+        else:
+            a_new["position"] = pos_b
+            a_new["length"] = max(0, pos_a + len_a - pos_b - len_b)
+    else:
+        # 同一位置，先到的操作保留
+        a_new["length"] = 0
+    return a_new, b_new
+
+
 def _ot_transform(op_new: dict, op_existing: dict) -> tuple[dict, dict]:
     """对两个操作做 OT 双向变换。"""
     op_type = op_new.get("operation", "")
@@ -183,8 +231,14 @@ def _ot_transform(op_new: dict, op_existing: dict) -> tuple[dict, dict]:
 
     if op_type == "insert" and exist_type == "insert":
         return _ot_transform_insert_insert(op_new, op_existing)
+    if op_type == "insert" and exist_type == "delete":
+        return _ot_transform_insert_delete(op_new, op_existing)
+    if op_type == "delete" and exist_type == "insert":
+        return _ot_transform_delete_insert(op_new, op_existing)
+    if op_type == "delete" and exist_type == "delete":
+        return _ot_transform_delete_delete(op_new, op_existing)
 
-    # 其他组合暂做简单处理：位置偏移
+    # set_attribute / list_* 等结构化操作暂原样返回
     return op_new, op_existing
 
 
