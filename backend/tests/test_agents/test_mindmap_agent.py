@@ -601,7 +601,7 @@ class TestMindMapRun:
         metrics.max_depth = 1
         metrics.depth_distribution = {1: 1}
 
-        with patch("app.core.agents.mindmap_agent.prompt_engine") as mock_pe:
+        with patch("app.prompts.prompt_engine") as mock_pe:
             mock_pe.render.return_value = [{"role": "system", "content": "test"}]
             with patch("app.core.agents.mindmap_agent.api_client") as mock_api:
                 mock_llm_result = MagicMock()
