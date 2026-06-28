@@ -1012,6 +1012,13 @@ class ExamEngine:
                 detail["key_points_matched"] = semantic_result.get("key_points_matched", [])
                 detail["key_points_missed"] = semantic_result.get("key_points_missed", [])
 
+            if 'open_score' in locals() and open_score:
+                detail["partial_score"] = open_score.get("score_ratio", 1.0)
+                detail["blank_details"] = open_score.get("blank_details", [])
+                detail["point_details"] = open_score.get("point_details", [])
+                detail["earned_score"] = open_score.get("earned_score")
+                detail["score_total"] = open_score.get("total_score")
+
             results.append(detail)
 
         return {
