@@ -721,7 +721,7 @@ export interface StudyDayItem {
 
 // Extended Flashcard with review tracking
 export interface FlashcardExtended extends Flashcard {
-  knowledge_point_id: string | null
+  knowledge_point_id: string | null | undefined
   review_count: number
   correct_count: number
   last_review_at: string | null
