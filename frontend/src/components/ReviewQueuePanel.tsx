@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { Card, List, Tag, Button, Space, Typography, Badge, message } from 'antd'
+import { Card, List, Tag, Button, Space, Typography, Badge, App } from 'antd'
 import { ThunderboltOutlined, CheckOutlined, ReloadOutlined } from '@ant-design/icons'
 import { getReviewQueue, completeReviewItem, scanFeedback } from '../api'
 import type { ReviewQueueItem } from '../types'
