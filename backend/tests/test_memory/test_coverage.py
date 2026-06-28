@@ -383,25 +383,22 @@ class TestCoverageAccuracy:
         # The _get_accuracy method does two executes:
         # 1. select resource_id from KnowledgeCoverage
         # 2. select count, sum(is_correct) from AnswerRecord
-        async def execute_side_effect(stmt):
-            r = MagicMock()
-            # First call: coverage lookup
-            if not hasattr(execute_side_effect, "call_count"):
-                execute_side_effect.call_count = 0
-            execute_side_effect.call_count += 1
+        call_counts = [0]
 
-            if execute_side_effect.call_count == 1:
+        def execute_side_effect(stmt):
+            call_counts[0] += 1
+            r = MagicMock()
+            if call_counts[0] == 1:
+                # First call: coverage lookup returns question IDs
                 r.fetchall.return_value = [("q_1",), ("q_2",)]
             else:
-                mock_row = MagicMock()
-                mock_row.__getitem__ = lambda self, idx: [8, 6][idx]
+                # Second call: answer record aggregation returns (total, correct)
                 r.fetchone.return_value = (8, 6)  # 8 total, 6 correct
             return r
 
         mock_session.execute = AsyncMock(side_effect=execute_side_effect)
 
-        with patch("app.core.memory.coverage.async_session", return_value=MagicMock()):
-            result = await engine._get_accuracy("kp_1", mock_session)
+        result = await engine._get_accuracy("kp_1", mock_session)
 
         assert result is not None
         # 6/8 = 0.75
