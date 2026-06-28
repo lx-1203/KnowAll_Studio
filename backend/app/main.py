@@ -62,7 +62,10 @@ async def startup_init():
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     await startup_init()
+    from app.websocket import start_background_tasks, stop_background_tasks
+    start_background_tasks()
     yield
+    await stop_background_tasks()
 
 
 app = FastAPI(
