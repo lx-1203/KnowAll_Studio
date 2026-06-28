@@ -270,7 +270,7 @@ class MasteryAnalyzer:
             level_stmt = select(
                 QuestionBank.cognitive_level,
                 func.count(AnswerRecord.id),
-                func.sum(AnswerRecord.is_correct.cast(int)),
+                func.sum(cast(AnswerRecord.is_correct, Integer)),
             ).join(
                 AnswerRecord, AnswerRecord.question_id == QuestionBank.id
             ).where(
