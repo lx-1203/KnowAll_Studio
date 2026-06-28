@@ -93,7 +93,7 @@ async def main():
         options = q.get('options', [])
         if options:
             for opt in options:
-                mark = " ✓" if opt['label'] == q.get('answer', '') else ""
+                mark = " [ANSWER]" if opt['label'] == q.get('answer', '') else ""
                 print(f"  {opt['label']}. {opt['text']}{mark}")
         print(f"解析: {q.get('analysis', '')[:200]}")
         if q.get('reviewed'):
