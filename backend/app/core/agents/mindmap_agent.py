@@ -204,20 +204,31 @@ class MindMapAgent(BaseAgent):
         return node_dicts
 
     async def _load_cross_edges(
-        self, session, document_id: str
+        self, session, document_ids: list[str]
     ) -> list[dict]:
-        """加载跨知识树的横向关联边。"""
+        """加载跨知识树的横向关联边。
+
+        使用 Python 侧过滤以兼容 PostgreSQL 和 SQLite。
+        """
         from app.models import KnowledgeEdge, KnowledgeTree
         from sqlalchemy import select
 
+        if not document_ids:
+            return []
+
         cross_edges = []
-        stmt = select(KnowledgeTree).where(
-            KnowledgeTree.doc_ids.contains([document_id])
-        )
+        # 加载所有知识树，在 Python 中按 doc_ids 过滤
+        stmt = select(KnowledgeTree)
         result = await session.execute(stmt)
         trees = result.scalars().all()
 
+        doc_id_set = set(document_ids)
         for tree in trees:
+            # 检查该树是否包含目标文档（兼容 JSON 列表）
+            tree_doc_ids = tree.doc_ids or []
+            if not doc_id_set.intersection(tree_doc_ids):
+                continue
+
             edge_stmt = select(KnowledgeEdge).where(
                 KnowledgeEdge.tree_id == tree.id
             )
