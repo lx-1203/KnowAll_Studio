@@ -161,7 +161,16 @@ async def upload_complete(upload_id: str):
     filename = session["filename"]
     file_id = uuid.uuid4().hex[:16]
     base, ext = os.path.splitext(filename)
-    final_name = f"{base}_{file_id}{ext}"  # 避免同名覆盖
+
+    # ── 文件同名冲突处理（按规范 5.2 节：自动追加版本后缀） ──
+    # 检查目录中是否存在同名文件，自动生成 _v2, _v3 ...
+    existing_names = {f.name for f in UPLOAD_DIR.iterdir() if f.is_file()}
+    candidate = filename
+    version_suffix = 1
+    while candidate in existing_names:
+        version_suffix += 1
+        candidate = f"{base}_v{version_suffix}{ext}"
+    final_name = candidate
     final_path = UPLOAD_DIR / final_name
 
     with open(final_path, "wb") as dst:
