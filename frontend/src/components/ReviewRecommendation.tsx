@@ -236,6 +236,3 @@ export default function ReviewRecommendation({ onRefresh }: Props) {
     </div>
   )
 }
-
-// Workaround for missing imports
-const { Row, Col } = { Row: ({ children, ...p }: any) => <div style={{ display: 'flex', gap: 16, ...p }}>{children}</div>, Col: ({ children, ...p }: any) => <div style={{ flex: p.span ? p.span / 24 : 1, ...p }}>{children}</div> }
