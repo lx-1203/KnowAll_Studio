@@ -3,6 +3,10 @@ import asyncio
 import json
 import sys
 import os
+import logging
+
+# Suppress noisy SQLAlchemy logs
+logging.getLogger("sqlalchemy.engine").setLevel(logging.WARNING)
 
 # Ensure backend is on path
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
