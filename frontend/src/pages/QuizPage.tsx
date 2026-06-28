@@ -236,8 +236,6 @@ export default function QuizPage() {
       const saveResult = await saveToBank({ questions: selected })
       const exam = await createExam({ title: `测验-${new Date().toLocaleDateString()}`, question_ids: saveResult.question_ids || [] })
       setCurrentExam(exam)
-      setResults(null as any)
-      reset()
       setPreviewQuestions([])
       setSelectedIds(new Set())
       refreshBank()
