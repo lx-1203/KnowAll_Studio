@@ -390,6 +390,19 @@ async def sync_websocket(
                     "data": {**msg_data, "user_id": user_id, "user_name": user_name},
                 }, exclude=ws)
 
+            elif msg_type == "system_notify":
+                # 系统通知（管理员操作、权限变更等）— 按规范 4.2 节
+                notify_msg = {
+                    "type": "system_notify",
+                    "room_id": doc_id,
+                    "data": {
+                        **msg_data,
+                        "timestamp": msg_data.get("timestamp", int(time.time() * 1000)),
+                    },
+                }
+                await _broadcast(doc_id, notify_msg)
+                await _offline_msg_append("all", notify_msg)
+
             else:
                 await ws.send_text(json.dumps({
                     "type": "error",
