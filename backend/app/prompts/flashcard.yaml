@@ -14,7 +14,7 @@ qa:
     记忆策略标签可选值：需记忆、需理解、需推导、需计算、需应用、易混淆、核心重点、基础知识
 
     输出格式（JSON）：
-    {"cards": [{"id": "c_1", "card_type": "qa", "front": "正面内容", "back": "背面内容", "hints": "记忆提示", "tags": {"domain_tags": ["学科"], "memory_tags": ["策略"]}}]}
+    {{"cards": [{{"id": "c_1", "card_type": "qa", "front": "正面内容", "back": "背面内容", "hints": "记忆提示", "tags": {{"domain_tags": ["学科"], "memory_tags": ["策略"]}}}}]}}
   user_template: |
     知识点内容：{knowledge_points}
     卡片数量：{count}
