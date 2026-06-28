@@ -71,6 +71,9 @@ class RollbackRequest(BaseModel):
 @router.post("/file/{file_id}/rollback")
 async def file_rollback(file_id: str, req: RollbackRequest):
     """回滚到指定版本。以目标版本内容创建一个新版本（版本号 +1）。"""
+    import shutil
+    from pathlib import Path
+
     versions = await sync_store.get_file_versions(file_id)
     target = next((v for v in versions if v["version"] == req.target_version), None)
     if not target:
@@ -78,12 +81,38 @@ async def file_rollback(file_id: str, req: RollbackRequest):
 
     current = await sync_store.get_current_file_version(file_id)
     new_version = current + 1
+
+    # 复制目标版本的实际文件内容
+    data_dir = Path(settings.document_dir)
+    new_storage_path = None
+    target_path = data_dir / file_id[:2] / file_id
+
+    # 查找目标版本的实际存储文件
+    for v in versions:
+        if v["version"] == req.target_version:
+            old_storage = v.get("storage_path", "")
+            if old_storage and Path(old_storage).exists():
+                # 直接复制旧版本文件
+                new_storage = str(data_dir / file_id[:2] / f"{file_id}_v{new_version}")
+                shutil.copy2(old_storage, new_storage)
+                new_storage_path = new_storage
+                break
+            elif target_path.exists():
+                # 回退到初始版本时复制当前文件
+                new_storage = str(data_dir / file_id[:2] / f"{file_id}_v{new_version}")
+                shutil.copy2(str(target_path), new_storage)
+                new_storage_path = new_storage
+                break
+
+    if not new_storage_path:
+        new_storage_path = str(target_path)  # fallback: 指向当前文件
+
     await sync_store.record_file_version(
         file_id=file_id,
         version=new_version,
         filename=target["filename"],
         file_size=target["file_size"],
-        storage_path=f"rollback_to_v{req.target_version}",
+        storage_path=new_storage_path,
         updated_by="rollback",
     )
 
