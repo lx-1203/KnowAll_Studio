@@ -6,7 +6,7 @@
  * 生命周期管理，通过 React Context 提供给整个应用。
  */
 import React, { createContext, useContext, useEffect, useRef, useCallback, useState, type ReactNode } from 'react'
-import { message } from 'antd'
+import { App } from 'antd'
 import { RealtimeSyncClient, type SyncMessage } from '../services/RealtimeSyncClient'
 import { FileSyncClient, type FileInfo } from '../services/FileSyncClient'
 import { NotificationService, type AppNotification } from '../services/NotificationService'
