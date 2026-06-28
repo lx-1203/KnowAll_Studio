@@ -345,7 +345,7 @@ export default function LanguageLearningPage() {
       </Card>
 
       {/* Main content: vocabulary table or empty state */}
-      <Spin spinning={loading} tip="加载词汇中...">
+      <Spin spinning={loading}>
         {vocabulary.length === 0 && !loading ? (
           <Card>
             <Empty description="该文档暂无生词表，请先生成">
