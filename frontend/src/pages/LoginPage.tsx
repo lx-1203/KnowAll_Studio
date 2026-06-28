@@ -53,6 +53,11 @@ export default function LoginPage() {
       <div style={{ width: 420, padding: '0 16px' }}>
         {/* Brand */}
         <div style={{ textAlign: 'center', marginBottom: 28 }}>
+          <img
+            src="/logo.png"
+            alt="全息坚果 Logo"
+            style={{ width: 96, height: 96, borderRadius: 16, objectFit: 'cover', marginBottom: 12 }}
+          />
           <Title
             level={2}
             style={{
@@ -62,7 +67,7 @@ export default function LoginPage() {
               color: token.colorTextHeading,
             }}
           >
-            KnowAll Studio
+            全息坚果
           </Title>
           <Text style={{ fontSize: 15, color: token.colorTextSecondary }}>
             大学生学习系统
