@@ -9,6 +9,31 @@ logger = logging.getLogger(__name__)
 class KnowledgeGenerator:
     """Generate knowledge trees, outlines from document chunks via API."""
 
+    async def generate_summary(
+        self,
+        chunk_texts: list[str],
+        document_id: str,
+        model: str = "deepseek-chat",
+        max_depth: int = 3,
+        language_type: str = "auto",
+        structure_context: str = "",
+        image_descriptions: list[str] | None = None,
+    ) -> dict:
+        """Generate a complete Markdown knowledge point summary.
+
+        Delegates to SummaryGenerator for the full structured output.
+        """
+        from app.core.knowledge.summary_generator import summary_generator
+        return await summary_generator.generate(
+            chunk_texts=chunk_texts,
+            document_id=document_id,
+            model=model,
+            max_depth=max_depth,
+            language_type=language_type,
+            structure_context=structure_context,
+            image_descriptions=image_descriptions,
+        )
+
     async def generate_tree(
         self,
         chunk_texts: list[str],
