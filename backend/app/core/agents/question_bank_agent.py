@@ -79,6 +79,35 @@ class QuestionBankAgent(BaseAgent):
                 # Build knowledge text grouped by topic
                 knowledge_texts = self._group_by_topic(nodes)
 
+                # ---- KG Relation Extraction ----
+                from app.core.quiz.relation_extractor import relation_extractor
+
+                confusion_map: dict = {}
+                relations: list = []
+                cross_topic_hints: list = []
+
+                if config.get("enable_kg_relations", True) and len(nodes) >= 4:
+                    try:
+                        node_dicts = [
+                            {
+                                "id": n.id if hasattr(n, 'id') else n.get('id', ''),
+                                "title": n.title if hasattr(n, 'title') else n.get('title', ''),
+                                "explanation": n.explanation if hasattr(n, 'explanation') else n.get('explanation', ''),
+                                "level": n.level if hasattr(n, 'level') else n.get('level', 0),
+                            }
+                            for n in nodes
+                        ]
+                        relations, confusion_pairs = await relation_extractor.extract(node_dicts, model)
+                        confusion_map = relation_extractor.build_confusion_map(confusion_pairs)
+                        cross_topic_hints = relation_extractor.get_cross_topic_pairs(relations)
+                        logger.info(
+                            f"KG relations extracted: {len(relations)} edges, "
+                            f"{len(confusion_pairs)} confusion pairs, "
+                            f"{len(cross_topic_hints)} cross-topic candidates"
+                        )
+                    except Exception as e:
+                        logger.warning(f"KG relation extraction skipped: {e}")
+
                 # Calculate question distribution across cognitive levels
                 from app.core.quiz import quiz_generator
 
