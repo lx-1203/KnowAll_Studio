@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback, useRef } from 'react'
-import { Card, Button, Select, Slider, App, Space, Progress, Tag, Spin, Table, List, Tooltip, Row, Col, Checkbox, Popconfirm, Tabs, Badge, Modal, Drawer, Segmented } from 'antd'
+import { Card, Button, Select, Slider, App, Space, Progress, Tag, Spin, Table, List, Tooltip, Row, Col, Checkbox, Popconfirm, Tabs, Badge, Modal, Drawer, Segmented, Statistic, Typography } from 'antd'
 import {
   RobotOutlined, FormOutlined, TrophyOutlined, BugOutlined, SyncOutlined,
   SafetyCertificateOutlined, InboxOutlined, DeleteOutlined, CheckSquareOutlined,
