@@ -16,7 +16,7 @@ class LocalQuestionSource implements QuestionSource {
     if (!this.cache.has(key)) {
       try {
         // 动态导入 JSON 题库
-        const module = await import(`../../../backend/app/data/quiz_bank/default_${difficulty}.json`)
+        const module = await import(`../data/default_${difficulty}.json`)
         const questions = (module.default || module) as GameQuestion[]
         this.cache.set(key, questions)
       } catch {

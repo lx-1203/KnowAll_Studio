@@ -1,0 +1,204 @@
+[
+  {
+    "id": "e001",
+    "question_type": "single_choice",
+    "difficulty": "easy",
+    "question_text": "以下哪种数据结构遵循"先进先出"（FIFO）原则？",
+    "options": [
+      { "label": "A", "text": "栈（Stack）" },
+      { "label": "B", "text": "队列（Queue）" },
+      { "label": "C", "text": "树（Tree）" },
+      { "label": "D", "text": "图（Graph）" }
+    ],
+    "answer": "B",
+    "analysis": "队列遵循 FIFO（First In First Out），栈遵循 FILO（First In Last Out）。"
+  },
+  {
+    "id": "e002",
+    "question_type": "single_choice",
+    "difficulty": "easy",
+    "question_text": "HTTP 状态码 404 表示什么？",
+    "options": [
+      { "label": "A", "text": "服务器内部错误" },
+      { "label": "B", "text": "请求成功" },
+      { "label": "C", "text": "资源未找到" },
+      { "label": "D", "text": "未授权" }
+    ],
+    "answer": "C",
+    "analysis": "404 Not Found 表示服务器无法找到请求的资源。"
+  },
+  {
+    "id": "e003",
+    "question_type": "true_false",
+    "difficulty": "easy",
+    "question_text": "在 JavaScript 中，`typeof null` 的结果是 `'null'`。",
+    "options": [
+      { "label": "A", "text": "正确" },
+      { "label": "B", "text": "错误" }
+    ],
+    "answer": "B",
+    "analysis": "`typeof null` 的结果是 `'object'`，这是 JavaScript 的一个历史遗留 bug。"
+  },
+  {
+    "id": "e004",
+    "question_type": "single_choice",
+    "difficulty": "easy",
+    "question_text": "Python 中用于定义函数的关键字是？",
+    "options": [
+      { "label": "A", "text": "function" },
+      { "label": "B", "text": "def" },
+      { "label": "C", "text": "func" },
+      { "label": "D", "text": "define" }
+    ],
+    "answer": "B",
+    "analysis": "Python 使用 `def` 关键字定义函数。"
+  },
+  {
+    "id": "e005",
+    "question_type": "single_choice",
+    "difficulty": "easy",
+    "question_text": "数据库查询中，哪条语句用于从表中删除所有行但保留表结构？",
+    "options": [
+      { "label": "A", "text": "DELETE FROM table" },
+      { "label": "B", "text": "DROP TABLE table" },
+      { "label": "C", "text": "REMOVE FROM table" },
+      { "label": "D", "text": "CLEAR TABLE table" }
+    ],
+    "answer": "A",
+    "analysis": "DELETE FROM 删除数据但保留表结构；DROP TABLE 删除整个表。"
+  },
+  {
+    "id": "e006",
+    "question_type": "true_false",
+    "difficulty": "easy",
+    "question_text": "TCP 是一种面向连接的、可靠的传输层协议。",
+    "options": [
+      { "label": "A", "text": "正确" },
+      { "label": "B", "text": "错误" }
+    ],
+    "answer": "A",
+    "analysis": "TCP（传输控制协议）通过三次握手建立连接，保证数据可靠传输。"
+  },
+  {
+    "id": "e007",
+    "question_type": "single_choice",
+    "difficulty": "easy",
+    "question_text": "Git 中，将暂存区的修改提交到本地仓库使用什么命令？",
+    "options": [
+      { "label": "A", "text": "git push" },
+      { "label": "B", "text": "git commit" },
+      { "label": "C", "text": "git add" },
+      { "label": "D", "text": "git merge" }
+    ],
+    "answer": "B",
+    "analysis": "`git commit` 将暂存区内容提交到本地仓库，`git push` 是推送到远程。"
+  },
+  {
+    "id": "e008",
+    "question_type": "multi_choice",
+    "difficulty": "easy",
+    "question_text": "以下哪些是有效的 HTML5 语义标签？（多选）",
+    "options": [
+      { "label": "A", "text": "&lt;header&gt;" },
+      { "label": "B", "text": "&lt;article&gt;" },
+      { "label": "C", "text": "&lt;content&gt;" },
+      { "label": "D", "text": "&lt;section&gt;" }
+    ],
+    "answer": "A,B,D",
+    "analysis": "`<content>` 不是标准 HTML5 语义标签，其余都是。"
+  },
+  {
+    "id": "e009",
+    "question_type": "single_choice",
+    "difficulty": "easy",
+    "question_text": "React 中用于管理组件内部状态的 Hook 是？",
+    "options": [
+      { "label": "A", "text": "useEffect" },
+      { "label": "B", "text": "useState" },
+      { "label": "C", "text": "useContext" },
+      { "label": "D", "text": "useReducer" }
+    ],
+    "answer": "B",
+    "analysis": "`useState` 是最基础的状态管理 Hook。"
+  },
+  {
+    "id": "e010",
+    "question_type": "true_false",
+    "difficulty": "easy",
+    "question_text": "二分查找算法要求数据必须是有序的。",
+    "options": [
+      { "label": "A", "text": "正确" },
+      { "label": "B", "text": "错误" }
+    ],
+    "answer": "A",
+    "analysis": "二分查找的前提是数据有序，时间复杂度为 O(log n)。"
+  },
+  {
+    "id": "e011",
+    "question_type": "single_choice",
+    "difficulty": "easy",
+    "question_text": "CSS 中，使元素水平居中的属性 `margin` 值通常是？",
+    "options": [
+      { "label": "A", "text": "margin: center" },
+      { "label": "B", "text": "margin: 0 auto" },
+      { "label": "C", "text": "margin: auto center" },
+      { "label": "D", "text": "margin: middle" }
+    ],
+    "answer": "B",
+    "analysis": "`margin: 0 auto` 是块级元素水平居中的标准写法。"
+  },
+  {
+    "id": "e012",
+    "question_type": "single_choice",
+    "difficulty": "easy",
+    "question_text": "OSI 七层模型中，最底层是？",
+    "options": [
+      { "label": "A", "text": "应用层" },
+      { "label": "B", "text": "网络层" },
+      { "label": "C", "text": "传输层" },
+      { "label": "D", "text": "物理层" }
+    ],
+    "answer": "D",
+    "analysis": "OSI 模型从下到上：物理层 → 数据链路层 → 网络层 → 传输层 → 会话层 → 表示层 → 应用层。"
+  },
+  {
+    "id": "e013",
+    "question_type": "true_false",
+    "difficulty": "easy",
+    "question_text": "在 Python 中，列表（list）是不可变的数据类型。",
+    "options": [
+      { "label": "A", "text": "正确" },
+      { "label": "B", "text": "错误" }
+    ],
+    "answer": "B",
+    "analysis": "列表是可变的（mutable），元组（tuple）才是不可变的。"
+  },
+  {
+    "id": "e014",
+    "question_type": "single_choice",
+    "difficulty": "easy",
+    "question_text": "`O(1)` 时间复杂度表示什么？",
+    "options": [
+      { "label": "A", "text": "随输入规模线性增长" },
+      { "label": "B", "text": "随输入规模指数增长" },
+      { "label": "C", "text": "无论输入规模如何，执行时间恒定" },
+      { "label": "D", "text": "随输入规模对数增长" }
+    ],
+    "answer": "C",
+    "analysis": "O(1) 即常数时间复杂度，执行时间不随输入规模变化。"
+  },
+  {
+    "id": "e015",
+    "question_type": "multi_choice",
+    "difficulty": "easy",
+    "question_text": "以下哪些是关系型数据库？（多选）",
+    "options": [
+      { "label": "A", "text": "MySQL" },
+      { "label": "B", "text": "MongoDB" },
+      { "label": "C", "text": "PostgreSQL" },
+      { "label": "D", "text": "Redis" }
+    ],
+    "answer": "A,C",
+    "analysis": "MySQL 和 PostgreSQL 是关系型数据库；MongoDB 是文档数据库；Redis 是键值存储。"
+  }
+]

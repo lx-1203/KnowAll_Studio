@@ -1,0 +1,206 @@
+[
+  {
+    "id": "m001",
+    "question_type": "single_choice",
+    "difficulty": "medium",
+    "question_text": "以下哪种排序算法在平均情况下时间复杂度为 O(n log n)，且是原地排序？",
+    "options": [
+      { "label": "A", "text": "冒泡排序" },
+      { "label": "B", "text": "归并排序" },
+      { "label": "C", "text": "快速排序" },
+      { "label": "D", "text": "插入排序" }
+    ],
+    "answer": "C",
+    "analysis": "快速排序平均 O(n log n) 且是原地排序；归并排序也是 O(n log n) 但需要额外空间。"
+  },
+  {
+    "id": "m002",
+    "question_type": "single_choice",
+    "difficulty": "medium",
+    "question_text": "在 RESTful API 设计中，更新资源的局部字段应使用哪个 HTTP 方法？",
+    "options": [
+      { "label": "A", "text": "PUT" },
+      { "label": "B", "text": "POST" },
+      { "label": "C", "text": "PATCH" },
+      { "label": "D", "text": "UPDATE" }
+    ],
+    "answer": "C",
+    "analysis": "PATCH 用于部分更新；PUT 用于完整替换；POST 用于创建。"
+  },
+  {
+    "id": "m003",
+    "question_type": "true_false",
+    "difficulty": "medium",
+    "question_text": "HTTPS 使用的默认端口是 443，且通过 TLS/SSL 协议加密通信。",
+    "options": [
+      { "label": "A", "text": "正确" },
+      { "label": "B", "text": "错误" }
+    ],
+    "answer": "A",
+    "analysis": "HTTPS = HTTP + TLS/SSL，默认端口 443，HTTP 默认端口 80。"
+  },
+  {
+    "id": "m004",
+    "question_type": "multi_choice",
+    "difficulty": "medium",
+    "question_text": "以下哪些属于数据库事务的 ACID 特性？（多选）",
+    "options": [
+      { "label": "A", "text": "原子性（Atomicity）" },
+      { "label": "B", "text": "一致性（Consistency）" },
+      { "label": "C", "text": "可扩展性（Scalability）" },
+      { "label": "D", "text": "持久性（Durability）" }
+    ],
+    "answer": "A,B,D",
+    "analysis": "ACID 是原子性、一致性、隔离性（Isolation）和持久性。可扩展性不属于 ACID。"
+  },
+  {
+    "id": "m005",
+    "question_type": "single_choice",
+    "difficulty": "medium",
+    "question_text": "在 Docker 中，用于定义和运行多容器应用的工具是？",
+    "options": [
+      { "label": "A", "text": "Dockerfile" },
+      { "label": "B", "text": "Docker Compose" },
+      { "label": "C", "text": "Docker Swarm" },
+      { "label": "D", "text": "Docker Hub" }
+    ],
+    "answer": "B",
+    "analysis": "Docker Compose 通过 YAML 文件定义多容器应用；Swarm 是集群编排。"
+  },
+  {
+    "id": "m006",
+    "question_type": "single_choice",
+    "difficulty": "medium",
+    "question_text": "JavaScript 中，以下哪个方法可以将 JSON 字符串转换为对象？",
+    "options": [
+      { "label": "A", "text": "JSON.stringify()" },
+      { "label": "B", "text": "JSON.parse()" },
+      { "label": "C", "text": "JSON.convert()" },
+      { "label": "D", "text": "JSON.toObject()" }
+    ],
+    "answer": "B",
+    "analysis": "`JSON.parse()` 将 JSON 字符串解析为对象；`JSON.stringify()` 将对象序列化为字符串。"
+  },
+  {
+    "id": "m007",
+    "question_type": "true_false",
+    "difficulty": "medium",
+    "question_text": "Python 的 GIL（全局解释器锁）限制了多线程程序在任意时刻只能有一个线程执行 Python 字节码。",
+    "options": [
+      { "label": "A", "text": "正确" },
+      { "label": "B", "text": "错误" }
+    ],
+    "answer": "A",
+    "analysis": "GIL 是 CPython 的限制，导致多线程不适合 CPU 密集型任务，但 I/O 密集型仍可受益。"
+  },
+  {
+    "id": "m008",
+    "question_type": "single_choice",
+    "difficulty": "medium",
+    "question_text": "在 Linux 中，哪个命令用于查看正在运行的进程？",
+    "options": [
+      { "label": "A", "text": "ls" },
+      { "label": "B", "text": "df" },
+      { "label": "C", "text": "ps" },
+      { "label": "D", "text": "du" }
+    ],
+    "answer": "C",
+    "analysis": "`ps`（process status）显示进程信息；`top`/`htop` 提供实时视图。"
+  },
+  {
+    "id": "m009",
+    "question_type": "multi_choice",
+    "difficulty": "medium",
+    "question_text": "React 中使用 `useEffect` 时，以下哪些说法正确？（多选）",
+    "options": [
+      { "label": "A", "text": "可以返回一个清理函数" },
+      { "label": "B", "text": "依赖数组为空 [] 表示仅在组件挂载时执行" },
+      { "label": "C", "text": "不能在其中执行异步操作" },
+      { "label": "D", "text": "依赖数组中的值变化时会重新执行" }
+    ],
+    "answer": "A,B,D",
+    "analysis": "useEffect 可以执行异步操作（需在内部定义 async 函数后调用），所以 C 是错误的。"
+  },
+  {
+    "id": "m010",
+    "question_type": "single_choice",
+    "difficulty": "medium",
+    "question_text": "TCP 三次握手中，客户端发送的第一个报文标志位是？",
+    "options": [
+      { "label": "A", "text": "ACK" },
+      { "label": "B", "text": "SYN" },
+      { "label": "C", "text": "FIN" },
+      { "label": "D", "text": "RST" }
+    ],
+    "answer": "B",
+    "analysis": "三次握手：客户端发 SYN → 服务器回 SYN+ACK → 客户端发 ACK。"
+  },
+  {
+    "id": "m011",
+    "question_type": "true_false",
+    "difficulty": "medium",
+    "question_text": "Zustand 是一个基于 Context API 的 React 状态管理库。",
+    "options": [
+      { "label": "A", "text": "正确" },
+      { "label": "B", "text": "错误" }
+    ],
+    "answer": "B",
+    "analysis": "Zustand 不依赖 Context Provider，它基于发布-订阅模式，组件外部也可访问 store。"
+  },
+  {
+    "id": "m012",
+    "question_type": "single_choice",
+    "difficulty": "medium",
+    "question_text": "以下哪种设计模式确保一个类只有一个实例？",
+    "options": [
+      { "label": "A", "text": "工厂模式" },
+      { "label": "B", "text": "观察者模式" },
+      { "label": "C", "text": "单例模式" },
+      { "label": "D", "text": "策略模式" }
+    ],
+    "answer": "C",
+    "analysis": "单例模式（Singleton）确保类只有一个实例并提供全局访问点。"
+  },
+  {
+    "id": "m013",
+    "question_type": "single_choice",
+    "difficulty": "medium",
+    "question_text": "Redis 作为一种内存数据库，其默认数据持久化方式不包括？",
+    "options": [
+      { "label": "A", "text": "RDB 快照" },
+      { "label": "B", "text": "AOF 日志" },
+      { "label": "C", "text": "WAL 预写日志" },
+      { "label": "D", "text": "混合持久化" }
+    ],
+    "answer": "C",
+    "analysis": "WAL（Write-Ahead Logging）是 PostgreSQL 等关系型数据库的机制，Redis 使用 RDB、AOF 或混合模式。"
+  },
+  {
+    "id": "m014",
+    "question_type": "single_choice",
+    "difficulty": "medium",
+    "question_text": "TypeScript 中，`interface` 与 `type` 的主要区别是？",
+    "options": [
+      { "label": "A", "text": "type 不能定义函数签名" },
+      { "label": "B", "text": "interface 支持声明合并，type 不支持" },
+      { "label": "C", "text": "type 不能用于联合类型" },
+      { "label": "D", "text": "没有区别" }
+    ],
+    "answer": "B",
+    "analysis": "interface 支持声明合并（同名接口自动合并），type 不支持；type 可以定义联合类型等。"
+  },
+  {
+    "id": "m015",
+    "question_type": "multi_choice",
+    "difficulty": "medium",
+    "question_text": "以下哪些方法可以提升 Web 应用的性能？（多选）",
+    "options": [
+      { "label": "A", "text": "代码分割（Code Splitting）" },
+      { "label": "B", "text": "图片懒加载（Lazy Loading）" },
+      { "label": "C", "text": "使用 CDN 加速静态资源" },
+      { "label": "D", "text": "所有请求改为同步执行" }
+    ],
+    "answer": "A,B,C",
+    "analysis": "同步请求会阻塞主线程，降低用户体验，应尽量使用异步。"
+  }
+]
