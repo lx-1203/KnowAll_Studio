@@ -39,7 +39,7 @@ class MindMapAgent(BaseAgent):
     async def run(
         self,
         summary_id: str,
-        document_id: str,
+        document_ids: list[str] | None = None,
         enable_bois_llm: bool = True,
         force_restructure: bool = False,
         **kwargs,
@@ -48,7 +48,7 @@ class MindMapAgent(BaseAgent):
 
         Args:
             summary_id: 知识总结 ID
-            document_id: 文档 ID
+            document_ids: 文档 ID 列表（用于加载跨知识树关联）
             enable_bois_llm: 是否启用 LLM 驱动的 BOIS 重构
             force_restructure: 即使 BOIS 评分合格也强制 LLM 重构
 
