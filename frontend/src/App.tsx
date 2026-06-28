@@ -69,25 +69,25 @@ export default function App() {
 
   const menuItems = [
     { key: '/', icon: <DashboardOutlined />, label: <Link to="/">学习仪表盘</Link> },
-    { type: 'group', label: '知识中枢', children: [
-      { key: '/upload', icon: <FileTextOutlined />, label: <Link to="/upload">资料导入</Link> },
-      { key: '/knowledge', icon: <ApartmentOutlined />, label: <Link to="/knowledge">思维导图</Link> },
-    ]},
-    { type: 'group', label: '深度学习', children: [
+    { type: 'group', label: '学习中心', children: [
       { key: '/quiz', icon: <FormOutlined />, label: <Link to="/quiz">题库练习</Link> },
-      { key: '/review', icon: <EyeOutlined />, label: <Link to="/review">答题情况</Link> },
       { key: '/flashcards', icon: <IdcardOutlined />, label: <Link to="/flashcards">记忆闪卡</Link> },
       { key: '/study', icon: <ScheduleOutlined />, label: <Link to="/study">学习计划</Link> },
+      { key: '/knowledge', icon: <ApartmentOutlined />, label: <Link to="/knowledge">思维导图</Link> },
     ]},
-    { type: 'group', label: '工具', children: [
-      { key: '/search', icon: <SearchOutlined />, label: <Link to="/search">搜索</Link> },
-      { key: '/chat', icon: <RobotOutlined />, label: <Link to="/chat">AI 对话</Link> },
+    { type: 'group', label: '知识管理', children: [
+      { key: '/upload', icon: <FileTextOutlined />, label: <Link to="/upload">资料导入</Link> },
+      { key: '/search', icon: <SearchOutlined />, label: <Link to="/search">全局搜索</Link> },
+      { key: '/chat', icon: <RobotOutlined />, label: <Link to="/chat">AI助手</Link> },
+    ]},
+    { type: 'group', label: '互动评估', children: [
+      { key: '/review', icon: <EyeOutlined />, label: <Link to="/review">答题回顾</Link> },
       { key: '/game', icon: <PlayCircleOutlined />, label: <Link to="/game">互动游戏</Link> },
     ]},
-    { type: 'group', label: '其他', children: [
-      { key: '/share', icon: <ShareAltOutlined />, label: <Link to="/share">分享协作</Link> },
-      { key: '/settings', icon: <SettingOutlined />, label: <Link to="/settings">设置</Link> },
+    { type: 'group', label: '个人设置', children: [
       { key: '/personal', icon: <UserOutlined />, label: <Link to="/personal">个人中心</Link> },
+      { key: '/share', icon: <ShareAltOutlined />, label: <Link to="/share">协作分享</Link> },
+      { key: '/settings', icon: <SettingOutlined />, label: <Link to="/settings">系统设置</Link> },
     ]},
   ]
 
