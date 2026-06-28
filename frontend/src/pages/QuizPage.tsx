@@ -5,13 +5,17 @@ import {
   SafetyCertificateOutlined, InboxOutlined, DeleteOutlined, CheckSquareOutlined,
   BorderOutlined, SelectOutlined, PlayCircleOutlined, ThunderboltOutlined,
   FileTextOutlined, ReloadOutlined, OrderedListOutlined, SaveOutlined, StarOutlined,
+  BarChartOutlined, HistoryOutlined, EyeOutlined,
 } from '@ant-design/icons'
 import {
   generateQuestions, saveToBank, deleteQuestionsBatch, createExam,
   submitExam, listQuestions, getErrorQuestions, generateVariants, listDocuments,
+  getMasteryAnalysis, getAnswerHistory, getReviewStats, getReviewKnowledgePoints,
 } from '../api'
 import { useAppStore, useQuizStore } from '../stores'
 import QuestionCard from '../components/QuestionCard'
+import MasteryOverview from '../components/MasteryOverview'
+import ReviewRecommendation from '../components/ReviewRecommendation'
 import { COGNITIVE_LEVEL_LABELS, COGNITIVE_LEVEL_COLORS, type CognitiveLevel } from '../types'
 
 // ---- Constants ----
