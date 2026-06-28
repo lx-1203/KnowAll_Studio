@@ -186,6 +186,62 @@ class QuestionBankAgent(BaseAgent):
                     except Exception as e:
                         logger.error(f"Failed to generate questions for topic '{topic}': {e}")
 
+                # ---- Cross-Topic Question Generation ----
+                cross_topic_count = min(5, max(1, question_count // 10))
+                for hint in cross_topic_hints[:cross_topic_count]:
+                    if len(all_questions) >= question_count:
+                        break
+                    try:
+                        node_a = next(
+                            (n for n in nodes
+                             if (n.title if hasattr(n, 'title') else n.get('title', '')) == hint["source"]),
+                            None
+                        )
+                        node_b = next(
+                            (n for n in nodes
+                             if (n.title if hasattr(n, 'title') else n.get('title', '')) == hint["target"]),
+                            None
+                        )
+                        if not node_a or not node_b:
+                            continue
+
+                        node_a_dict = {
+                            "id": node_a.id if hasattr(node_a, 'id') else node_a.get('id', ''),
+                            "title": node_a.title if hasattr(node_a, 'title') else node_a.get('title', ''),
+                            "explanation": node_a.explanation if hasattr(node_a, 'explanation') else node_a.get('explanation', ''),
+                        }
+                        node_b_dict = {
+                            "id": node_b.id if hasattr(node_b, 'id') else node_b.get('id', ''),
+                            "title": node_b.title if hasattr(node_b, 'title') else node_b.get('title', ''),
+                            "explanation": node_b.explanation if hasattr(node_b, 'explanation') else node_b.get('explanation', ''),
+                        }
+
+                        cross_questions = await quiz_generator.generate_cross_topic(
+                            node_a_dict, node_b_dict,
+                            relation_type=hint.get("type", "related_to").replace("_chain", "").replace("_differentiation", ""),
+                            relation_description=hint.get("description", ""),
+                            model=model,
+                        )
+                        for q in cross_questions:
+                            if isinstance(q, dict):
+                                coverage_a = KnowledgeCoverage(
+                                    knowledge_point_id=node_a_dict["id"],
+                                    resource_type="question",
+                                    resource_id=q.get("id", ""),
+                                    is_primary=True,
+                                )
+                                coverage_b = KnowledgeCoverage(
+                                    knowledge_point_id=node_b_dict["id"],
+                                    resource_type="question",
+                                    resource_id=q.get("id", ""),
+                                    is_primary=False,
+                                )
+                                session.add(coverage_a)
+                                session.add(coverage_b)
+                        all_questions.extend(cross_questions)
+                    except Exception as e:
+                        logger.error(f"Failed to generate cross-topic question: {e}")
+
                 await session.commit()
 
                 # Calculate cognitive distribution stats
