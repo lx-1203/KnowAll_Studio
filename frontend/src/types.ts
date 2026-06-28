@@ -115,6 +115,16 @@ export interface ResultDetail {
   correct_answer: string
   is_correct: boolean
   analysis: string
+  grading_method?: 'semantic' | 'local'
+  semantic_scores?: { correctness: number; completeness: number; clarity: number }
+  semantic_total?: number
+  feedback?: {
+    strengths: string[]
+    weaknesses: string[]
+    suggestion: string
+  }
+  key_points_matched?: string[]
+  key_points_missed?: string[]
 }
 
 export interface Flashcard {
