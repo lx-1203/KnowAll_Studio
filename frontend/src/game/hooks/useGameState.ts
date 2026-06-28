@@ -106,7 +106,7 @@ export const useGameStore = create<GameStore>((set, get) => ({
       maxTile,
       moves: get().moves + 1,
       lastMergedPositions: mergedPosSet,
-      state: newMaxTiles.length > 0 ? 'answering' : (hasAvailableMoves(finalGrid) ? 'playing' : 'game_over'),
+      state: hasAvailableMoves(finalGrid) ? 'playing' : 'game_over',
     })
 
     return { moved: true, newTiles: newMaxTiles }
