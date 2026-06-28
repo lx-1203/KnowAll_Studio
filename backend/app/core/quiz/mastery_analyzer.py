@@ -9,7 +9,7 @@ import logging
 import time
 from collections import defaultdict
 from datetime import datetime, timedelta, timezone
-from sqlalchemy import select, func, and_
+from sqlalchemy import select, func, and_, cast, Integer
 from app.database import async_session
 from app.models import (
     AnswerRecord, QuestionBank, KnowledgePointNode, KnowledgeCoverage,

@@ -1,0 +1,652 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>阅读语言 — 自适应渐进式学习</title>
+    <link rel="stylesheet" href="/static/style.css">
+</head>
+<body>
+    <div class="app-container">
+        <!-- 左侧边栏 -->
+        <aside class="sidebar" id="sidebar">
+            <div class="sidebar-header">
+                <div class="logo">📖 阅读语言</div>
+                <div class="logo-sub">自适应渐进式英语学习</div>
+            </div>
+
+            <!-- 自动等级显示 -->
+            <div class="auto-level" id="autoLevel">
+                <div class="level-info">
+                    <span class="level-badge" id="levelBadge">🌱 L1</span>
+                    <span class="level-name" id="levelName">初学者</span>
+                </div>
+                <div class="progress-bar-bg">
+                    <div class="progress-bar-fill" id="levelProgress"></div>
+                </div>
+                <div class="level-detail">
+                    <span id="knownCount">0</span> 已知词 ·
+                    <span id="learningCount">0</span> 学习中 ·
+                    升L2还需 <span id="toNext">50</span> 词
+                </div>
+            </div>
+
+            <div class="sidebar-nav">
+                <button class="active" data-tab="articles">📚 文章库</button>
+                <button data-tab="custom">✏️ 自定义文本</button>
+            </div>
+
+            <div class="sidebar-content" id="sidebarContent">
+                <div id="articleList"></div>
+                <div id="customPanel" class="custom-input-area" style="display:none;">
+                    <textarea id="customText" placeholder="粘贴中文文本...&#10;&#10;或将 .txt 文件拖到下方上传区（首行为标题，正文从第二行开始）"></textarea>
+                    <div class="upload-row">
+                        <label class="upload-btn">
+                            📁 上传 .txt
+                            <input type="file" id="fileInput" accept=".txt" onchange="handleFileUpload(this)" hidden>
+                        </label>
+                        <span class="upload-hint" id="uploadHint"></span>
+                    </div>
+                    <button class="btn-convert" onclick="convertCustom()">🔄 开始阅读（不保存）</button>
+                    <button class="btn-save-read" onclick="saveAndRead()">💾 保存并阅读</button>
+                </div>
+            </div>
+        </aside>
+
+        <!-- 主内容区 -->
+        <main class="main-content">
+            <div class="main-header">
+                <h2 id="mainTitle">📚 选择一篇文章开始</h2>
+                <div class="main-header-actions">
+                    <button class="reveal-toggle" id="revealToggle" onclick="toggleReveal()">
+                        👁️ 显示中文
+                    </button>
+                    <button class="btn-icon" onclick="refreshReading()">🔄 换一批词</button>
+                    <button class="btn-icon" onclick="toggleSidebar()">☰</button>
+                    <button class="btn-icon" onclick="openWordBook()">📝 单词本</button>
+                </div>
+            </div>
+
+            <div class="stats-bar" id="statsBar" style="display:none;">
+                <div class="stat-item">
+                    <span class="stat-icon">📖</span> 词汇:
+                    <span class="stat-value" id="statTotalVocab">-</span>
+                </div>
+                <div class="stat-item">
+                    <span class="stat-icon">✅</span> 已知:
+                    <span class="stat-value" id="statTotalKnown">-</span>
+                </div>
+            </div>
+
+            <div class="reading-area">
+                <div class="reading-content">
+                    <div class="empty-state" id="emptyState">
+                        <div class="icon">📖</div>
+                        <h3>自适应渐进式学习</h3>
+                        <p>系统会根据你的词汇量自动调整难度<br>
+                        每千字最多引入 5 个新词<br>
+                        见过的词会在后续文章里反复出现</p>
+                    </div>
+                    <div class="reading-text" id="readingText" style="display:none;"></div>
+                </div>
+            </div>
+        </main>
+
+        <!-- 右侧面板 -->
+        <aside class="right-panel" id="rightPanel">
+            <div class="panel-header">
+                本次单词
+                <span class="badge" id="vocabCount">0</span>
+            </div>
+            <div class="panel-tabs">
+                <button class="panel-tab active" data-ptab="current">📋 本文</button>
+                <button class="panel-tab" data-ptab="known">✅ 已知</button>
+                <button class="panel-tab" data-ptab="learning">🔄 学习中</button>
+            </div>
+            <div class="panel-content" id="vocabPanel">
+                <div class="panel-empty">选择文章后显示</div>
+            </div>
+        </aside>
+    </div>
+
+    <div class="toast" id="toast"></div>
+
+    <script>
+        // ============ 词汇状态管理 ============
+        const KNOW_THRESHOLD = 5;
+
+        function loadVocabState() {
+            const raw = localStorage.getItem('reading_lang_vocab');
+            return raw ? JSON.parse(raw) : { words: {}, totalRead: 0, totalEncountered: 0 };
+        }
+
+        function saveVocabState(state) {
+            localStorage.setItem('reading_lang_vocab', JSON.stringify(state));
+        }
+
+        function getKnownWords(state) {
+            return Object.entries(state.words)
+                .filter(([_, v]) => v.seen >= KNOW_THRESHOLD)
+                .map(([en, v]) => ({ cn: v.cn, en }));
+        }
+
+        function getSeenWords(state) {
+            return Object.entries(state.words)
+                .filter(([_, v]) => v.seen > 0 && v.seen < KNOW_THRESHOLD)
+                .map(([en, v]) => ({ cn: v.cn, en }));
+        }
+
+        function getAllWords(state) {
+            return Object.entries(state.words).map(([en, v]) => ({ cn: v.cn, en, seen: v.seen }));
+        }
+
+        function getLevel(state) {
+            const known = Object.values(state.words).filter(v => v.seen >= KNOW_THRESHOLD).length;
+            if (known >= 150) return 3;
+            if (known >= 50) return 2;
+            return 1;
+        }
+
+        function wordsToNextLevel(state) {
+            const known = Object.values(state.words).filter(v => v.seen >= KNOW_THRESHOLD).length;
+            if (known >= 150) return 0;
+            if (known >= 50) return 150 - known;
+            return 50 - known;
+        }
+
+        function updateVocabAfterReading(vocabulary) {
+            const state = loadVocabState();
+            const now = Date.now();
+
+            vocabulary.forEach(v => {
+                const key = v.en.toLowerCase();
+                if (state.words[key]) {
+                    state.words[key].seen += 1;
+                    state.words[key].lastSeen = now;
+                } else {
+                    state.words[key] = { cn: v.cn, seen: 1, lastSeen: now };
+                }
+                state.totalEncountered += 1;
+            });
+
+            state.totalRead += 1;
+            saveVocabState(state);
+            return state;
+        }
+
+        // ============ 全局状态 ============
+        let currentArticle = null;
+        let currentVocab = [];
+        let revealMode = true;
+        let vocabState = loadVocabState();
+
+        // ============ 初始化 ============
+        document.addEventListener('DOMContentLoaded', () => {
+            document.querySelectorAll('.sidebar-nav button').forEach(btn => {
+                btn.addEventListener('click', () => switchTab(btn.dataset.tab));
+            });
+            document.querySelectorAll('.panel-tab').forEach(btn => {
+                btn.addEventListener('click', () => switchPanelTab(btn.dataset.ptab));
+            });
+            loadArticles();
+            updateLevelUI();
+        });
+
+        // ============ 等级 UI 更新 ============
+        function updateLevelUI() {
+            vocabState = loadVocabState();
+            const known = Object.values(vocabState.words).filter(v => v.seen >= KNOW_THRESHOLD).length;
+            const learning = Object.values(vocabState.words).filter(v => v.seen > 0 && v.seen < KNOW_THRESHOLD).length;
+            const level = getLevel(vocabState);
+            const toNext = wordsToNextLevel(vocabState);
+
+            const names = { 1: '初学者', 2: '进阶者', 3: '掌握者' };
+            const icons = { 1: '🌱', 2: '🌿', 3: '🌳' };
+            const maxes = { 1: 50, 2: 150, 3: 150 };
+
+            document.getElementById('levelBadge').textContent = `${icons[level]} L${level}`;
+            document.getElementById('levelName').textContent = names[level];
+            document.getElementById('knownCount').textContent = known;
+            document.getElementById('learningCount').textContent = learning;
+
+            const pct = level >= 3 ? 100 : Math.min(100, (known / maxes[level]) * 100);
+            document.getElementById('levelProgress').style.width = pct + '%';
+
+            if (level >= 3) {
+                document.getElementById('toNext').textContent = '0';
+                document.getElementById('levelProgress').style.background = 'var(--level-3)';
+            } else {
+                document.getElementById('toNext').textContent = toNext;
+                document.getElementById('levelProgress').style.background = level === 1 ? 'var(--level-1)' : 'var(--level-2)';
+            }
+
+            document.getElementById('statTotalKnown').textContent = known;
+            document.getElementById('statTotalVocab').textContent = Object.keys(vocabState.words).length;
+        }
+
+        // ============ Tab 切换 ============
+        function switchTab(tab) {
+            document.querySelectorAll('.sidebar-nav button').forEach(b => b.classList.remove('active'));
+            document.querySelector(`.sidebar-nav button[data-tab="${tab}"]`).classList.add('active');
+            document.getElementById('articleList').style.display = tab === 'articles' ? 'block' : 'none';
+            document.getElementById('customPanel').style.display = tab === 'custom' ? 'block' : 'none';
+            if (tab === 'articles') loadArticles();
+        }
+
+        function switchPanelTab(tab) {
+            document.querySelectorAll('.panel-tab').forEach(b => b.classList.remove('active'));
+            document.querySelector(`.panel-tab[data-ptab="${tab}"]`).classList.add('active');
+            renderPanelTab(tab);
+        }
+
+        // ============ 加载文章列表 ============
+        async function loadArticles() {
+            try {
+                const resp = await fetch('/api/articles');
+                const articles = await resp.json();
+                const listEl = document.getElementById('articleList');
+                listEl.innerHTML = articles.map(a => `
+                    <div class="article-item ${currentArticle && currentArticle.id == a.id ? 'active' : ''}"
+                         onclick="selectArticle('${a.id}')">
+                        <div class="article-title">
+                            ${a.title}
+                            <span class="diff-badge d${a.difficulty || 0}">${a.difficulty ? 'L'+a.difficulty : 'U'}</span>
+                        </div>
+                        <div class="article-meta">
+                            ${a.tags ? a.tags.map(t => `<span class="tag">${t}</span>`).join('') : ''}
+                            <span>${a.content.length}字</span>
+                            ${a.source === 'upload' ? `<button class="btn-del" onclick="event.stopPropagation();deleteArticle('${a.id}')" title="删除">🗑️</button>` : ''}
+                        </div>
+                    </div>
+                `).join('');
+            } catch (e) {
+                console.error('加载文章失败', e);
+            }
+        }
+
+        async function deleteArticle(id) {
+            if (!confirm('确定删除这篇文章？')) return;
+            try {
+                const resp = await fetch('/api/articles/' + id, { method: 'DELETE' });
+                const data = await resp.json();
+                if (data.ok) {
+                    if (currentArticle && currentArticle.id == id) {
+                        currentArticle = null;
+                        document.getElementById('readingText').style.display = 'none';
+                        document.getElementById('emptyState').style.display = 'flex';
+                        document.getElementById('statsBar').style.display = 'none';
+                    }
+                    loadArticles();
+                    showToast('已删除');
+                } else {
+                    showToast(data.error || '删除失败');
+                }
+            } catch (e) {
+                showToast('删除失败');
+            }
+        }
+
+        // ============ 选择文章 ============
+        async function selectArticle(id) {
+            try {
+                const resp = await fetch(`/api/article/${id}`);
+                const article = await resp.json();
+                if (article.error) return;
+                currentArticle = article;
+                loadArticles();
+                await loadArticleContent(article);
+            } catch (e) {
+                console.error(e);
+            }
+        }
+
+        // ============ 核心：加载文章内容 ============
+        async function loadArticleContent(article) {
+            document.getElementById('mainTitle').textContent = '📖 ' + article.title;
+            await doRead(article.content);
+        }
+
+        // ============ 渲染混合文本 ============
+        function renderText(result, vocabulary) {
+            const el = document.getElementById('readingText');
+            el.style.display = 'block';
+
+            const enToData = {};
+            vocabulary.forEach(v => {
+                const key = v.en.toLowerCase();
+                if (!enToData[key]) enToData[key] = { cn: v.cn };
+            });
+
+            function findMatch(token) {
+                const lower = token.toLowerCase();
+                if (enToData[lower]) return enToData[lower];
+                const stripped = lower.replace(/(ing|ed|s|es|ly|ment|tion|ness|ful|less|er|est)$/, '');
+                if (stripped !== lower && enToData[stripped]) return enToData[stripped];
+                return null;
+            }
+
+            // 先处理多词短语（如 "a lot of"），替换为占位符避免被拆散
+            const multiWords = Object.keys(enToData).filter(k => k.includes(' ')).sort((a, b) => b.length - a.length);
+            const placeholders = {};
+            let workText = result;
+            multiWords.forEach((phrase, i) => {
+                const ph = `__PH_${i}__`;
+                const escaped = phrase.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+                const re = new RegExp(escaped, 'gi');
+                workText = workText.replace(re, ph);
+                placeholders[ph] = phrase;
+            });
+
+            // 逐字符构建输出，遇到占位符还原为高亮 HTML
+            const regex = /__PH_\d+__|([a-zA-Z]+(?:'[a-z]+)?)/g;
+            const parts = [];
+            let lastIdx = 0;
+            let match;
+
+            while ((match = regex.exec(workText)) !== null) {
+                if (match.index > lastIdx) {
+                    parts.push(escapeHtml(workText.substring(lastIdx, match.index)));
+                }
+                const token = match[0];
+
+                if (token.startsWith('__PH_') && placeholders[token]) {
+                    const phrase = placeholders[token];
+                    const data = enToData[phrase.toLowerCase()];
+                    parts.push(`<span class="en-word ${revealMode ? 'revealed' : ''}" data-cn="${data.cn}" onclick="toggleWord(event, this)" style="color:#6366f1;font-weight:800;border-bottom:3px solid #6366f1;cursor:pointer;">${phrase}<span class="cn-tip" style="display:${revealMode ? 'inline' : 'none'};position:absolute;bottom:100%;left:50%;transform:translateX(-50%);background:#1e293b;color:#fff;padding:2px 8px;border-radius:4px;font-size:12px;white-space:nowrap;">${data.cn}</span></span>`);
+                } else {
+                    const data = findMatch(token);
+                    if (data) {
+                        parts.push(`<span class="en-word ${revealMode ? 'revealed' : ''}" data-cn="${data.cn}" onclick="toggleWord(event, this)" style="color:#6366f1;font-weight:800;border-bottom:3px solid #6366f1;cursor:pointer;">${token}<span class="cn-tip" style="display:${revealMode ? 'inline' : 'none'};position:absolute;bottom:100%;left:50%;transform:translateX(-50%);background:#1e293b;color:#fff;padding:2px 8px;border-radius:4px;font-size:12px;white-space:nowrap;">${data.cn}</span></span>`);
+                    } else {
+                        parts.push(token);
+                    }
+                }
+                lastIdx = match.index + match[0].length;
+            }
+
+            if (lastIdx < workText.length) {
+                parts.push(escapeHtml(workText.substring(lastIdx)));
+            }
+
+            el.innerHTML = parts.join('');
+        }
+
+        function escapeHtml(text) {
+            return text.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+        }
+
+        function toggleWord(event, el) {
+            event.stopPropagation();
+            const cn = el.dataset.cn;
+            const tip = el.querySelector('.cn-tip');
+            el.classList.toggle('revealed');
+            tip.textContent = el.classList.contains('revealed') ? cn : '?';
+        }
+
+        function toggleReveal() {
+            revealMode = !revealMode;
+            const btn = document.getElementById('revealToggle');
+            btn.classList.toggle('active', !revealMode);
+            btn.innerHTML = revealMode ? '👁️ 显示中文' : '🙈 隐藏中文';
+
+            document.querySelectorAll('.en-word').forEach(el => {
+                const tip = el.querySelector('.cn-tip');
+                if (revealMode) {
+                    el.classList.add('revealed');
+                    tip.textContent = el.dataset.cn;
+                } else {
+                    el.classList.remove('revealed');
+                    tip.textContent = '?';
+                }
+            });
+        }
+
+        // ============ 渲染生词面板 ============
+        function renderVocabPanel(vocabulary) {
+            document.getElementById('vocabCount').textContent = vocabulary.length;
+            // 重置到当前文章 tab
+            document.querySelectorAll('.panel-tab').forEach(b => b.classList.remove('active'));
+            document.querySelector('.panel-tab[data-ptab="current"]').classList.add('active');
+            renderPanelTab('current');
+        }
+
+        function renderPanelTab(tab) {
+            const panel = document.getElementById('vocabPanel');
+            vocabState = loadVocabState();
+
+            if (tab === 'current') {
+                if (currentVocab.length === 0) {
+                    panel.innerHTML = '<div class="panel-empty">请先选择一篇文章</div>';
+                    return;
+                }
+                panel.innerHTML = currentVocab.map(v => `
+                    <div class="vocab-card">
+                        <div>
+                            <span class="en-word-panel">${v.en}</span>
+                            <span class="cn-word"> ← ${v.cn}</span>
+                        </div>
+                    </div>
+                `).join('');
+            } else if (tab === 'known') {
+                const known = Object.entries(vocabState.words)
+                    .filter(([_, v]) => v.seen >= KNOW_THRESHOLD)
+                    .sort((a, b) => b[1].seen - a[1].seen);
+                if (known.length === 0) {
+                    panel.innerHTML = '<div class="panel-empty">暂无已掌握词汇<br>阅读几篇文章后这里会逐渐积累</div>';
+                    return;
+                }
+                panel.innerHTML = known.map(([en, v]) => `
+                    <div class="vocab-card known">
+                        <div>
+                            <span class="en-word-panel">${en}</span>
+                            <span class="cn-word"> ← ${v.cn}</span>
+                        </div>
+                        <span class="seen-count">×${v.seen}</span>
+                    </div>
+                `).join('');
+            } else if (tab === 'learning') {
+                const learning = Object.entries(vocabState.words)
+                    .filter(([_, v]) => v.seen > 0 && v.seen < KNOW_THRESHOLD)
+                    .sort((a, b) => b[1].seen - a[1].seen);
+                if (learning.length === 0) {
+                    panel.innerHTML = '<div class="panel-empty">暂无可复习词汇</div>';
+                    return;
+                }
+                panel.innerHTML = learning.map(([en, v]) => `
+                    <div class="vocab-card learning">
+                        <div>
+                            <span class="en-word-panel">${en}</span>
+                            <span class="cn-word"> ← ${v.cn}</span>
+                        </div>
+                        <span class="seen-count">${v.seen}/${KNOW_THRESHOLD}</span>
+                    </div>
+                `).join('');
+            }
+        }
+
+        // ============ 更新统计 ============
+        function updateReadingStats(data) {
+            document.getElementById('statTotalKnown').textContent = data.known_count;
+            document.getElementById('statTotalVocab').textContent = Object.keys(vocabState.words).length;
+        }
+
+        // ============ 刷新 ============
+        function refreshReading() {
+            if (currentArticle) {
+                document.getElementById('readingText').style.display = 'block';
+                document.getElementById('readingText').innerHTML = '<div class="loading">⏳ 重新生成中...</div>';
+                currentVocab = [];
+                doRead(currentArticle.content, true);
+            }
+        }
+
+        // ============ 单词本 ============
+        function openWordBook() {
+            const panel = document.getElementById('rightPanel');
+            panel.classList.add('open');
+            // 切换到已知 tab
+            document.querySelectorAll('.panel-tab').forEach(b => b.classList.remove('active'));
+            const knownTab = document.querySelector('.panel-tab[data-ptab="known"]');
+            if (knownTab) knownTab.classList.add('active');
+            renderPanelTab('known');
+        }
+
+        // ============ 自定义文本 ============
+        async function convertCustom() {
+            const text = document.getElementById('customText').value.trim();
+            if (!text) { showToast('请输入文本或上传文件'); return; }
+            document.getElementById('mainTitle').textContent = '✏️ 自定义文本';
+            currentArticle = null;
+            await doRead(text);
+        }
+
+        async function handleFileUpload(input) {
+            const file = input.files[0];
+            if (!file) return;
+
+            const text = await file.text();
+            const lines = text.trim().split('\n');
+            const title = lines[0].trim().slice(0, 50);
+            const content = lines.slice(1).join('\n').trim();
+
+            if (!content) {
+                showToast('文件内容不足（需首行标题 + 正文）');
+                return;
+            }
+
+            document.getElementById('customText').value = text;
+            document.getElementById('uploadHint').textContent = `已加载: ${title} (${content.length}字)`;
+        }
+
+        async function saveAndRead() {
+            const text = document.getElementById('customText').value.trim();
+            if (!text) { showToast('请输入文本'); return; }
+
+            const lines = text.split('\n');
+            const title = lines[0].trim().slice(0, 50);
+            const content = lines.slice(1).join('\n').trim() || text;
+
+            try {
+                const resp = await fetch('/api/articles/upload', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ title, content })
+                });
+                const data = await resp.json();
+                if (data.error) { showToast(data.error); return; }
+
+                showToast('已保存！');
+                loadArticles();
+
+                // 自动打开这篇刚上传的文章
+                if (data.article) {
+                    currentArticle = data.article;
+                    await doRead(content);
+                }
+            } catch (e) {
+                showToast('保存失败');
+            }
+        }
+
+        async function doRead(text, skipCache = false) {
+            document.getElementById('emptyState').style.display = 'none';
+            document.getElementById('statsBar').style.display = 'flex';
+            const readingEl = document.getElementById('readingText');
+            readingEl.style.display = 'block';
+            readingEl.innerHTML = '';
+
+            vocabState = loadVocabState();
+
+            try {
+                const resp = await fetch('/api/convert/stream', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        text,
+                        known_words: getKnownWords(vocabState),
+                        seen_words: getSeenWords(vocabState),
+                        skip_cache: skipCache,
+                    })
+                });
+
+                const reader = resp.body.getReader();
+                const decoder = new TextDecoder();
+                let buffer = '';
+                let finalResult = null;
+                let finalVocab = [];
+                let streamedText = '';
+
+                while (true) {
+                    const { done, value } = await reader.read();
+                    if (done) break;
+                    buffer += decoder.decode(value, { stream: true });
+                    const lines = buffer.split('\n');
+                    buffer = lines.pop() || '';
+                    for (const line of lines) {
+                        if (line.startsWith('data: ')) {
+                            const data = JSON.parse(line.slice(6));
+                            if (data.cached) {
+                                streamedText = data.result;
+                                finalVocab = data.vocabulary;
+                                readingEl.innerHTML = '<span class="cache-badge">⚡ 缓存</span> ';
+                                break;
+                            } else if (data.token) {
+                                streamedText += data.token;
+                                // 去掉 << >> 标记，只显示纯文本
+                                let display = streamedText.replace(/<<([^>]+)>>/g, '$1');
+                                readingEl.textContent = display;
+                            } else if (data.done) {
+                                finalResult = data.result;
+                                finalVocab = data.vocabulary;
+                            } else if (data.error) {
+                                readingEl.innerHTML = '<div class="loading" style="color:red">❌ ' + data.error + '</div>';
+                                return;
+                            }
+                        }
+                    }
+                }
+
+                if (finalResult || streamedText) {
+                    const result = finalResult || streamedText;
+                    currentVocab = finalVocab;
+                    vocabState = updateVocabAfterReading(finalVocab);
+                    updateLevelUI();
+                    renderText(result, finalVocab);
+                    renderVocabPanel(finalVocab);
+                    document.getElementById('statTotalKnown').textContent = getKnownWords(vocabState).length;
+                    document.getElementById('statTotalVocab').textContent = Object.keys(vocabState.words).length;
+                }
+            } catch (e) {
+                readingEl.innerHTML = '<div class="loading" style="color:red">❌ 请求失败: ' + e.message + '</div>';
+            }
+        }
+
+        function showToast(msg) {
+            const toast = document.getElementById('toast');
+            toast.textContent = msg;
+            toast.classList.add('show');
+            clearTimeout(toast._timeout);
+            toast._timeout = setTimeout(() => toast.classList.remove('show'), 2000);
+        }
+
+        function toggleSidebar() {
+            document.getElementById('sidebar').classList.toggle('open');
+        }
+
+        function togglePanel() {
+            document.getElementById('rightPanel').classList.toggle('open');
+        }
+
+        document.addEventListener('keydown', function(e) {
+            if ((e.ctrlKey || e.metaKey) && e.key === 'r') {
+                e.preventDefault();
+                refreshReading();
+            }
+            if ((e.ctrlKey || e.metaKey) && e.key === 'b') {
+                e.preventDefault();
+                toggleReveal();
+            }
+        });
+    </script>
+</body>
+</html>
