@@ -156,7 +156,7 @@ class TestLanguageAgentRun:
         mock_session = AsyncMock()
         mock_session.get = AsyncMock(return_value=None)
 
-        with patch("app.core.agents.language_agent.async_session") as mock_session_ctx:
+        with patch("app.database.async_session") as mock_session_ctx:
             mock_session_ctx.return_value.__aenter__ = AsyncMock(return_value=mock_session)
             mock_session_ctx.return_value.__aexit__ = AsyncMock(return_value=None)
 
@@ -195,7 +195,7 @@ class TestLanguageAgentRun:
         mock_llm_result = MagicMock()
         mock_llm_result.content = vocab_json
 
-        with patch("app.core.agents.language_agent.async_session") as mock_session_ctx:
+        with patch("app.database.async_session") as mock_session_ctx:
             mock_session_ctx.return_value.__aenter__ = AsyncMock(return_value=mock_session)
             mock_session_ctx.return_value.__aexit__ = AsyncMock(return_value=None)
 
@@ -235,7 +235,7 @@ class TestLanguageAgentRun:
         mock_llm_result = MagicMock()
         mock_llm_result.content = llm_content
 
-        with patch("app.core.agents.language_agent.async_session") as mock_session_ctx:
+        with patch("app.database.async_session") as mock_session_ctx:
             mock_session_ctx.return_value.__aenter__ = AsyncMock(return_value=mock_session)
             mock_session_ctx.return_value.__aexit__ = AsyncMock(return_value=None)
 
@@ -271,7 +271,7 @@ class TestLanguageAgentRun:
         mock_llm_result = MagicMock()
         mock_llm_result.content = "Just some plain text, no JSON at all."
 
-        with patch("app.core.agents.language_agent.async_session") as mock_session_ctx:
+        with patch("app.database.async_session") as mock_session_ctx:
             mock_session_ctx.return_value.__aenter__ = AsyncMock(return_value=mock_session)
             mock_session_ctx.return_value.__aexit__ = AsyncMock(return_value=None)
 
@@ -309,7 +309,7 @@ class TestLanguageAgentRun:
         mock_llm_result = MagicMock()
         mock_llm_result.content = vocab_json
 
-        with patch("app.core.agents.language_agent.async_session") as mock_session_ctx:
+        with patch("app.database.async_session") as mock_session_ctx:
             mock_session_ctx.return_value.__aenter__ = AsyncMock(return_value=mock_session)
             mock_session_ctx.return_value.__aexit__ = AsyncMock(return_value=None)
 
@@ -328,7 +328,7 @@ class TestLanguageAgentRun:
 
         agent = LanguageAgent()
 
-        with patch("app.core.agents.language_agent.async_session") as mock_session_ctx:
+        with patch("app.database.async_session") as mock_session_ctx:
             mock_session_ctx.side_effect = RuntimeError("Database connection lost")
 
             result = await agent.run(summary_id="sum_1", document_id="doc_1")
