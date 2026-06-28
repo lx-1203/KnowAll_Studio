@@ -17,7 +17,7 @@ class StudyPlanAgent(BaseAgent):
     description = "基于知识点总结生成学习计划，结合艾宾浩斯遗忘曲线安排复习"
 
     async def run(self, summary_id: str, document_id: str, **kwargs) -> AgentResult:
-        from app.database import get_session
+        from app.database import async_session
         from app.models import KnowledgeSummary, KnowledgePointNode, StudyPlan, StudyGoal
         from sqlalchemy import select
 
