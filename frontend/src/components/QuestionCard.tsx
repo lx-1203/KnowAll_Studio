@@ -160,6 +160,13 @@ function renderAnswerInput(
 }
 
 function ResultPanel({ result }: { result: NonNullable<QuestionCardProps['result']> }) {
+  const isSemantic = (result as any).grading_method === 'semantic'
+  const semanticScores = (result as any).semantic_scores
+  const semanticTotal = (result as any).semantic_total
+  const feedback = (result as any).feedback
+  const keyPointsMatched = (result as any).key_points_matched
+  const keyPointsMissed = (result as any).key_points_missed
+
   return (
     <div style={{
       marginTop: 12, padding: 12,
@@ -168,12 +175,73 @@ function ResultPanel({ result }: { result: NonNullable<QuestionCardProps['result
     }}>
       <div style={{ fontWeight: 600 }}>
         正确答案: {result.correct_answer}
+        {isSemantic && (
+          <Tag color="purple" style={{ marginLeft: 8 }}>AI语义评分</Tag>
+        )}
       </div>
       {!result.is_correct && (
-        <div style={{ color: '#ff4d4f' }}>
+        <div style={{ color: '#ff4d4f', marginTop: 4 }}>
           你的答案: {result.user_answer || '(未作答)'}
         </div>
       )}
+
+      {/* Semantic grading detail panel */}
+      {isSemantic && semanticScores && (
+        <div style={{ marginTop: 10, padding: 10, background: '#fafafa', borderRadius: 6 }}>
+          <Space wrap size={[8, 4]}>
+            <Tooltip title="核心观点正确性">
+              <Tag color="blue">正确性: {semanticScores.correctness}/10</Tag>
+            </Tooltip>
+            <Tooltip title="要点覆盖完整度">
+              <Tag color="cyan">完整性: {semanticScores.completeness}/10</Tag>
+            </Tooltip>
+            <Tooltip title="表述逻辑清晰度">
+              <Tag color="geekblue">清晰度: {semanticScores.clarity}/10</Tag>
+            </Tooltip>
+            <Tag color={semanticTotal >= 6 ? 'green' : 'red'}>
+              总分: {semanticTotal?.toFixed(1)}/10
+            </Tag>
+          </Space>
+
+          {feedback && (
+            <div style={{ marginTop: 8, fontSize: 13 }}>
+              {feedback.strengths?.length > 0 && (
+                <div style={{ color: '#52c41a', marginTop: 4 }}>
+                  优点: {feedback.strengths.join('；')}
+                </div>
+              )}
+              {feedback.weaknesses?.length > 0 && (
+                <div style={{ color: '#ff4d4f', marginTop: 4 }}>
+                  不足: {feedback.weaknesses.join('；')}
+                </div>
+              )}
+              {feedback.suggestion && (
+                <div style={{ color: '#666', marginTop: 4, fontStyle: 'italic' }}>
+                  建议: {feedback.suggestion}
+                </div>
+              )}
+            </div>
+          )}
+
+          {keyPointsMatched?.length > 0 && (
+            <div style={{ marginTop: 6, fontSize: 12 }}>
+              <span style={{ color: '#52c41a' }}>匹配要点: </span>
+              {keyPointsMatched.map((kp: string, i: number) => (
+                <Tag key={i} color="green" style={{ fontSize: 11 }}>{kp}</Tag>
+              ))}
+            </div>
+          )}
+          {keyPointsMissed?.length > 0 && (
+            <div style={{ marginTop: 4, fontSize: 12 }}>
+              <span style={{ color: '#ff4d4f' }}>遗漏要点: </span>
+              {keyPointsMissed.map((kp: string, i: number) => (
+                <Tag key={i} color="red" style={{ fontSize: 11 }}>{kp}</Tag>
+              ))}
+            </div>
+          )}
+        </div>
+      )}
+
       {result.analysis && (
         <div style={{ marginTop: 8, color: '#666', fontSize: 13, lineHeight: 1.6 }}>
           解析: <RichText text={result.analysis} />
