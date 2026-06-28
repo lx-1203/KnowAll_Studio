@@ -35,20 +35,26 @@ def _verify_token(token: str) -> dict | None:
         return None
 
 
-def _room_op_log_append(room_id: str, op: dict) -> None:
-    if room_id not in _room_op_log:
-        _room_op_log[room_id] = []
-    _room_op_log[room_id].append(op)
-    if len(_room_op_log[room_id]) > MAX_OP_LOG:
-        _room_op_log[room_id] = _room_op_log[room_id][-MAX_OP_LOG:]
+async def _room_op_log_append(room_id: str, op: dict) -> None:
+    """Append to operation log (persisted via sync_store)."""
+    await sync_store.append_op_log(
+        room_id=room_id,
+        version=op.get("version", 0),
+        user_id=op.get("user_id", ""),
+        operation=op.get("op", ""),
+        data=op.get("data", {}),
+    )
 
 
-def _offline_msg_append(user_id: str, msg: dict) -> None:
-    if user_id not in _offline_msgs:
-        _offline_msgs[user_id] = []
-    _offline_msgs[user_id].append(msg)
-    if len(_offline_msgs[user_id]) > MAX_OFFLINE_MSGS:
-        _offline_msgs[user_id] = _offline_msgs[user_id][-MAX_OFFLINE_MSGS:]
+async def _offline_msg_append(user_id: str, msg: dict) -> None:
+    """Save offline message (persisted via sync_store)."""
+    await sync_store.save_offline_message(
+        user_id=user_id,
+        msg_type=msg.get("type", ""),
+        msg_data=msg.get("data", {}),
+        room_id=msg.get("room_id", ""),
+        version=msg.get("version", 0),
+    )
 
 
 async def _broadcast(room_id: str, message: dict, exclude: WebSocket | None = None) -> None:
