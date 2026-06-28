@@ -347,7 +347,7 @@ def _dicts_to_nodes(dicts: list[dict]) -> list:
 # ===== Knowledge Summary Endpoints =====
 
 class GenerateSummaryRequest(BaseModel):
-    document_id: str
+    document_ids: list[str]
     model: str = "deepseek-chat"
     language_type: str = "auto"
     max_depth: int = 3
@@ -359,50 +359,61 @@ async def generate_summary(
     db: AsyncSession = Depends(get_db),
     current_user=Depends(get_optional_user),
 ):
-    """Generate a complete Markdown knowledge point summary from a document."""
+    """Generate a comprehensive Markdown knowledge summary from multiple documents."""
     await load_user_api_keys(get_user_id(current_user), db)
 
-    doc_result = await db.execute(select(Document).where(Document.id == req.document_id))
-    doc = doc_result.scalar_one_or_none()
-    if not doc:
-        raise HTTPException(404, "Document not found")
+    if not req.document_ids:
+        raise HTTPException(400, "At least one document ID is required")
 
-    # Get chunks
-    chunks_result = await db.execute(
-        select(DocumentChunk)
-        .where(DocumentChunk.doc_id == req.document_id)
-        .order_by(DocumentChunk.chunk_index)
-    )
-    chunks = chunks_result.scalars().all()
-    if not chunks:
-        raise HTTPException(404, "No chunks found for this document")
+    all_chunk_texts: list[str] = []
+    all_structure_contexts: list[str] = []
+    primary_doc_id = req.document_ids[0]
 
-    chunk_texts = [c.text_content for c in chunks]
+    for doc_id in req.document_ids:
+        doc_result = await db.execute(select(Document).where(Document.id == doc_id))
+        doc = doc_result.scalar_one_or_none()
+        if not doc:
+            continue  # skip missing docs
 
-    # Get structure context from metadata
-    structure_context = ""
-    if doc.metadata_ and doc.metadata_.get("headings"):
-        from app.core.parsing.outline_extractor import outline_extractor
-        structure_context = outline_extractor.headings_to_text(doc.metadata_.get("headings", []))
+        chunks_result = await db.execute(
+            select(DocumentChunk)
+            .where(DocumentChunk.doc_id == doc_id)
+            .order_by(DocumentChunk.chunk_index)
+        )
+        chunks = chunks_result.scalars().all()
+        if chunks:
+            all_chunk_texts.extend([c.text_content for c in chunks])
 
-    # Generate summary
+        if doc.metadata_ and doc.metadata_.get("headings"):
+            from app.core.parsing.outline_extractor import outline_extractor
+            heading_text = outline_extractor.headings_to_text(doc.metadata_.get("headings", []))
+            if heading_text:
+                all_structure_contexts.append(f"【{doc.filename}】\n{heading_text}")
+
+    if not all_chunk_texts:
+        raise HTTPException(404, "No chunks found in any of the specified documents")
+
+    combined_structure = "\n---\n".join(all_structure_contexts) if all_structure_contexts else ""
+
+    # Generate summary from merged content
     result = await knowledge_generator.generate_summary(
-        chunk_texts=chunk_texts,
-        document_id=req.document_id,
+        chunk_texts=all_chunk_texts,
+        document_id=primary_doc_id,
         model=req.model,
         max_depth=req.max_depth,
         language_type=req.language_type,
-        structure_context=structure_context,
+        structure_context=combined_structure,
     )
 
-    # Store summary in DB
+    # Store summary
     import hashlib
     cache_key = hashlib.sha256(
-        (req.document_id + req.model + str(req.max_depth)).encode()
+        (",".join(sorted(req.document_ids)) + req.model + str(req.max_depth)).encode()
     ).hexdigest()
 
     summary = KnowledgeSummary(
-        document_id=req.document_id,
+        document_id=primary_doc_id,
+        document_ids=req.document_ids,
         content_md=result["content_md"],
         node_count=result["node_count"],
         level_stats=result["level_stats"],
@@ -417,7 +428,7 @@ async def generate_summary(
         node = KnowledgePointNode(
             id=node_dict["id"],
             summary_id=summary.id,
-            document_id=req.document_id,
+            document_id=primary_doc_id,
             parent_id=node_dict.get("parent_id"),
             level=node_dict["level"],
             sequence=node_dict["sequence"],
@@ -434,12 +445,47 @@ async def generate_summary(
 
     return {
         "summary_id": summary.id,
-        "document_id": summary.document_id,
+        "document_ids": summary.document_ids,
         "content_md": summary.content_md,
         "node_count": summary.node_count,
         "level_stats": summary.level_stats,
         "generated_at": summary.generated_at.isoformat() if summary.generated_at else None,
         "model_used": summary.model_used,
+    }
+
+
+@router.get("/summaries")
+async def list_summaries(
+    limit: int = 10,
+    offset: int = 0,
+    db: AsyncSession = Depends(get_db),
+):
+    """List recent knowledge summaries."""
+    from sqlalchemy import func
+    count_result = await db.execute(select(func.count()).select_from(KnowledgeSummary))
+    total = count_result.scalar() or 0
+
+    result = await db.execute(
+        select(KnowledgeSummary)
+        .order_by(KnowledgeSummary.created_at.desc())
+        .offset(offset)
+        .limit(limit)
+    )
+    summaries = result.scalars().all()
+
+    return {
+        "total": total,
+        "items": [
+            {
+                "summary_id": s.id,
+                "document_ids": s.document_ids or [s.document_id] if s.document_id else [],
+                "node_count": s.node_count,
+                "level_stats": s.level_stats,
+                "generated_at": s.generated_at.isoformat() if s.generated_at else None,
+                "created_at": s.created_at.isoformat() if s.created_at else None,
+            }
+            for s in summaries
+        ],
     }
 
 
