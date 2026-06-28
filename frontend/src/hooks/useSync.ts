@@ -47,7 +47,7 @@ const SyncContext = createContext<SyncContextValue | null>(null)
 export function SyncProvider({ children, spaceId = 'default' }: { children: ReactNode; spaceId?: string }) {
   const user = useAuthStore(s => s.user)
   const userId = user?.id || 'local_user'
-  const userName = user?.display_name || user?.username || '本地用户'
+  const userName = user?.username || '本地用户'
 
   // ── 服务实例（useRef 避免重创建） ──
   const syncClientRef = useRef<RealtimeSyncClient | null>(null)
