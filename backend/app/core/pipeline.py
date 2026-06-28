@@ -20,6 +20,7 @@ class PipelineStage(str, Enum):
     QUIZ = "quiz"
     FLASHCARDS = "flashcards"
     OUTLINE = "outline"
+    AGENTS = "agents"
     DONE = "done"
     ERROR = "error"
 
