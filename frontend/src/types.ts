@@ -248,3 +248,206 @@ export interface AuthUser {
   email: string
   created_at: string
 }
+
+// ===== Knowledge Summary Types =====
+
+export interface KnowledgeSummary {
+  summary_id: string
+  document_id: string
+  content_md: string
+  node_count: number
+  level_stats: Record<string, number>
+  generated_at: string | null
+  model_used: string | null
+}
+
+export interface KnowledgePointNode {
+  id: string
+  summary_id: string | null
+  parent_id: string | null
+  level: number
+  sequence: number
+  title: string
+  explanation: string
+  related_concepts: string | null
+  examples: string | null
+  tags: string[]
+}
+
+export interface MindMapNode {
+  id: string
+  label: string
+  level: number
+  tag: string | null
+  summary: string | null
+  children: MindMapNode[]
+}
+
+export interface MindMapEdge {
+  source: string
+  target: string
+  relation: string
+}
+
+export interface MindMapData {
+  nodes: MindMapNode[]
+  edges: MindMapEdge[]
+}
+
+// ===== Agent Orchestration Types =====
+
+export type AgentType = 'question_bank' | 'mindmap' | 'study_plan' | 'language' | 'quiz_interactive'
+
+export interface AgentOrchestrateConfig {
+  question_count?: number
+  question_types?: string[]
+  study_plan?: {
+    type: 'short' | 'long' | 'both'
+    daily_hours?: number
+  }
+}
+
+export interface AgentResult {
+  agent: string
+  status: 'success' | 'error' | 'skipped'
+  result: Record<string, any> | null
+  error: string | null
+}
+
+export interface AgentOrchestrateResponse {
+  summary_id: string
+  results: Record<string, AgentResult>
+  coverage_report: CoverageReport | null
+}
+
+// ===== Interactive Quiz Types =====
+
+export interface InteractiveQuizSession {
+  session_id: string
+  questions: Question[]
+  total: number
+  current_index: number
+  answers: Record<string, InteractiveAnswerResult>
+}
+
+export interface InteractiveAnswerResult {
+  question_id: string
+  user_answer: string
+  is_correct: boolean
+  correct_answer: string
+  analysis: string | null
+  time_spent_ms: number
+}
+
+export interface InteractiveQuizStats {
+  total_answered: number
+  correct: number
+  accuracy: number
+  time_spent_total_ms: number
+  questions_detail: InteractiveAnswerResult[]
+}
+
+// ===== Coverage Report Types =====
+
+export interface CoverageReport {
+  total_knowledge_points: number
+  covered_by_questions: number
+  covered_by_flashcards: number
+  full_coverage: number
+  coverage_rate_questions: number
+  coverage_rate_flashcards: number
+  full_coverage_rate: number
+  uncovered_points: Array<{ id: string; title: string; level: number }>
+  weak_points: Array<{ id: string; title: string; accuracy: number; recommendation: string }>
+}
+
+// ===== Memory Feedback Types =====
+
+export interface ReviewQueueItem {
+  queue_id: string
+  resource_type: 'flashcard' | 'question'
+  resource_id: string
+  knowledge_point_id: string | null
+  priority: number
+  reason: string | null
+  pushed_at: string | null
+  completed: boolean
+}
+
+export interface MemoryStats {
+  total_cards: number
+  total_reviews: number
+  average_accuracy: number
+  weak_points_count: number
+  due_today: number
+  review_queue_count: number
+}
+
+// ===== Language Vocabulary Types =====
+
+export interface LanguageVocabulary {
+  id: string
+  word: string
+  phonetic: string | null
+  part_of_speech: string | null
+  definition: string
+  example_sentence: string | null
+  difficulty: 'easy' | 'medium' | 'hard'
+  knowledge_point_id: string | null
+  mastered: boolean
+}
+
+// ===== Enhanced Study Plan Types =====
+
+export interface EbbinghausNode {
+  day: number
+  review: boolean
+  description: string
+}
+
+export interface StudyPlanEnhanced {
+  plan_id: string
+  name: string
+  plan_type: 'short' | 'long'
+  daily_hours: number
+  short_term_plan: StudyPlanDayHour[] | null
+  long_term_plan: StudyPlanWeekDay[] | null
+  ebbinghaus_nodes: EbbinghausNode[]
+  knowledge_point_ids: string[]
+}
+
+export interface StudyPlanDayHour {
+  day: number
+  date: string
+  hours: StudyHourBlock[]
+}
+
+export interface StudyHourBlock {
+  hour: string
+  topic: string
+  knowledge_point_ids: string[]
+  is_review: boolean
+}
+
+export interface StudyPlanWeekDay {
+  week: number
+  days: StudyDayItem[]
+}
+
+export interface StudyDayItem {
+  day: number
+  date: string
+  topics: string[]
+  hours: number
+  is_review_day: boolean
+  ebbinghaus_day: number | null
+}
+
+// Extended Flashcard with review tracking
+export interface FlashcardExtended extends Flashcard {
+  knowledge_point_id: string | null
+  review_count: number
+  correct_count: number
+  last_review_at: string | null
+  accuracy_rate: number
+}
