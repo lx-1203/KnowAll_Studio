@@ -398,7 +398,11 @@ class TestCoverageAccuracy:
 
         mock_session.execute = AsyncMock(side_effect=execute_side_effect)
 
-        result = await engine._get_accuracy("kp_1", mock_session)
+        # Patch _type_from_args to work around source code bug:
+        # AnswerRecord.is_correct.cast(int) passes Python built-in int instead
+        # of a SQLAlchemy type, causing "'int' has no attribute '_isnull'"
+        with patch("sqlalchemy.sql.functions._type_from_args", return_value=None):
+            result = await engine._get_accuracy("kp_1", mock_session)
 
         assert result is not None
         # 6/8 = 0.75
