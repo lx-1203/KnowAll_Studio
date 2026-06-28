@@ -216,6 +216,7 @@ class BOISAnalyzer:
     def _compute_coverage(
         self,
         nodes: list[dict],
+        node_map: dict[str, dict],
         children_map: dict[str, list[str]],
         parent_map: dict[str, str],
         max_depth: int,
@@ -229,18 +230,21 @@ class BOISAnalyzer:
 
         gaps = 0
         total_paths = 0
-        leaves = [n["id"] for n in nodes if n["id"] not in children_map or not children_map[n["id"]]]
+        leaf_ids = {
+            n["id"] for n in nodes
+            if n["id"] not in children_map or not children_map[n["id"]]
+        }
 
-        for leaf_id in leaves:
+        for leaf_id in leaf_ids:
             current = leaf_id
             levels_seen = set()
             while current in parent_map:
-                node = next((n for n in nodes if n["id"] == current), None)
+                node = node_map.get(current)
                 if node:
                     levels_seen.add(node.get("level", 0))
                 current = parent_map[current]
             # 根节点
-            root = next((n for n in nodes if n["id"] == current), None)
+            root = node_map.get(current)
             if root:
                 levels_seen.add(root.get("level", 0))
 
