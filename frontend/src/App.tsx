@@ -168,6 +168,9 @@ export default function App() {
                   <Route path="/quiz/interactive/:summaryId" element={<InteractiveQuizPage />} />
                   <Route path="/coverage/:summaryId" element={<CoverageReportPage />} />
                   <Route path="/review" element={<AnswerReviewPage />} />
+                  <Route path="/language" element={<LanguageLearningPage />} />
+                  <Route path="/language/:docId" element={<LanguageLearningPage />} />
+                  <Route path="/pipeline" element={<PipelinePage />} />
                 </Routes>
               </div>
             </Suspense>
