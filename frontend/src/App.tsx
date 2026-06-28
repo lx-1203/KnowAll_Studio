@@ -77,6 +77,7 @@ export default function App() {
       { key: '/study', icon: <StudyPlanIcon />, label: <Link to="/study">学习计划</Link> },
       { key: '/knowledge', icon: <MindMapIcon />, label: <Link to="/knowledge">思维导图</Link> },
       { key: '/language', icon: <BookOutlined />, label: <Link to="/language">词汇学习</Link> },
+      { key: '/reading', icon: <ReadOutlined />, label: <Link to="/reading">阅读语言</Link> },
     ]},
     { type: 'group', label: '知识管理', children: [
       { key: '/upload', icon: <UploadIcon />, label: <Link to="/upload">资料导入</Link> },
