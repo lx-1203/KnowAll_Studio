@@ -97,6 +97,20 @@ export default function QuizPage() {
   const [reviewMode, setReviewMode] = useState<'all' | 'review'>('all')
   const [reviewFilter, setReviewFilter] = useState<'all' | 'wrong'>('all')
 
+  // ---- Review analysis (global) ----
+  const [mastery, setMastery] = useState<any>(null)
+  const [masteryLoading, setMasteryLoading] = useState(false)
+  const [reviewStats, setReviewStats] = useState<any>(null)
+  const [reviewStatsLoading, setReviewStatsLoading] = useState(false)
+  const [answerHistory, setAnswerHistory] = useState<any[]>([])
+  const [historyTotal, setHistoryTotal] = useState(0)
+  const [historyPage, setHistoryPage] = useState(1)
+  const [historyLoading, setHistoryLoading] = useState(false)
+  const [filterCorrect, setFilterCorrect] = useState<boolean | undefined>(undefined)
+  const [filterKpId, setFilterKpId] = useState<string | undefined>(undefined)
+  const [kpList, setKpList] = useState<any[]>([])
+  const [reviewSubTab, setReviewSubTab] = useState('mastery')
+
   // ---- Exam state ----
   const [markedQuestions, setMarkedQuestions] = useState<Set<string>>(new Set())
   const [answerSheetOpen, setAnswerSheetOpen] = useState(false)
