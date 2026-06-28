@@ -19,6 +19,7 @@ router = APIRouter(prefix="/ws", tags=["sync"])
 # ── 房间管理（进程内，通过 sync_store 持久化消息和日志） ──────────
 _rooms: dict[str, set[tuple[WebSocket, str, str]]] = {}
 _room_versions: dict[str, int] = {}
+_room_locks: dict[str, asyncio.Lock] = {}  # 每个房间的版本锁
 _last_heartbeat: dict[int, float] = {}  # id(ws) → last_ping_time
 HEARTBEAT_INTERVAL = 15      # 客户端心跳间隔（秒）
 HEARTBEAT_TIMEOUT = 30       # 超时断连（秒）
