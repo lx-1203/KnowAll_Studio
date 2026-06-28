@@ -216,17 +216,8 @@ async def sync_websocket(
     if doc_id not in _room_versions:
         _room_versions[doc_id] = await sync_store.get_room_version(doc_id)
 
-    # ── 发送全量同步（首次连接） ──
-    await ws.send_text(json.dumps({
-        "type": "sync_full",
-        "doc_id": doc_id,
-        "data": {
-            "version": _room_versions[doc_id],
-            "content": None,
-        },
-    }, ensure_ascii=False))
-
     # ── 推送离线消息（从持久化存储弹出） ──
+    # 按规范 6.2 节：客户端连接后发送 reconnect 消息来驱动同步
     offline = await sync_store.pop_offline_messages(user_id)
     for msg in offline:
         try:
