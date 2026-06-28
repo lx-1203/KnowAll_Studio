@@ -201,12 +201,6 @@ async def sync_websocket(
     # ── 记录心跳时间 ──
     _last_heartbeat[id(ws)] = time.time()
 
-    # ── 确保心跳检查任务已启动 ──
-    if not any(t.get_name() == "heartbeat_checker" for t in _background_tasks):
-        task = asyncio.create_task(_heartbeat_checker(), name="heartbeat_checker")
-        _background_tasks.add(task)
-        task.add_done_callback(_background_tasks.discard)
-
     # ── 加入房间 ──
     if doc_id not in _rooms:
         _rooms[doc_id] = set()
