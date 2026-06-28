@@ -8,7 +8,7 @@ import CompareTable from '../components/CompareTable'
 
 export default function FlashcardPage() {
   const { selectedDoc } = useAppStore()
-  const { dueCards, currentIndex, isFlipped, setDueCards, flip, next, prev } = useFlashcardStore()
+  const { dueCards, currentIndex, isFlipped, reviewLimit, setDueCards, flip, next, prev, setReviewLimit } = useFlashcardStore()
   const { message } = App.useApp()
   const [loading, setLoading] = useState(false)
   const [decks, setDecks] = useState<any[]>([])
