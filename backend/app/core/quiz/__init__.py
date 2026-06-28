@@ -211,10 +211,12 @@ class QuizGenerator:
 
         # Build cognitive level instruction for the prompt
         cognitive_instruction = get_cognitive_level_instruction(config.cognitive_level)
-
-        # Render difficulty_score to a readable string
         diff_label = self._difficulty_label(config.difficulty_score)
 
+        pipeline = PipelineStats()
+
+        # Stage 1: Generation
+        pipeline.start_stage("1_generate")
         messages = prompt_engine.render(
             cat, name,
             knowledge_points=knowledge_text,
@@ -234,12 +236,25 @@ class QuizGenerator:
         )
 
         questions = self._parse_questions(result.content)
+        pipeline.end_stage(count=len(questions))
 
-        # If review is enabled, run LLM-as-Judge and auto-revise
+        # Stage 2: Review (LLM-as-Judge)
         if config.enable_review and questions:
-            questions = await self._review_and_refine(
-                questions, knowledge_text, config, model
+            pipeline.start_stage("2_review")
+            questions = await self._review_and_refine(questions, knowledge_text, config, model)
+            reviewed = sum(1 for q in questions if q.get("reviewed"))
+            passed = sum(1 for q in questions if q.get("review_decision") == "pass")
+            revised = sum(1 for q in questions if q.get("review_decision") == "revised")
+            rejected = sum(1 for q in questions if q.get("review_decision") == "reject")
+            pipeline.end_stage(count=len(questions))
+            logger.info(
+                f"[Pipeline] Review results: {reviewed} reviewed, "
+                f"{passed} passed, {revised} revised, {rejected} rejected"
             )
+
+        # Attach pipeline stats to first question for downstream access
+        if questions:
+            questions[0]["_pipeline_stats"] = pipeline.summary()
 
         return questions
 
