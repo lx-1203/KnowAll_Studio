@@ -252,10 +252,10 @@ export default function MindMapPage() {
     const layouted = nodes.map((node) => {
       const level = node.data?.level || 1
       const siblings = nodes.filter(n => n.data?.level === level)
-      const idx = siblings.indexOf(node)
+      const idx = siblings.findIndex(n => n.id === node.id)
       return {
         ...node,
-        position: { x: (level - 1) * 280, y: idx * 90 + 50 },
+        position: { x: (level - 1) * 280, y: (idx >= 0 ? idx : 0) * 90 + 50 },
       }
     })
     setNodes(layouted)
