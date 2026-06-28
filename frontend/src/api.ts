@@ -66,6 +66,28 @@ export const reviewCard = (cardId: string, rating: number) => api.post('/flashca
 export const getDueCards = (limit?: number) => api.get('/flashcards/due', { params: { limit } }).then(r => r.data)
 export const listDecks = (limit?: number, offset?: number) =>
   api.get('/flashcards/decks', { params: { limit: limit || 50, offset: offset || 0 } }).then(r => r.data)
+export const searchCards = (q: string, top_k?: number, tags?: string) =>
+  api.get('/flashcards/search', { params: { q, top_k: top_k || 10, tags: tags || '' } }).then(r => r.data)
+export const getRelatedCards = (cardId: string, top_k?: number) =>
+  api.get(`/flashcards/related/${cardId}`, { params: { top_k: top_k || 5 } }).then(r => r.data)
+export const generateDeckSummary = (deckId: string, model?: string) =>
+  api.post(`/flashcards/deck/${deckId}/summary`, { model: model || 'deepseek-chat' }).then(r => r.data)
+
+// Memory Feedback
+export const scanFeedback = (params?: object) => api.post('/memory/feedback/scan', params || {}).then(r => r.data)
+export const getReviewQueue = (limit?: number) =>
+  api.get('/memory/review-queue', { params: { limit: limit || 20 } }).then(r => r.data)
+export const completeReviewItem = (queueId: string) =>
+  api.post('/memory/review-queue/complete', { queue_id: queueId }).then(r => r.data)
+export const getMemoryStats = () => api.get('/memory/stats').then(r => r.data)
+export const recordFlashcardResult = (cardId: string, isCorrect: boolean) =>
+  api.post(`/memory/flashcards/${cardId}/record`, null, { params: { is_correct: isCorrect } }).then(r => r.data)
+export const detectDecay = (lookbackReviews?: number, decayThreshold?: number) =>
+  api.post('/memory/feedback/detect-decay', null, {
+    params: { lookback_reviews: lookbackReviews || 5, decay_threshold: decayThreshold || 2 },
+  }).then(r => r.data)
+export const getRelatedFlashcards = (cardId: string, limit?: number) =>
+  api.get(`/memory/flashcards/${cardId}/related`, { params: { limit: limit || 5 } }).then(r => r.data)
 
 // Chat
 export const chatWithAssistant = (params: object) => api.post('/chat/assistant', params).then(r => r.data)
