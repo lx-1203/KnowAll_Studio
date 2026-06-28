@@ -164,6 +164,11 @@ class Flashcard(Base):
     tags = Column(JSON, default=list)
     source_node_id = Column(String(36))  # trace back to knowledge tree node
     source_error_id = Column(String(36))  # trace back to error question
+    knowledge_point_id = Column(String(64))  # FK to knowledge_point_nodes.id
+    review_count = Column(Integer, default=0)
+    correct_count = Column(Integer, default=0)
+    last_review_at = Column(DateTime)
+    accuracy_rate = Column(Float, default=0.0)
     deck_id = Column(String(36), ForeignKey("decks.id"))
     generation_cache_key = Column(String(128))
     created_at = Column(DateTime, default=now)
