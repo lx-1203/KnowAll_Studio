@@ -108,7 +108,9 @@ async def get_review_knowledge_points(
     current_user=Depends(get_optional_user),
 ):
     """Get all knowledge points with their mastery status for review planning."""
-    from app.models import KnowledgePointNode, KnowledgeCoverage
+    from app.models import KnowledgePointNode
+    from app.database import async_session
+    from sqlalchemy import select
 
     user_id = get_user_id(current_user)
 
@@ -117,28 +119,25 @@ async def get_review_knowledge_points(
     mastery_map = analysis.get("mastery_map", {})
 
     # Get all knowledge point nodes
-    async with AsyncSession() as session:
-        from app.database import async_session
-        async with async_session() as s:
-            from sqlalchemy import select
-            stmt = select(KnowledgePointNode).order_by(KnowledgePointNode.level, KnowledgePointNode.sequence)
-            result = await s.execute(stmt)
-            nodes = result.scalars().all()
+    async with async_session() as s:
+        stmt = select(KnowledgePointNode).order_by(KnowledgePointNode.level, KnowledgePointNode.sequence)
+        result = await s.execute(stmt)
+        nodes = result.scalars().all()
 
-            kp_list = []
-            for node in nodes:
-                mastery = mastery_map.get(node.id, {})
-                kp_list.append({
-                    "id": node.id,
-                    "title": node.title,
-                    "level": node.level,
-                    "explanation": node.explanation or "",
-                    "mastery": mastery.get("mastery"),
-                    "accuracy": mastery.get("accuracy"),
-                    "total_attempts": mastery.get("total_attempts", 0),
-                    "error_count": mastery.get("error_count", 0),
-                    "trend": mastery.get("trend"),
-                    "has_data": node.id in mastery_map,
-                })
+        kp_list = []
+        for node in nodes:
+            mastery = mastery_map.get(node.id, {})
+            kp_list.append({
+                "id": node.id,
+                "title": node.title,
+                "level": node.level,
+                "explanation": node.explanation or "",
+                "mastery": mastery.get("mastery"),
+                "accuracy": mastery.get("accuracy"),
+                "total_attempts": mastery.get("total_attempts", 0),
+                "error_count": mastery.get("error_count", 0),
+                "trend": mastery.get("trend"),
+                "has_data": node.id in mastery_map,
+            })
 
-            return {"total": len(kp_list), "items": kp_list}
+        return {"total": len(kp_list), "items": kp_list}
