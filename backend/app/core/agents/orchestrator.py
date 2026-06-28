@@ -148,6 +148,44 @@ class AgentOrchestrator:
 
         yield f"event: orchestrate_complete\ndata: {{\"results\":{task_results},\"coverage_report\":{coverage}}}\n\n"
 
+    async def orchestrate_from_pipeline(
+        self,
+        summary_id: str,
+        document_id: str,
+        agent_names: list[str] | None = None,
+        config: dict | None = None,
+    ) -> dict:
+        """Run orchestration from within the Pipeline context.
+
+        This is a pipeline-friendly wrapper around orchestrate() that:
+        - Always returns a dict (never raises)
+        - Handles the case where summary_id might not have nodes yet
+        - Returns results in a format compatible with PipelineState.result
+
+        Args:
+            summary_id: Knowledge summary ID (may be newly created)
+            document_id: Document ID
+            agent_names: Specific agents to run (None = all registered)
+            config: Shared config passed to all agents
+
+        Returns:
+            Dict with 'results' and 'coverage_report' keys
+        """
+        try:
+            return await self.orchestrate(
+                summary_id=summary_id,
+                document_id=document_id,
+                agent_names=agent_names,
+                config=config,
+            )
+        except Exception as e:
+            logger.error(f"orchestrate_from_pipeline failed: {e}", exc_info=True)
+            return {
+                "results": {},
+                "coverage_report": None,
+                "error": str(e),
+            }
+
     async def _generate_coverage_report(self, summary_id: str) -> dict | None:
         """Generate coverage report after agent completion."""
         try:
