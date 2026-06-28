@@ -128,20 +128,46 @@ export interface ResultDetail {
   key_points_missed?: string[]
 }
 
+export interface FlashcardTags {
+  domain_tags: string[]
+  memory_tags: string[]
+}
+
 export interface Flashcard {
   id: string
   card_type: 'qa' | 'cloze' | 'compare'
   front: string
   back: string
   hints: string | null
-  tags: string[]
+  tags: string[] | FlashcardTags
+  deck_id?: string
+  knowledge_point_id?: string
+  schedule?: {
+    state: string
+    stability: number
+    difficulty: number
+    next_review_at: string | null
+    review_count: number
+  }
 }
 
 export interface Deck {
   id: string
   name: string
+  description?: string
   card_count: number
   created_at: string
+}
+
+export interface DeckSummary {
+  deck_id: string
+  deck_name: string
+  card_count: number
+  summary: string
+  core_topics: string[]
+  difficulty_level: string
+  estimated_study_time_minutes: number
+  learning_tips: string
 }
 
 export interface ReviewResult {
@@ -150,6 +176,25 @@ export interface ReviewResult {
   state: 'new' | 'learning' | 'review' | 'relearning'
   stability: number
   review_count: number
+}
+
+export interface SearchResult {
+  results: Flashcard[]
+  search_method: 'semantic' | 'keyword_fallback' | 'empty_query'
+}
+
+export interface RelatedCardsResponse {
+  card_id: string
+  related_count: number
+  cards: Flashcard[]
+}
+
+export interface DecayCard {
+  card_id: string
+  front: string
+  knowledge_point_id: string
+  recent_ratings: number[]
+  low_count: number
 }
 
 export interface ChatConversation {
