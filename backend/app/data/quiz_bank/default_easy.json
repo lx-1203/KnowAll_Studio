@@ -3,7 +3,7 @@
     "id": "e001",
     "question_type": "single_choice",
     "difficulty": "easy",
-    "question_text": "以下哪种数据结构遵循"先进先出"（FIFO）原则？",
+    "question_text": "以下哪种数据结构遵循「先进先出」（FIFO）原则？",
     "options": [
       { "label": "A", "text": "栈（Stack）" },
       { "label": "B", "text": "队列（Queue）" },
@@ -31,13 +31,13 @@
     "id": "e003",
     "question_type": "true_false",
     "difficulty": "easy",
-    "question_text": "在 JavaScript 中，`typeof null` 的结果是 `'null'`。",
+    "question_text": "在 JavaScript 中，typeof null 的结果是 'null'。",
     "options": [
       { "label": "A", "text": "正确" },
       { "label": "B", "text": "错误" }
     ],
     "answer": "B",
-    "analysis": "`typeof null` 的结果是 `'object'`，这是 JavaScript 的一个历史遗留 bug。"
+    "analysis": "typeof null 的结果是 'object'，这是 JavaScript 的一个历史遗留 bug。"
   },
   {
     "id": "e004",
@@ -51,7 +51,7 @@
       { "label": "D", "text": "define" }
     ],
     "answer": "B",
-    "analysis": "Python 使用 `def` 关键字定义函数。"
+    "analysis": "Python 使用 def 关键字定义函数。"
   },
   {
     "id": "e005",
@@ -91,7 +91,7 @@
       { "label": "D", "text": "git merge" }
     ],
     "answer": "B",
-    "analysis": "`git commit` 将暂存区内容提交到本地仓库，`git push` 是推送到远程。"
+    "analysis": "git commit 将暂存区内容提交到本地仓库，git push 是推送到远程。"
   },
   {
     "id": "e008",
@@ -99,13 +99,13 @@
     "difficulty": "easy",
     "question_text": "以下哪些是有效的 HTML5 语义标签？（多选）",
     "options": [
-      { "label": "A", "text": "&lt;header&gt;" },
-      { "label": "B", "text": "&lt;article&gt;" },
-      { "label": "C", "text": "&lt;content&gt;" },
-      { "label": "D", "text": "&lt;section&gt;" }
+      { "label": "A", "text": "<header>" },
+      { "label": "B", "text": "<article>" },
+      { "label": "C", "text": "<content>" },
+      { "label": "D", "text": "<section>" }
     ],
     "answer": "A,B,D",
-    "analysis": "`<content>` 不是标准 HTML5 语义标签，其余都是。"
+    "analysis": "<content> 不是标准 HTML5 语义标签，其余都是。"
   },
   {
     "id": "e009",
@@ -119,7 +119,7 @@
       { "label": "D", "text": "useReducer" }
     ],
     "answer": "B",
-    "analysis": "`useState` 是最基础的状态管理 Hook。"
+    "analysis": "useState 是最基础的状态管理 Hook。"
   },
   {
     "id": "e010",
@@ -137,7 +137,7 @@
     "id": "e011",
     "question_type": "single_choice",
     "difficulty": "easy",
-    "question_text": "CSS 中，使元素水平居中的属性 `margin` 值通常是？",
+    "question_text": "CSS 中，使元素水平居中的属性 margin 值通常是？",
     "options": [
       { "label": "A", "text": "margin: center" },
       { "label": "B", "text": "margin: 0 auto" },
@@ -145,7 +145,7 @@
       { "label": "D", "text": "margin: middle" }
     ],
     "answer": "B",
-    "analysis": "`margin: 0 auto` 是块级元素水平居中的标准写法。"
+    "analysis": "margin: 0 auto 是块级元素水平居中的标准写法。"
   },
   {
     "id": "e012",
@@ -177,7 +177,7 @@
     "id": "e014",
     "question_type": "single_choice",
     "difficulty": "easy",
-    "question_text": "`O(1)` 时间复杂度表示什么？",
+    "question_text": "O(1) 时间复杂度表示什么？",
     "options": [
       { "label": "A", "text": "随输入规模线性增长" },
       { "label": "B", "text": "随输入规模指数增长" },
