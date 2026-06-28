@@ -39,6 +39,8 @@ class PipelineState:
     chunk_texts: list[str] = field(default_factory=list)
     tree_id: str = ""
     outline_id: str = ""
+    summary_id: str | None = None
+    agent_results: dict | None = None
     question_ids: list[str] = field(default_factory=list)
     deck_id: str = ""
     structure_context: str = ""
