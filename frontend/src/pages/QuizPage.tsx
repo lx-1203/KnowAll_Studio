@@ -293,6 +293,118 @@ export default function QuizPage() {
     finally { setVariantGenerating(null) }
   }
 
+  // ---- Review view component ----
+  const ReviewView = ({ questions, results, filter }: { questions: any[]; results: any; filter: 'all' | 'wrong' }) => {
+    const filteredDetails = results.details.filter((d: any) => filter === 'all' || !d.is_correct)
+    const wrongCount = results.total - results.correct
+
+    if (filteredDetails.length === 0) {
+      return (
+        <Card style={{ textAlign: 'center', padding: 40 }}>
+          <TrophyOutlined style={{ fontSize: 48, color: '#52c41a', marginBottom: 16 }} />
+          <p style={{ fontSize: 16, color: '#52c41a' }}>全部正确，太棒了！</p>
+        </Card>
+      )
+    }
+
+    return (
+      <div>
+        {/* Quick-jump question number buttons */}
+        <Card size="small" style={{ marginBottom: 16, background: '#fafafa' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 8 }}>
+            <span style={{ fontSize: 13, color: '#666', whiteSpace: 'nowrap' }}>跳转:</span>
+            <div style={{ display: 'flex', flexWrap: 'wrap', gap: 4 }}>
+              {filteredDetails.map((d: any, idx: number) => {
+                const q = questions.find((q: any) => q.id === d.question_id)
+                const qIdx = questions.indexOf(q)
+                return (
+                  <Tooltip key={d.question_id} title={`第${qIdx + 1}题 ${d.is_correct ? '✓' : '✗'}`}>
+                    <Button
+                      size="small"
+                      style={{
+                        width: 32, height: 28, padding: 0, fontSize: 12,
+                        background: d.is_correct ? '#f6ffed' : '#fff2f0',
+                        borderColor: d.is_correct ? '#b7eb8f' : '#ffa39e',
+                      }}
+                      onClick={() => {
+                        const el = document.getElementById(`review-${d.question_id}`)
+                        el?.scrollIntoView({ behavior: 'smooth', block: 'center' })
+                      }}
+                    >
+                      {qIdx + 1}
+                    </Button>
+                  </Tooltip>
+                )
+              })}
+            </div>
+          </div>
+          <div style={{ fontSize: 12, color: '#888' }}>
+            <Tag color="green">✓ 正确</Tag> <Tag color="red">✗ 错误</Tag> 点击题号快速跳转
+            {filter === 'wrong' && <Tag color="red" style={{ marginLeft: 8 }}>仅显示错题 ({wrongCount})</Tag>}
+          </div>
+        </Card>
+
+        {/* Review cards */}
+        {filteredDetails.map((d: any, idx: number) => {
+          const q = questions.find((q: any) => q.id === d.question_id)
+          if (!q) return null
+          const qIdx = questions.indexOf(q)
+          const isCorrect = d.is_correct
+
+          return (
+            <Card
+              id={`review-${d.question_id}`}
+              key={d.question_id}
+              size="small"
+              style={{ marginBottom: 12 }}
+              title={
+                <Space>
+                  <Tag color={isCorrect ? 'green' : 'red'} style={{ fontWeight: 600 }}>
+                    {isCorrect ? '✓' : '✗'} 第{qIdx + 1}题
+                  </Tag>
+                  <Tag>{typeLabels[q.question_type] || q.question_type}</Tag>
+                  {q.cognitive_level && (
+                    <Tag color={COGNITIVE_LEVEL_COLORS[q.cognitive_level as CognitiveLevel] || 'default'}>
+                      {COGNITIVE_LEVEL_LABELS[q.cognitive_level as CognitiveLevel] || q.cognitive_level}
+                    </Tag>
+                  )}
+                </Space>
+              }
+            >
+              <div style={{ fontWeight: 500, marginBottom: 12, fontSize: 15 }}>{q.question_text}</div>
+
+              {/* User answer vs correct answer */}
+              <Row gutter={[16, 8]}>
+                <Col xs={24} sm={12}>
+                  <div style={{ padding: '8px 12px', borderRadius: 6, background: isCorrect ? '#f6ffed' : '#fff2f0', border: `1px solid ${isCorrect ? '#b7eb8f' : '#ffa39e'}` }}>
+                    <div style={{ fontSize: 12, color: '#888', marginBottom: 4 }}>你的答案</div>
+                    <div style={{ fontWeight: 500, wordBreak: 'break-all' }}>{d.user_answer || '(未作答)'}</div>
+                  </div>
+                </Col>
+                {!isCorrect && (
+                  <Col xs={24} sm={12}>
+                    <div style={{ padding: '8px 12px', borderRadius: 6, background: '#f6ffed', border: '1px solid #b7eb8f' }}>
+                      <div style={{ fontSize: 12, color: '#888', marginBottom: 4 }}>正确答案</div>
+                      <div style={{ fontWeight: 500, color: '#52c41a', wordBreak: 'break-all' }}>{d.correct_answer}</div>
+                    </div>
+                  </Col>
+                )}
+              </Row>
+
+              {/* Analysis */}
+              {(q.analysis || d.analysis) && (
+                <div style={{ marginTop: 12, padding: '8px 12px', borderRadius: 6, background: '#fafafa', fontSize: 13, color: '#555', lineHeight: 1.6 }}>
+                  <span style={{ fontWeight: 500, color: '#333' }}>解析: </span>
+                  {d.analysis || q.analysis}
+                </div>
+              )}
+            </Card>
+          )
+        })}
+      </div>
+    )
+  }
+
   // ---- Render question card ----
   const renderQuestion = (q: any, index: number) => (
     <div id={`question-${q.id}`} key={q.id}>
