@@ -2,6 +2,7 @@
 from fastapi import APIRouter, HTTPException
 from pydantic import BaseModel
 
+from app.config import settings
 from app.core.sync import sync_store
 
 router = APIRouter(prefix="/api", tags=["version-control"])
