@@ -485,7 +485,138 @@ export interface LanguageVocabulary {
   mastered: boolean
 }
 
-// ===== Enhanced Study Plan Types =====
+// ===== Answer Review & Mastery Types =====
+
+export interface MasteryDetail {
+  kp_id: string
+  title: string
+  level: number
+  explanation: string
+  mastery_score: number
+  accuracy: number
+  total_attempts: number
+  error_count: number
+  last_attempt_at: string | null
+  recency_score: number
+  consistency_score: number
+  trend: 'improving' | 'declining' | 'stable'
+}
+
+export interface MasteryAnalysis {
+  overall_mastery: number
+  total_knowledge_points: number
+  weak_count: number
+  moderate_count: number
+  strong_count: number
+  weak_points: MasteryDetail[]
+  moderate_points: MasteryDetail[]
+  strong_points: MasteryDetail[]
+  mastery_map: Record<string, {
+    mastery: number
+    accuracy: number
+    total_attempts: number
+    error_count: number
+    trend: string
+  }>
+}
+
+export interface KpMasteryDetail extends MasteryDetail {
+  question_details: Array<{
+    question_id: string
+    question_text: string
+    is_correct: boolean
+    user_answer: string
+    time_spent_ms: number
+    answered_at: string | null
+  }>
+}
+
+export interface AnswerHistoryItem {
+  record_id: string
+  question_id: string
+  question_text: string
+  question_type: string
+  cognitive_level: string
+  difficulty_score: number
+  user_answer: string
+  correct_answer: string
+  is_correct: boolean
+  analysis: string
+  time_spent_ms: number
+  knowledge_point_ids: string[]
+  knowledge_point_titles: string[]
+  answered_at: string | null
+}
+
+export interface AnswerHistoryResponse {
+  total: number
+  page: number
+  page_size: number
+  items: AnswerHistoryItem[]
+}
+
+export interface ReviewStats {
+  total_answers: number
+  correct_answers: number
+  overall_accuracy: number
+  recent_7_days: Array<{
+    date: string
+    total: number
+    correct: number
+  }>
+  cognitive_breakdown: Record<string, {
+    total: number
+    correct: number
+    accuracy: number
+  }>
+}
+
+export interface AIRecommendation {
+  knowledge_point: string
+  priority: 'high' | 'medium'
+  mastery_current: number
+  suggested_actions: string[]
+  review_focus: string
+  estimated_review_time_min: number
+  recommended_resources: string
+}
+
+export interface ReviewRecommendations {
+  has_weak_points: boolean
+  message?: string
+  weak_point_count: number
+  moderate_point_count: number
+  overall_mastery: number
+  recommendations: AIRecommendation[]
+  weak_points_summary: Array<{
+    title: string
+    mastery: number
+    accuracy: number
+    attempts: number
+    errors: number
+    trend: string
+  }>
+  moderate_points_summary: Array<{
+    title: string
+    mastery: number
+    accuracy: number
+    trend: string
+  }>
+  analysis: MasteryAnalysis
+}
+
+export interface ReviewKnowledgePoint {
+  id: string
+  title: string
+  level: number
+  explanation: string
+  mastery: number | null
+  accuracy: number | null
+  total_attempts: number
+  error_count: number
+  trend: string | null
+  has_data: boolean
+}
 
 export interface EbbinghausNode {
   day: number
