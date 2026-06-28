@@ -2,6 +2,8 @@
 import os
 import hashlib
 import json
+import logging
+import traceback
 from fastapi import APIRouter, UploadFile, File, HTTPException, Depends, Form
 from fastapi.responses import FileResponse, Response
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -15,6 +17,8 @@ from app.core.auth import get_optional_user, get_user_id, load_user_api_keys
 from app.config import settings
 
 router = APIRouter(prefix="/api/v1/documents", tags=["documents"])
+
+logger = logging.getLogger("knowall.documents")
 
 # MIME type mapping for raw file serving
 MIME_TYPES = {
