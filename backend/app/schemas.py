@@ -373,9 +373,44 @@ class MindMapEdge(BaseModel):
     relation: str = "parent_child"
 
 
+class BOISMetricsSchema(BaseModel):
+    """BOIS 知识导图质量评估指标"""
+    score: float = 0.0
+    max_depth: int = 0
+    depth_distribution: dict[str, int] = Field(default_factory=dict)
+    avg_children_per_node: float = 0.0
+    branching_factor: float = 0.0
+    hierarchy_balance: float = 0.0
+    coverage_completeness: float = 0.0
+    peer_variance: float = 0.0
+    suggestions: list[str] = Field(default_factory=list)
+    grade: str = ""
+
+
+class CategoryFramework(BaseModel):
+    """BOIS 分类框架（上位阶-中位阶-下位阶三级体系）"""
+    upper_categories: list[dict] = Field(default_factory=list, alias="上位阶（大类）")
+    middle_categories: list[dict] = Field(default_factory=list, alias="中位阶（中类）")
+    lower_categories: list[dict] = Field(default_factory=list, alias="下位阶（小类）")
+
+    model_config = {"populate_by_name": True}
+
+
+class RestructurePlan(BaseModel):
+    """BOIS 重构建议"""
+    merge_suggestions: list[dict] = Field(default_factory=list)
+    split_suggestions: list[dict] = Field(default_factory=list)
+    reclassify_suggestions: list[dict] = Field(default_factory=list)
+    summary: str = ""
+
+
 class MindMapDataResponse(BaseModel):
     nodes: list[MindMapNode]
     edges: list[MindMapEdge] = []
+    bois_metrics: BOISMetricsSchema | None = None
+    restructure_plan: RestructurePlan | None = None
+    category_framework: CategoryFramework | None = None
+    llm_restructured: bool = False
 
 
 # ===== Agent Orchestration Schemas =====
