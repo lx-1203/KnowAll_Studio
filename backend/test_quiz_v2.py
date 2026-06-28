@@ -9,7 +9,7 @@ sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 
 # Load .env for API configuration
 from dotenv import load_dotenv
-load_dotenv(os.path.join(os.path.dirname(__file__), ".env"))
+load_dotenv(os.path.join(os.path.dirname(__file__), ".env"), override=True)
 
 # Configure the API adapter (mirrors main.py startup logic)
 from app.core.api_scheduler.client import api_client
@@ -107,7 +107,7 @@ async def main():
         cognitive_level="L4_analyze",
         enable_review=True,
     )
-    questions2 = await quiz_generator.generate(TEST_KNOWLEDGE, config2, model="deepseek-chat")
+    questions2 = await quiz_generator.generate(TEST_KNOWLEDGE, config2, model=MODEL)
     for i, q in enumerate(questions2):
         print(f"\n--- 题目 {i+1} ---")
         print(f"认知层次: {q.get('cognitive_level')}  难度: {q.get('difficulty_score')}")
@@ -134,7 +134,7 @@ async def main():
         cognitive_level="L5_evaluate",
         enable_review=True,
     )
-    questions3 = await quiz_generator.generate(TEST_KNOWLEDGE, config3, model="deepseek-chat")
+    questions3 = await quiz_generator.generate(TEST_KNOWLEDGE, config3, model=MODEL)
     for i, q in enumerate(questions3):
         print(f"\n--- 题目 {i+1} ---")
         print(f"认知层次: {q.get('cognitive_level')}  难度: {q.get('difficulty_score')}")
@@ -156,7 +156,7 @@ async def main():
             question_text=q.get('question_text', ''),
             reference_answer=str(q.get('answer', '')),
             user_answer=user_answer,
-            model="deepseek-chat",
+            model=MODEL,
         )
         if result:
             print(f"正确性: {result['scores']['correctness']}/10")
