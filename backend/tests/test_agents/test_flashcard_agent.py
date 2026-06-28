@@ -456,7 +456,7 @@ class TestFlashcardAgentRun:
                     }
                     with patch("app.prompts.prompt_engine") as mock_pe:
                         mock_pe.render.return_value = [{"role": "system", "content": "test"}]
-                        with patch("app.core.agents.flashcard_agent.api_client") as mock_api:
+                        with patch("app.core.api_scheduler.api_client") as mock_api:
                             mock_api.generate = AsyncMock(return_value=mock_review_result)
                             result = await agent.run(
                                 summary_id="sum_1", document_id="doc_1",
@@ -541,7 +541,7 @@ class TestFlashcardAgentRun:
                     }
                     with patch("app.prompts.prompt_engine") as mock_pe:
                         mock_pe.render.return_value = [{"role": "system", "content": "test"}]
-                        with patch("app.core.agents.flashcard_agent.api_client") as mock_api:
+                        with patch("app.core.api_scheduler.api_client") as mock_api:
                             mock_api.generate = AsyncMock(return_value=mock_review_result)
                             result = await agent.run(
                                 summary_id="sum_1", document_id="doc_1",
