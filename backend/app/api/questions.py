@@ -20,7 +20,14 @@ class GenerateQuestionsRequest(BaseModel):
     difficulty_score: float = 0.5                 # NEW: continuous 0.0-1.0
     cognitive_level: str = "L2_understand"        # NEW: Bloom level
     enable_review: bool = True                    # NEW: LLM-as-Judge review
+    preview: bool = True                          # NEW: if True, return questions without auto-saving
     model: str = "deepseek-chat"
+
+
+class SaveToBankRequest(BaseModel):
+    """Batch save selected questions to the question bank."""
+    questions: list[dict]
+    source_chunk_id: str | None = None
 
 
 class CreateExamRequest(BaseModel):
