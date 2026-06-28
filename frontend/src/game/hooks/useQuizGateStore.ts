@@ -184,8 +184,6 @@ export const useQuizGateStore = create<QuizGateStore>((set, get) => ({
     const { quizState } = get()
     const result = quizState.result
     if (result) {
-      // 通知游戏 store
-      const { useGameStore } = require('../hooks/useGameState')
       useGameStore.getState().onQuizResult(result)
     }
     set({
