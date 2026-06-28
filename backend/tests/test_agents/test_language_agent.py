@@ -199,7 +199,7 @@ class TestLanguageAgentRun:
             mock_session_ctx.return_value.__aenter__ = AsyncMock(return_value=mock_session)
             mock_session_ctx.return_value.__aexit__ = AsyncMock(return_value=None)
 
-            with patch("app.core.agents.language_agent.api_client") as mock_api:
+            with patch("app.core.api_scheduler.api_client") as mock_api:
                 mock_api.generate = AsyncMock(return_value=mock_llm_result)
                 result = await agent.run(summary_id="sum_1", document_id="doc_1")
 
@@ -239,7 +239,7 @@ class TestLanguageAgentRun:
             mock_session_ctx.return_value.__aenter__ = AsyncMock(return_value=mock_session)
             mock_session_ctx.return_value.__aexit__ = AsyncMock(return_value=None)
 
-            with patch("app.core.agents.language_agent.api_client") as mock_api:
+            with patch("app.core.api_scheduler.api_client") as mock_api:
                 mock_api.generate = AsyncMock(return_value=mock_llm_result)
                 result = await agent.run(summary_id="sum_1", document_id="doc_1")
 
@@ -275,7 +275,7 @@ class TestLanguageAgentRun:
             mock_session_ctx.return_value.__aenter__ = AsyncMock(return_value=mock_session)
             mock_session_ctx.return_value.__aexit__ = AsyncMock(return_value=None)
 
-            with patch("app.core.agents.language_agent.api_client") as mock_api:
+            with patch("app.core.api_scheduler.api_client") as mock_api:
                 mock_api.generate = AsyncMock(return_value=mock_llm_result)
                 result = await agent.run(summary_id="sum_1", document_id="doc_1")
 
@@ -313,7 +313,7 @@ class TestLanguageAgentRun:
             mock_session_ctx.return_value.__aenter__ = AsyncMock(return_value=mock_session)
             mock_session_ctx.return_value.__aexit__ = AsyncMock(return_value=None)
 
-            with patch("app.core.agents.language_agent.api_client") as mock_api:
+            with patch("app.core.api_scheduler.api_client") as mock_api:
                 mock_api.generate = AsyncMock(return_value=mock_llm_result)
                 result = await agent.run(summary_id="sum_1", document_id="doc_1")
 
