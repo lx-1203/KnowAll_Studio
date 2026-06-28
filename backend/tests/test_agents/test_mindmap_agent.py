@@ -603,7 +603,7 @@ class TestMindMapRun:
 
         with patch("app.prompts.prompt_engine") as mock_pe:
             mock_pe.render.return_value = [{"role": "system", "content": "test"}]
-            with patch("app.core.agents.mindmap_agent.api_client") as mock_api:
+            with patch("app.core.api_scheduler.api_client") as mock_api:
                 mock_llm_result = MagicMock()
                 mock_llm_result.content = "This is not JSON at all"
                 mock_api.generate = AsyncMock(return_value=mock_llm_result)
