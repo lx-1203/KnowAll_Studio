@@ -92,7 +92,7 @@ export default function App() {
     <Menu
       mode="inline"
       selectedKeys={[selectedKey]}
-      items={menuItems}
+      items={menuItems as any}
       style={{ height: '100%', borderRight: 0, paddingTop: 8 }}
       theme={isDark ? 'dark' : 'light'}
     />
