@@ -336,7 +336,7 @@ class BOISAnalyzer:
         if m.shallow_nodes > m.total_nodes * 0.6:
             suggestions.append(
                 "【发散不足】超过60%的节点没有子节点，思维导图偏向列表而非"
-                "真正的放射性结构。建议对关键知识点进行"下找小类"展开。"
+                "真正的放射性结构。建议对关键知识点进行\u201c下找小类\u201d展开。"
             )
 
         if m.max_depth > self.IDEAL_MAX_DEPTH + 1:
