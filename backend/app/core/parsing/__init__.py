@@ -339,7 +339,21 @@ class TextCleaner:
 
 
 class TextSplitter:
-    """Split long documents into chunks suitable for LLM context windows."""
+    """Split long documents into chunks suitable for LLM context windows.
+
+    Heading-aware: detects Markdown headings and Chinese-numbered headings
+    to avoid splitting heading content from its body.
+    """
+
+    # Regex patterns for detecting heading lines
+    HEADING_PATTERNS = [
+        re.compile(r'^#{1,6}\s+\S'),           # Markdown headings
+        re.compile(r'^第[一二三四五六七八九十百千\d]+[章节篇部]'),     # 第X章/节/篇
+        re.compile(r'^[\d]+\.[\d]+\s+\S'),     # 1.1 / 2.3 numbered
+        re.compile(r'^[一二三四五六七八九十]、'),  # 一、二、
+        re.compile(r'^（[一二三四五六七八九十\d]）'),  # (一) (1)
+        re.compile(r'^[IVX]+[\.、]\s'),          # I. II. III.
+    ]
 
     def __init__(
         self,
@@ -349,9 +363,23 @@ class TextSplitter:
         self.chunk_size_tokens = chunk_size_tokens or settings.chunk_size_tokens
         self.overlap_ratio = overlap_ratio or settings.chunk_overlap_ratio
 
+    def _is_heading(self, line: str) -> bool:
+        """Check if a line is a heading/section title."""
+        stripped = line.strip()
+        if not stripped:
+            return False
+        for pattern in self.HEADING_PATTERNS:
+            if pattern.match(stripped):
+                return True
+        return False
+
     def split(self, text: str, total_pages: int = 1) -> list[TextChunk]:
-        """Split text into overlapping chunks at natural boundaries."""
-        # First split by paragraphs
+        """Split text into overlapping chunks at natural boundaries.
+
+        Heading-aware: detects headings and prefers to start new chunks
+        at heading boundaries to preserve the structural relationship
+        between headings and their content.
+        """
         paragraphs = text.split("\n")
         chunks = []
         current_chunk = []
@@ -359,10 +387,17 @@ class TextSplitter:
         chunk_index = 0
         overlap_size = int(self.chunk_size_tokens * self.overlap_ratio)
 
+        heading_token_buffer = int(self.chunk_size_tokens * 0.15)  # 15% headroom
+
         for para in paragraphs:
             para_tokens = self._estimate_tokens(para)
+            is_heading = self._is_heading(para)
 
-            if current_tokens + para_tokens > self.chunk_size_tokens and current_chunk:
+            # Determine if we should start a new chunk
+            would_overflow = current_tokens + para_tokens > self.chunk_size_tokens
+            near_full = current_tokens > self.chunk_size_tokens - heading_token_buffer
+
+            if would_overflow and current_chunk:
                 # Finish current chunk
                 chunk_text = "\n".join(current_chunk)
                 chunks.append(TextChunk(
@@ -378,6 +413,20 @@ class TextSplitter:
                 overlap_text = self._get_overlap(current_chunk, overlap_size)
                 current_chunk = overlap_text
                 current_tokens = sum(self._estimate_tokens(t) for t in current_chunk)
+
+            # Prefer heading boundary: if near full and new heading, start fresh
+            elif is_heading and near_full and len(current_chunk) > 1:
+                chunk_text = "\n".join(current_chunk)
+                chunks.append(TextChunk(
+                    index=chunk_index,
+                    text=chunk_text,
+                    token_count=current_tokens,
+                    content_hash=self._hash_text(chunk_text),
+                    page_range=f"p{max(1, chunk_index * total_pages // max(1, len(paragraphs)))}-p{min(total_pages, (chunk_index+1) * total_pages // max(1, len(paragraphs)))}",
+                ))
+                chunk_index += 1
+                current_chunk = []
+                current_tokens = 0
 
             current_chunk.append(para)
             current_tokens += para_tokens
