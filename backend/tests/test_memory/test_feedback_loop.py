@@ -534,8 +534,6 @@ class TestMemoryStats:
             elif execute_count[0] == 3:
                 r.scalar.return_value = 0.75  # avg_accuracy
             elif execute_count[0] == 4:
-                r.scalar.return_value = 0  # unused
-            elif execute_count[0] == 5:
                 # Flashcard select for tier counting
                 card_urgent = MagicMock()
                 card_urgent.accuracy_rate = 0.3
@@ -547,9 +545,9 @@ class TestMemoryStats:
                 mock_card_scalars.all.return_value = [card_urgent, card_review, card_monitor]
                 r.scalars.return_value = mock_card_scalars
             else:
-                if execute_count[0] == 6:
+                if execute_count[0] == 5:
                     r.scalar.return_value = 3  # due_today
-                elif execute_count[0] == 7:
+                elif execute_count[0] == 6:
                     r.scalar.return_value = 2  # queue_count
                 else:
                     r.scalar.return_value = 1  # decay_count
