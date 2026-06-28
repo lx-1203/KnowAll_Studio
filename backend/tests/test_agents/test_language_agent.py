@@ -87,8 +87,9 @@ class TestLanguageAgentAutoDetect:
         from app.core.agents.language_agent import LanguageAgent
 
         agent = LanguageAgent()
-        with patch("asyncio.run", return_value=False):
-            result = agent._auto_detect_language_material("doc_1")
+        with patch("app.database.async_session_ctx", create=True):
+            with patch("asyncio.run", return_value=False):
+                result = agent._auto_detect_language_material("doc_1")
         assert result is False
 
     def test_auto_detect_handles_exception_gracefully(self):
