@@ -239,24 +239,23 @@ async def sync_websocket(
 
                 # ── OT 变换 ──
                 transformed_data = dict(msg_data)
-                if client_version < server_version and doc_id in _room_op_log:
-                    ops_since = _room_op_log[doc_id][client_version:]
+                if client_version < server_version:
+                    ops_since = await sync_store.get_ops_since(doc_id, client_version)
                     for applied_op in ops_since:
                         transformed_data, _ = _ot_transform(
                             {"operation": msg_data.get("operation", ""),
                              "position": msg_data.get("position", 0),
                              "value": msg_data.get("value", ""),
                              "path": msg_data.get("path", [])},
-                            applied_op,
+                            applied_op.get("data", applied_op),
                         )
-                        # 合并回 msg_data 格式
                         msg_data.update(transformed_data)
 
                 # ── 应用操作：版本号 +1 ──
                 _room_versions[doc_id] = server_version + 1
                 new_version = _room_versions[doc_id]
 
-                # ── 记录操作日志 ──
+                # ── 记录操作日志（持久化） ──
                 log_entry = {
                     "version": new_version,
                     "op": msg_data.get("operation"),
@@ -265,7 +264,12 @@ async def sync_websocket(
                     "path": msg_data.get("path", []),
                     "user_id": user_id,
                 }
-                _room_op_log_append(doc_id, log_entry)
+                await _room_op_log_append(doc_id, {
+                    "version": new_version,
+                    "user_id": user_id,
+                    "op": msg_data.get("operation", ""),
+                    "data": msg_data,
+                })
 
                 # ── ACK 发送者 ──
                 await ws.send_text(json.dumps({
