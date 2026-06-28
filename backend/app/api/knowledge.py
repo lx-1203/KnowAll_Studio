@@ -397,14 +397,20 @@ async def generate_summary(
     combined_structure = "\n---\n".join(all_structure_contexts) if all_structure_contexts else ""
 
     # Generate summary from merged content
-    result = await knowledge_generator.generate_summary(
-        chunk_texts=all_chunk_texts,
-        document_id=primary_doc_id,
-        model=req.model,
-        max_depth=req.max_depth,
-        language_type=req.language_type,
-        structure_context=combined_structure,
-    )
+    import logging
+    _logger = logging.getLogger(__name__)
+    try:
+        result = await knowledge_generator.generate_summary(
+            chunk_texts=all_chunk_texts,
+            document_id=primary_doc_id,
+            model=req.model,
+            max_depth=req.max_depth,
+            language_type=req.language_type,
+            structure_context=combined_structure,
+        )
+    except Exception as e:
+        _logger.exception("Summary generation failed for docs=%s: %s", req.document_ids, e)
+        raise HTTPException(500, f"摘要生成失败: {str(e)}")
 
     # Store summary
     import hashlib
