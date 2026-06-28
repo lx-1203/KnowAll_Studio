@@ -126,6 +126,7 @@ function CategoryFrameworkPanel({ framework }: { framework: CategoryFramework })
 export default function MindMapPage() {
   const { summaryId } = useParams<{ summaryId: string }>()
   const navigate = useNavigate()
+  const { message } = App.useApp()
   const [data, setData] = useState<MindMapData | null>(null)
   const [loading, setLoading] = useState(true)
   const [nodes, setNodes, onNodesChange] = useNodesState([])
