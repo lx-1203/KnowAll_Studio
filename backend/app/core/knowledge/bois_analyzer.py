@@ -318,7 +318,7 @@ class BOISAnalyzer:
         if m.orphan_nodes > 0:
             suggestions.append(
                 f"【结构修复】检测到 {m.orphan_nodes} 个孤立节点，"
-                f"请通过"上找大类"为它们找到合适的父节点归属。"
+                f"请通过\u201c上找大类\u201d为它们找到合适的父节点归属。"
             )
 
         if m.hierarchy_balance < 0.5:
