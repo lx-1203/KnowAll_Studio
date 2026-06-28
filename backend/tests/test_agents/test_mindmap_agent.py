@@ -217,7 +217,7 @@ class TestMindMapRun:
             mock_session_ctx.return_value.__aenter__ = AsyncMock(return_value=mock_session)
             mock_session_ctx.return_value.__aexit__ = AsyncMock(return_value=None)
 
-            result = await agent.run(summary_id="bad_sum", document_id="doc_1")
+            result = await agent.run(summary_id="bad_sum", document_ids=["doc_1"])
 
         assert result.status == "error"
         assert "Summary not found" in result.error
@@ -250,7 +250,7 @@ class TestMindMapRun:
                 "app.core.knowledge.summary_generator.summary_generator.extract_nodes_from_markdown",
                 return_value=[],
             ):
-                result = await agent.run(summary_id="sum_1", document_id="doc_1")
+                result = await agent.run(summary_id="sum_1", document_ids=["doc_1"])
 
         assert result.status == "error"
         assert "No knowledge point nodes found" in result.error
@@ -304,7 +304,7 @@ class TestMindMapRun:
                 mock_bois.analyze.return_value = mock_metrics
                 mock_bois.suggest_restructure.return_value = {"suggestions": []}
 
-                result = await agent.run(summary_id="sum_1", document_id="doc_1")
+                result = await agent.run(summary_id="sum_1", document_ids=["doc_1"])
 
         assert result.status == "success"
         assert result.result["total_nodes"] == 3
@@ -361,7 +361,7 @@ class TestMindMapRun:
                 # Mock LLM restructure to be called
                 with patch.object(agent, "_llm_bois_restructure", new_callable=AsyncMock) as mock_llm:
                     mock_llm.return_value = None  # LLM returns None (failed)
-                    result = await agent.run(summary_id="sum_1", document_id="doc_1")
+                    result = await agent.run(summary_id="sum_1", document_ids=["doc_1"])
 
         assert result.status == "success"
         mock_llm.assert_called_once()
@@ -412,7 +412,7 @@ class TestMindMapRun:
                 mock_bois.suggest_restructure.return_value = {"suggestions": []}
 
                 with patch.object(agent, "_llm_bois_restructure", new_callable=AsyncMock) as mock_llm:
-                    result = await agent.run(summary_id="sum_1", document_id="doc_1")
+                    result = await agent.run(summary_id="sum_1", document_ids=["doc_1"])
 
         assert result.status == "success"
         mock_llm.assert_not_called()
@@ -465,7 +465,7 @@ class TestMindMapRun:
                 with patch.object(agent, "_llm_bois_restructure", new_callable=AsyncMock) as mock_llm:
                     mock_llm.return_value = None
                     result = await agent.run(
-                        summary_id="sum_1", document_id="doc_1",
+                        summary_id="sum_1", document_ids=["doc_1"],
                         force_restructure=True,
                     )
 
@@ -519,7 +519,7 @@ class TestMindMapRun:
 
                 with patch.object(agent, "_llm_bois_restructure", new_callable=AsyncMock) as mock_llm:
                     result = await agent.run(
-                        summary_id="sum_1", document_id="doc_1",
+                        summary_id="sum_1", document_ids=["doc_1"],
                         enable_bois_llm=False,
                     )
 
@@ -580,7 +580,7 @@ class TestMindMapRun:
                 mock_bois.suggest_restructure.return_value = {"suggestions": []}
 
                 with patch.object(agent, "_llm_bois_restructure", new_callable=AsyncMock) as mock_llm:
-                    result = await agent.run(summary_id="sum_1", document_id="doc_1")
+                    result = await agent.run(summary_id="sum_1", document_ids=["doc_1"])
 
         assert result.status == "success"
         # Should NOT call LLM restructure due to node count exceeding max
@@ -622,7 +622,7 @@ class TestMindMapRun:
         with patch("app.database.async_session") as mock_session_ctx:
             mock_session_ctx.side_effect = RuntimeError("DB not available")
 
-            result = await agent.run(summary_id="sum_1", document_id="doc_1")
+            result = await agent.run(summary_id="sum_1", document_ids=["doc_1"])
 
         assert result.status == "error"
         assert "DB not available" in result.error
