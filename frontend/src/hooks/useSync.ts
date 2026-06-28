@@ -45,6 +45,7 @@ interface SyncContextValue {
 const SyncContext = createContext<SyncContextValue | null>(null)
 
 export function SyncProvider({ children, spaceId = 'default' }: { children: ReactNode; spaceId?: string }) {
+  const { message } = App.useApp()
   const user = useAuthStore(s => s.user)
   const userId = user?.id || 'local_user'
   const userName = user?.username || '本地用户'
