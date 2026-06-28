@@ -127,6 +127,55 @@ class DocumentParser:
             metadata={"parser": "python-pptx"},
         )
 
+    async def _parse_xlsx(self, file_path: str) -> ParsedDocument:
+        import openpyxl
+        wb = openpyxl.load_workbook(file_path, read_only=True, data_only=True)
+        all_texts = []
+        for name in wb.sheetnames:
+            ws = wb[name]
+            rows = []
+            for row in ws.iter_rows(values_only=True):
+                cells = [str(c) for c in row if c is not None]
+                if cells:
+                    rows.append("\t".join(cells))
+            if rows:
+                all_texts.append(f"## Sheet: {name}\n\n" + "\n".join(rows))
+        wb.close()
+        if not all_texts:
+            raise ValueError("Excel file contains no readable data")
+        return ParsedDocument(
+            text="\n\n".join(all_texts),
+            page_count=len(wb.sheetnames),
+            metadata={"parser": "openpyxl", "sheet_count": len(wb.sheetnames)},
+        )
+
+    async def _parse_csv(self, file_path: str) -> ParsedDocument:
+        import csv
+        # Try UTF-8 first, then GBK (common for Chinese CSV files)
+        encodings = ["utf-8", "gbk", "gb2312", "utf-8-sig"]
+        text = ""
+        parser_used = "csv-utf8"
+        for enc in encodings:
+            try:
+                with open(file_path, "r", encoding=enc, newline="") as f:
+                    reader = csv.reader(f)
+                    rows = []
+                    for row in reader:
+                        rows.append("\t".join(row))
+                text = "\n".join(rows)
+                parser_used = f"csv-{enc}"
+                break
+            except (UnicodeDecodeError, UnicodeError):
+                continue
+        if not text:
+            raise ValueError("CSV parsing failed: could not decode file with any encoding")
+        line_count = text.count("\n") + 1
+        return ParsedDocument(
+            text=text,
+            page_count=1,
+            metadata={"parser": parser_used, "lines": line_count},
+        )
+
     async def _parse_markdown(self, file_path: str) -> ParsedDocument:
         text = Path(file_path).read_text(encoding="utf-8")
         return ParsedDocument(
