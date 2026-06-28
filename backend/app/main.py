@@ -92,6 +92,11 @@ from app.api import (
     auth_router, kp_router, user_router, notifications_router,
     reading_router,
 )
+from app.api.agents import router as agents_router
+from app.api.language import router as language_router
+from app.api.memory_feedback import router as memory_router
+from app.api.coverage import router as coverage_router
+from app.api.interactive_quiz import router as interactive_quiz_router
 from app.middleware import setup_middleware
 
 # Register middleware (order matters: last added = first executed)
