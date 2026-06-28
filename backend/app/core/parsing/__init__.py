@@ -56,6 +56,8 @@ class DocumentParser:
             "gif": self._parse_image,
             "bmp": self._parse_image,
             "webp": self._parse_image,
+            "xlsx": self._parse_xlsx,
+            "csv": self._parse_csv,
             "xmind": self._parse_xmind,
             "url": self._parse_url,
             "html": self._parse_html,
