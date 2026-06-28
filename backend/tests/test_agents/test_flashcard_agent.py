@@ -113,7 +113,7 @@ class TestFlashcardAgentRun:
             mock_session_ctx.return_value.__aexit__ = AsyncMock(return_value=None)
 
             with patch(
-                "app.core.agents.flashcard_agent.summary_generator.extract_nodes_from_markdown",
+                "app.core.knowledge.summary_generator.summary_generator.extract_nodes_from_markdown",
                 return_value=[],
             ):
                 result = await agent.run(summary_id="sum_1", document_id="doc_1")
