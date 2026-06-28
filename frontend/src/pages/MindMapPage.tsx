@@ -4,7 +4,7 @@ import ReactFlow, {
 } from 'reactflow'
 import 'reactflow/dist/style.css'
 import { useParams, useNavigate } from 'react-router-dom'
-import { Card, Button, Spin, message, Typography, Tag, Progress, Collapse, Empty, Tooltip, Space, Divider } from 'antd'
+import { Card, Button, Spin, App, Typography, Tag, Progress, Collapse, Empty, Tooltip, Space, Divider } from 'antd'
 import {
   ArrowLeftOutlined, ExpandOutlined, TrophyOutlined,
   ApartmentOutlined, BranchesOutlined, DashboardOutlined,
