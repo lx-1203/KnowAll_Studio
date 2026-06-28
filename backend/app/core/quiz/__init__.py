@@ -608,7 +608,150 @@ class QuizGenerator:
 # ============================================================
 
 class ExamEngine:
-    """Local exam paper assembly and grading (no API calls)."""
+    """Exam paper assembly and grading — local rules + optional LLM semantic grading."""
+
+    # Question types that benefit from LLM semantic grading
+    SEMANTIC_GRADE_TYPES = {"short_answer", "material_analysis", "fill_blank"}
+
+    async def grade_semantic(
+        self,
+        question_text: str,
+        reference_answer: str,
+        user_answer: str,
+        model: str = "deepseek-chat",
+    ) -> dict | None:
+        """Grade an open-ended answer using LLM semantic evaluation.
+
+        Returns a dict with scores, feedback, and matched/missed key points,
+        or None if the LLM call fails (caller should fall back to local grading).
+        """
+        from app.prompts import prompt_engine
+        from app.core.api_scheduler import api_client as _api, TaskType, GenerationConfig
+
+        if not user_answer or not user_answer.strip():
+            return {
+                "scores": {"correctness": 0, "completeness": 0, "clarity": 0},
+                "total_score": 0,
+                "passed": False,
+                "feedback": {
+                    "strengths": [],
+                    "weaknesses": ["未作答"],
+                    "suggestion": "请认真作答",
+                },
+                "key_points_matched": [],
+                "key_points_missed": ["(未作答)"],
+            }
+
+        try:
+            messages = prompt_engine.render(
+                "semantic_grade", "grade_semantic",
+                question_text=question_text,
+                reference_answer=reference_answer,
+                user_answer=user_answer,
+            )
+
+            result = await _api.generate(
+                task_type=TaskType.QUIZ_GEN,
+                messages=messages,
+                prompt_template_id="semantic_grade.grade_semantic",
+                generation_content=question_text[:300] + user_answer[:200],
+                config=GenerationConfig(model=model),
+            )
+
+            return json.loads(result.content)
+
+        except Exception as e:
+            logger.error(f"Semantic grading failed: {e}", exc_info=True)
+            return None
+
+    async def grade_enhanced(
+        self,
+        paper: dict,
+        user_answers: dict[str, str],
+        time_spent_ms: dict[str, int] | None = None,
+        knowledge_point_ids: dict[str, str] | None = None,
+        enable_semantic: bool = True,
+        model: str = "deepseek-chat",
+    ) -> dict:
+        """Grade a paper with hybrid local + LLM semantic grading.
+
+        Uses LLM semantic grading for short_answer/material_analysis/fill_blank,
+        and local rule-based grading for objective types (choice/true_false/calculation).
+        """
+        questions = paper.get("questions", [])
+        results = []
+        correct_count = 0
+        total_time = 0
+        semantic_graded = 0
+
+        for q in questions:
+            qid = q["id"]
+            qtype = q.get("question_type", q.get("type", ""))
+            user_answer = user_answers.get(qid, "")
+            correct_answer = q.get("answer", q.get("correct_answer", ""))
+            q_time = time_spent_ms.get(qid, 0) if time_spent_ms else 0
+            q_kp = knowledge_point_ids.get(qid, "") if knowledge_point_ids else ""
+
+            # Decide grading strategy
+            use_semantic = (
+                enable_semantic
+                and qtype in self.SEMANTIC_GRADE_TYPES
+                and len(user_answer.strip()) > 5
+            )
+
+            semantic_result = None
+            if use_semantic:
+                semantic_result = await self.grade_semantic(
+                    question_text=q.get("question_text", ""),
+                    reference_answer=str(correct_answer),
+                    user_answer=user_answer,
+                    model=model,
+                )
+                if semantic_result:
+                    semantic_graded += 1
+                    # Pass threshold: total_score >= 6.0
+                    is_correct = semantic_result.get("passed", semantic_result.get("total_score", 0) >= 6.0)
+                else:
+                    # Fall back to local grading
+                    is_correct = self._check_answer(user_answer, correct_answer, qtype)
+            else:
+                is_correct = self._check_answer(user_answer, correct_answer, qtype)
+
+            if is_correct:
+                correct_count += 1
+            total_time += q_time
+
+            detail = {
+                "question_id": qid,
+                "user_answer": user_answer,
+                "correct_answer": correct_answer,
+                "is_correct": is_correct,
+                "analysis": q.get("analysis", ""),
+                "time_spent_ms": q_time,
+                "knowledge_point_id": q_kp,
+                "cognitive_level": q.get("cognitive_level", ""),
+                "difficulty_score": q.get("difficulty_score", 0.5),
+                "grading_method": "semantic" if semantic_result else "local",
+            }
+
+            if semantic_result:
+                detail["semantic_scores"] = semantic_result.get("scores", {})
+                detail["semantic_total"] = semantic_result.get("total_score", 0)
+                detail["feedback"] = semantic_result.get("feedback", {})
+                detail["key_points_matched"] = semantic_result.get("key_points_matched", [])
+                detail["key_points_missed"] = semantic_result.get("key_points_missed", [])
+
+            results.append(detail)
+
+        return {
+            "total": len(questions),
+            "correct": correct_count,
+            "score": correct_count * 5,
+            "percentage": round(correct_count / max(1, len(questions)) * 100, 1),
+            "time_spent_total_ms": total_time,
+            "semantic_graded_count": semantic_graded,
+            "details": results,
+        }
 
     def create_paper(
         self,
