@@ -7,7 +7,7 @@ import {
   BarChartOutlined, HistoryOutlined, RobotOutlined, TrophyOutlined,
   CheckCircleOutlined, CloseCircleOutlined, FilterOutlined,
   ClockCircleOutlined, ThunderboltOutlined, ReloadOutlined,
-  ArrowUpOutlined, ArrowDownOutlined,
+  ArrowUpOutlined, ArrowDownOutlined, FormOutlined,
 } from '@ant-design/icons'
 import {
   getMasteryAnalysis, getAnswerHistory, getReviewStats,
