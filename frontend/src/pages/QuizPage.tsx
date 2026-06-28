@@ -483,9 +483,67 @@ export default function QuizPage() {
                       </Row>
                     </Card>
                   )}
+
+                  {/* View toggle: 全部题目 / 答题回顾 */}
+                  <div style={{ marginBottom: 16, display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 8 }}>
+                    <Segmented
+                      value={reviewMode}
+                      onChange={v => setReviewMode(v as 'all' | 'review')}
+                      options={[
+                        { label: '全部题目', value: 'all' },
+                        { label: '答题回顾', value: 'review' },
+                      ]}
+                    />
+                    {reviewMode === 'review' && (
+                      <Space>
+                        <Segmented
+                          size="small"
+                          value={reviewFilter}
+                          onChange={v => setReviewFilter(v as 'all' | 'wrong')}
+                          options={[
+                            { label: `全部(${results.total})`, value: 'all' },
+                            { label: `仅错题(${results.total - results.correct})`, value: 'wrong' },
+                          ]}
+                        />
+                        {results.total - results.correct > 0 && (
+                          <Button size="small" type="primary" danger icon={<ReloadOutlined />}
+                            onClick={() => {
+                              const wrongIds = results.details
+                                .filter((d: any) => !d.is_correct)
+                                .map((d: any) => d.question_id)
+                              if (!wrongIds.length) { message.warning('没有错题'); return }
+                              Modal.confirm({
+                                title: '错题重练', content: `将用 ${wrongIds.length} 道错题创建新试卷，是否继续？`,
+                                okText: '开始重练', cancelText: '取消',
+                                onOk: async () => {
+                                  try {
+                                    const exam = await createExam({ title: `错题重练-${new Date().toLocaleDateString()}`, question_ids: wrongIds })
+                                    setCurrentExam(exam); setResults(null as any); reset()
+                                    setMarkedQuestions(new Set()); setReviewMode('all'); setReviewFilter('all')
+                                    message.success(`错题重练已就绪: ${exam.question_count} 题`)
+                                  } catch (e: any) { message.error('创建失败') }
+                                },
+                              })
+                            }}>
+                            错题重练
+                          </Button>
+                        )}
+                      </Space>
+                    )}
+                  </div>
                 </>
               )}
-              {currentExam?.questions?.map((q: any, i: number) => renderQuestion(q, i))}
+
+              {/* Question list / Review view */}
+              {reviewMode === 'review' && results ? (
+                <ReviewView
+                  questions={currentExam?.questions || []}
+                  results={results}
+                  filter={reviewFilter}
+                />
+              ) : (
+                currentExam?.questions?.map((q: any, i: number) => renderQuestion(q, i))
+              )}
             </Card>
           </Col>
 
