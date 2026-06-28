@@ -120,7 +120,7 @@ def _create_anki_schema(conn: sqlite3.Connection):
 
 def _populate_anki_data(conn: sqlite3.Connection, cards: list[dict], deck_name: str):
     """Populate Anki collection with cards."""
-    now = int(datetime.now(timezone.utc).replace(tzinfo=None).timestamp() * 1000)
+    now = int(datetime.now(timezone.utc).timestamp() * 1000)
     deck_id = 1
     model_id = int(now / 1000)
 
