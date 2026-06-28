@@ -81,7 +81,7 @@ class TestFlashcardAgentRun:
         mock_session = AsyncMock()
         mock_session.get = AsyncMock(return_value=None)
 
-        with patch("app.core.agents.flashcard_agent.async_session") as mock_session_ctx:
+        with patch("app.database.async_session") as mock_session_ctx:
             mock_session_ctx.return_value.__aenter__ = AsyncMock(return_value=mock_session)
             mock_session_ctx.return_value.__aexit__ = AsyncMock(return_value=None)
 
@@ -108,7 +108,7 @@ class TestFlashcardAgentRun:
         mock_result.scalars.return_value = mock_scalars
         mock_session.execute = AsyncMock(return_value=mock_result)
 
-        with patch("app.core.agents.flashcard_agent.async_session") as mock_session_ctx:
+        with patch("app.database.async_session") as mock_session_ctx:
             mock_session_ctx.return_value.__aenter__ = AsyncMock(return_value=mock_session)
             mock_session_ctx.return_value.__aexit__ = AsyncMock(return_value=None)
 
@@ -158,7 +158,7 @@ class TestFlashcardAgentRun:
         mock_session.flush = AsyncMock()
         mock_session.commit = AsyncMock()
 
-        with patch("app.core.agents.flashcard_agent.async_session") as mock_session_ctx:
+        with patch("app.database.async_session") as mock_session_ctx:
             mock_session_ctx.return_value.__aenter__ = AsyncMock(return_value=mock_session)
             mock_session_ctx.return_value.__aexit__ = AsyncMock(return_value=None)
 
@@ -219,7 +219,7 @@ class TestFlashcardAgentRun:
         mock_session.flush = AsyncMock()
         mock_session.commit = AsyncMock()
 
-        with patch("app.core.agents.flashcard_agent.async_session") as mock_session_ctx:
+        with patch("app.database.async_session") as mock_session_ctx:
             mock_session_ctx.return_value.__aenter__ = AsyncMock(return_value=mock_session)
             mock_session_ctx.return_value.__aexit__ = AsyncMock(return_value=None)
 
@@ -290,7 +290,7 @@ class TestFlashcardAgentRun:
                 return (False, "empty_front")
             return (True, "")
 
-        with patch("app.core.agents.flashcard_agent.async_session") as mock_session_ctx:
+        with patch("app.database.async_session") as mock_session_ctx:
             mock_session_ctx.return_value.__aenter__ = AsyncMock(return_value=mock_session)
             mock_session_ctx.return_value.__aexit__ = AsyncMock(return_value=None)
 
@@ -364,7 +364,7 @@ class TestFlashcardAgentRun:
                 "tags": [],
             })
 
-        with patch("app.core.agents.flashcard_agent.async_session") as mock_session_ctx:
+        with patch("app.database.async_session") as mock_session_ctx:
             mock_session_ctx.return_value.__aenter__ = AsyncMock(return_value=mock_session)
             mock_session_ctx.return_value.__aexit__ = AsyncMock(return_value=None)
 
@@ -442,7 +442,7 @@ class TestFlashcardAgentRun:
         mock_review_result = MagicMock()
         mock_review_result.content = '{"total": 2, "passed": false, "suggestions": "improve clarity"}'
 
-        with patch("app.core.agents.flashcard_agent.async_session") as mock_session_ctx:
+        with patch("app.database.async_session") as mock_session_ctx:
             mock_session_ctx.return_value.__aenter__ = AsyncMock(return_value=mock_session)
             mock_session_ctx.return_value.__aexit__ = AsyncMock(return_value=None)
 
@@ -527,7 +527,7 @@ class TestFlashcardAgentRun:
         mock_review_result = MagicMock()
         mock_review_result.content = '{"total": 4, "passed": true, "suggestions": ""}'
 
-        with patch("app.core.agents.flashcard_agent.async_session") as mock_session_ctx:
+        with patch("app.database.async_session") as mock_session_ctx:
             mock_session_ctx.return_value.__aenter__ = AsyncMock(return_value=mock_session)
             mock_session_ctx.return_value.__aexit__ = AsyncMock(return_value=None)
 
@@ -589,7 +589,7 @@ class TestFlashcardAgentRun:
         mock_session.flush = AsyncMock()
         mock_session.commit = AsyncMock()
 
-        with patch("app.core.agents.flashcard_agent.async_session") as mock_session_ctx:
+        with patch("app.database.async_session") as mock_session_ctx:
             mock_session_ctx.return_value.__aenter__ = AsyncMock(return_value=mock_session)
             mock_session_ctx.return_value.__aexit__ = AsyncMock(return_value=None)
 
