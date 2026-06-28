@@ -979,10 +979,10 @@ class ExamEngine:
 
             semantic_result = semantic_results.get(i)
 
+            open_score = None
             if semantic_result:
                 is_correct = semantic_result.get("passed", semantic_result.get("total_score", 0) >= 6.0)
             elif qtype in ("fill_blank", "term_definition"):
-                # Use partial scoring for multi-blank and term definition
                 open_score = self._score_open_answer(user_answer, q, qtype)
                 is_correct = open_score["is_correct"]
             else:
