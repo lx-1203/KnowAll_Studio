@@ -326,15 +326,36 @@ class TextCleaner:
         return re.sub(r"\n\s*\n\s*\n", "\n\n", text)
 
     def _remove_short_lines(self, text: str, min_chars: int = 3) -> str:
-        """Remove lines that are too short (page numbers, standalone symbols)."""
+        """Remove lines that are too short (page numbers, standalone symbols).
+
+        Preserves heading lines even if they're short (e.g. "pH", "DNA", "1. 概述").
+        """
         lines = text.split("\n")
-        # Keep lines that are part of content (not standalone short lines like page numbers)
         cleaned = []
-        for i, line in enumerate(lines):
+        for line in lines:
             stripped = line.strip()
-            # Keep if long enough, or if it looks like a heading/numbered item
-            if len(stripped) >= min_chars or re.match(r"^[#\-\*\d]+", stripped):
+            # Keep if long enough
+            if len(stripped) >= min_chars:
                 cleaned.append(line)
+                continue
+            # Keep if it looks like a heading or numbered item
+            if re.match(r"^#", stripped):       # Markdown heading #
+            if re.match(r"^[#]", stripped):     # Markdown heading #
+                cleaned.append(line)
+                continue
+            if re.match(r"^[\d]+[\.\)、]\s", stripped):  # Numbered item (1. 1) 1、)
+                cleaned.append(line)
+                continue
+            if re.match(r"^[IVX]+[\.\)、]", stripped):   # Roman numeral
+                cleaned.append(line)
+                continue
+            if re.match(r"^[一二三四五六七八九十]、", stripped):  # Chinese numbered
+                cleaned.append(line)
+                continue
+            if re.match(r"^（[一二三四五六七八九十\d]）", stripped):  # (一) (1)
+                cleaned.append(line)
+                continue
+            # Drop line - too short and doesn't look like a heading/list item
         return "\n".join(cleaned)
 
 
