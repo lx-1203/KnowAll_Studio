@@ -62,13 +62,18 @@ class SyncStore:
 
     @staticmethod
     async def pop_offline_messages(user_id: str) -> list[dict]:
-        """Pop and delete all undelivered messages for a user."""
+        """Pop and delete all undelivered messages for a user (includes broadcast messages)."""
+        from sqlalchemy import or_
+
         async with async_session() as session:
             stmt = (
                 select(SyncOfflineMessage)
                 .where(
                     and_(
-                        SyncOfflineMessage.user_id == user_id,
+                        or_(
+                            SyncOfflineMessage.user_id == user_id,
+                            SyncOfflineMessage.user_id == "all",  # 广播消息
+                        ),
                         SyncOfflineMessage.delivered == False,
                     )
                 )
@@ -85,7 +90,9 @@ class SyncStore:
                     "version": msg.version,
                     "data": msg.msg_data,
                 })
-                msg.delivered = True
+                # 广播消息不标记已送达（其他用户也需要看到）
+                if msg.user_id != "all":
+                    msg.delivered = True
 
             await session.commit()
             return payloads
