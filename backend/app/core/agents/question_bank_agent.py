@@ -14,7 +14,7 @@ class QuestionBankAgent(BaseAgent):
     description = "基于知识点总结生成选择题、填空题、简答题等多种题型"
 
     async def run(self, summary_id: str, document_id: str, **kwargs) -> AgentResult:
-        from app.database import get_session
+        from app.database import async_session
         from app.models import KnowledgeSummary, KnowledgePointNode, QuestionBank, KnowledgeCoverage
 
         config = kwargs.get("config", {})
