@@ -183,7 +183,12 @@ export default function FlashcardPage() {
             style={{ width: 200 }}
             enterButton={<SearchOutlined />}
           />
-          <Button icon={<RobotOutlined />} type="primary" onClick={() => setGenModalVisible(true)}>
+          <Select
+            value={reviewLimit}
+            onChange={(v) => { setReviewLimit(v); setTimeout(loadDueCards, 0) }}
+            style={{ width: 100 }}
+            options={[10, 20, 30, 50, 100].map(n => ({ value: n, label: `每次${n}张` }))}
+          />
             AI 生成卡片
           </Button>
           <Dropdown menu={{ items: decks.map(d => ({ key: d.id, label: `导出 ${d.name} (${d.card_count}张)` })), onClick: ({ key }) => handleExportAnki(key) }}>
