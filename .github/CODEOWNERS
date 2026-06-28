@@ -1,0 +1,5 @@
+# 全局 CODEOWNERS，自动指定 PR Reviewer
+# 当对应文件被修改时，GitHub 会自动将以下成员设为必选 Reviewer
+# 最后更新：2026-06-28
+
+*       @lx-1203
