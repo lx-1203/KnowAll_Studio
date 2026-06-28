@@ -50,6 +50,7 @@ function diffLabel(v: number): string {
 }
 
 export default function QuizPage() {
+  const { Text } = Typography
   const { selectedDoc, setSelectedDoc } = useAppStore()
   const { currentExam, userAnswers, results, setCurrentExam, setAnswer, setResults, reset } = useQuizStore()
   const { message, modal } = App.useApp()
