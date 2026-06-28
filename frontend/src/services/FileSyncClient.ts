@@ -68,16 +68,25 @@ export class FileSyncClient {
     const { data: initData } = await initResp.json();
     const { upload_id, chunk_size, total_chunks } = initData;
 
-    // ② 分片上传
+    // ② 分片上传（按规范 3.2.2：Content-Type: application/octet-stream）
     for (let i = 0; i < total_chunks; i++) {
       const start = i * chunk_size;
       const chunk = file.slice(start, start + chunk_size);
-      const formData = new FormData();
-      formData.append('file', chunk, `chunk_${i}`);
+
+      // 计算分片 hash（用于完整性校验）
+      const chunkArrayBuffer = await chunk.arrayBuffer();
+      const hashBytes = await crypto.subtle.digest('SHA-256', chunkArrayBuffer);
+      const hashHex = Array.from(new Uint8Array(hashBytes))
+        .map(b => b.toString(16).padStart(2, '0'))
+        .join('');
 
       const chunkResp = await fetch(`/api/upload/${upload_id}/chunk/${i}`, {
         method: 'PUT',
-        body: formData,
+        headers: {
+          'Content-Type': 'application/octet-stream',
+          'X-Chunk-Hash': `sha256=${hashHex}`,
+        },
+        body: chunk,
       });
       if (!chunkResp.ok) throw new Error(`分片 ${i} 上传失败`);
 
