@@ -46,7 +46,8 @@ export default function GamePage() {
   const resumeGame = useGameStore(s => s.resumeGame)
   const tickTimer = useGameStore(s => s.tickTimer)
   const resetGame = useGameStore(s => s.resetGame)
-  const { quizState, triggerQuiz, dismissFeedback, init: initQuiz } = useQuizGate()
+  const initQuiz = useQuizGateStore(s => s.init)
+  const triggerQuiz = useQuizGateStore(s => s.triggerQuiz)
 
   const boardRef = useRef<HTMLDivElement>(null)
   const touchStart = useRef<{ x: number; y: number } | null>(null)
