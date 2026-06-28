@@ -21,10 +21,12 @@ export default function DashboardPage() {
       fetch('/api/v1/stats/overview').then(r => r.json()),
       fetch('/api/v1/stats/daily?days=7').then(r => r.json()),
       fetch('/api/v1/stats/topics').then(r => r.json()),
-    ]).then(([s, d, t]) => {
+      fetch('/api/v1/knowledge/summaries?limit=5').then(r => r.json()).catch(() => ({ items: [] })),
+    ]).then(([s, d, t, sum]) => {
       setStats(s)
       setDaily(d.days || [])
       setTopics(t.topics || [])
+      setRecentSummaries(sum.items || [])
     }).catch(console.error).finally(() => setLoading(false))
   }, [])
 
