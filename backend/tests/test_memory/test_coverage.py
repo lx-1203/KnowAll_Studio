@@ -532,11 +532,11 @@ class TestEnsureFullCoverage:
                 mock_session_ctx.return_value.__aenter__ = AsyncMock(return_value=mock_session)
                 mock_session_ctx.return_value.__aexit__ = AsyncMock(return_value=None)
 
-                with patch("app.core.memory.coverage.quiz_generator") as mock_qg:
+                with patch("app.core.quiz.quiz_generator") as mock_qg:
                     mock_qg.generate_questions = AsyncMock(return_value=[
                         {"id": "q_new", "question_text": "New Q?"}
                     ])
-                    with patch("app.core.memory.coverage.card_generator") as mock_cg:
+                    with patch("app.core.memory.card_generator") as mock_cg:
                         mock_cg.generate_cards = AsyncMock(return_value=[
                             {"id": "c_new", "card_type": "qa"}
                         ])
