@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import {
-  Card, Button, Tag, List, Typography, Space, Alert, Spin, Collapse, Progress, Row, Col, message,
+  Card, Button, Tag, List, Typography, Space, Alert, Spin, Collapse, Progress, Row, Col, App,
 } from 'antd'
 import {
   RobotOutlined, ThunderboltOutlined, ClockCircleOutlined,
@@ -17,6 +17,7 @@ interface Props {
 }
 
 export default function ReviewRecommendation({ onRefresh }: Props) {
+  const { message } = App.useApp()
   const [data, setData] = useState<ReviewRecommendations | null>(null)
   const [generating, setGenerating] = useState(false)
 
