@@ -10,7 +10,7 @@ import { TrophyOutlined } from '@ant-design/icons'
 import { generateReviewRecommendations } from '../api'
 import type { ReviewRecommendations, AIRecommendation } from '../types'
 
-const { Text, Title, Paragraph } = Typography
+const { Text } = Typography
 
 interface Props {
   onRefresh?: () => void
