@@ -554,6 +554,7 @@ export default function QuizPage() {
                       <Button onClick={() => {
                         setCurrentExam(null as any); setResults(null as any); reset()
                         setMarkedQuestions(new Set())
+                        setReviewMode('all'); setReviewFilter('all')
                         localStorage.removeItem(`exam_progress_${currentExam.paper_id}`)
                       }} icon={<ReloadOutlined />}>返回</Button>
                       <Button icon={<BugOutlined />} onClick={() => { loadErrors(); setActiveTab('errors') }}>错题</Button>
