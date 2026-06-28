@@ -1,7 +1,7 @@
 """Coverage engine - calculates knowledge point coverage by questions and flashcards"""
 import logging
 from sqlalchemy import select, func
-from app.database import get_session
+from app.database import async_session
 from app.models import KnowledgePointNode, KnowledgeCoverage, AnswerRecord, Flashcard
 
 logger = logging.getLogger(__name__)
