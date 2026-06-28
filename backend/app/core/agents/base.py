@@ -12,6 +12,15 @@ class AgentResult:
     result: dict | None = None
     error: str | None = None
 
+    def to_dict(self) -> dict:
+        """Convert to JSON-serializable dict."""
+        return {
+            "agent": self.agent,
+            "status": self.status,
+            "result": self.result,
+            "error": self.error,
+        }
+
 
 class BaseAgent(ABC):
     """Base class for all sub-agents in the system.
