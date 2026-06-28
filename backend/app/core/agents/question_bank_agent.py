@@ -48,7 +48,7 @@ class QuestionBankAgent(BaseAgent):
         config = kwargs.get("config", {})
         question_count = config.get("question_count", 30)
         question_types = config.get("question_types", [
-            "single_choice", "multi_choice", "true_false", "fill_blank", "short_answer"
+            "single_choice", "multi_choice", "true_false", "fill_blank", "short_answer", "term_definition"
         ])
         cognitive_distribution = config.get("cognitive_distribution", DEFAULT_COGNITIVE_DISTRIBUTION)
         enable_review = config.get("enable_review", True)
