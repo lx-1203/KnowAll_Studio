@@ -144,11 +144,6 @@ term_definition:
     目标认知层次：{cognitive_level}
     目标难度：{difficulty_score}
     输出JSON：
-    知识点：{knowledge_points}
-    数量：{count}
-    目标认知层次：{cognitive_level}
-    目标难度：{difficulty_score}
-    输出JSON：
 
 short_answer:
   system: |
