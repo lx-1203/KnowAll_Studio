@@ -574,20 +574,20 @@ export default function ReadingPage() {
                   见过的词会在后续文章里反复出现
                 </p>
               </div>
-            ) : loading && !streamingToken ? (
+            ) : loading ? (
               <div className="reading-empty">
                 <p>⏳ 正在生成...</p>
               </div>
-            ) : streamingToken && !renderedHtml ? (
-              <div className="reading-text" style={{ whiteSpace: 'pre-wrap' }}>
-                {streamingToken.startsWith('⚡') ? streamingToken : streamingToken}
-              </div>
-            ) : (
+            ) : renderedHtml ? (
               <div
                 className="reading-text"
                 onClick={handleReadingClick}
                 dangerouslySetInnerHTML={{ __html: renderedHtml }}
               />
+            ) : (
+              <div className="reading-empty">
+                <p>暂无内容，请选择一篇文章</p>
+              </div>
             )}
           </div>
         </div>
