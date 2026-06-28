@@ -280,6 +280,17 @@ async def sync_websocket(
                 client_version = msg.get("version", 0)
                 server_version = _room_versions.get(doc_id, 0)
 
+                # ── 版本严重分叉检测 ──
+                if server_version - client_version > 100:
+                    await ws.send_text(json.dumps({
+                        "type": "error",
+                        "data": {
+                            "code": "VERSION_CONFLICT",
+                            "msg": f"版本差距过大 (client={client_version}, server={server_version})，请请求全量同步",
+                        },
+                    }))
+                    continue
+
                 # ── OT 变换 ──
                 transformed_data = dict(msg_data)
                 if client_version < server_version:
