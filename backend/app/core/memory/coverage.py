@@ -154,7 +154,7 @@ class CoverageEngine:
 
         # Generate missing coverage
         from app.core.quiz import quiz_generator
-        from app.core.memory import flashcard_generator
+        from app.core.memory import card_generator
 
         uncovered = report["uncovered_points"]
         generated_questions = 0
