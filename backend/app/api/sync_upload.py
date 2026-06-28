@@ -249,5 +249,7 @@ async def file_rollback(file_id: str, target_version: int = 1):
 
 @router.get("/events/catchup")
 async def catchup_events(space_id: str = "default", from_seq: int = 0):
-    """客户端重连后补拉遗漏的事件（简易实现，生产环境应从 Redis 读取）"""
-    return {"code": 0, "events": [], "current_seq": 0}
+    """客户端重连后补拉遗漏的事件（从持久化存储读取）"""
+    from app.core.sync import sync_store
+    events, current_seq = await sync_store.get_events_since(space_id, from_seq)
+    return {"code": 0, "events": events, "current_seq": current_seq}
