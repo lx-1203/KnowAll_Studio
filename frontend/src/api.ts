@@ -203,6 +203,16 @@ export const getCoverageReport = (summaryId: string) =>
 export const refreshCoverage = (params: object) =>
   api.post('/knowledge/coverage/refresh', params).then(r => r.data)
 
+// ===== Answer Review & Mastery (NEW) =====
+export const getMasteryAnalysis = () => api.get('/review/mastery').then(r => r.data)
+export const getKpMasteryDetail = (kpId: string) => api.get(`/review/mastery/${kpId}`).then(r => r.data)
+export const getAnswerHistory = (params?: { kp_id?: string; is_correct?: boolean; page?: number; page_size?: number }) =>
+  api.get('/review/history', { params }).then(r => r.data)
+export const getReviewStats = () => api.get('/review/stats').then(r => r.data)
+export const generateReviewRecommendations = (model?: string) =>
+  api.post('/review/recommend', { model: model || 'deepseek-chat' }).then(r => r.data)
+export const getReviewKnowledgePoints = () => api.get('/review/knowledge-points').then(r => r.data)
+
 // ===== Memory Feedback (NEW) =====
 export const scanFeedback = (threshold?: number) =>
   api.post('/memory/feedback/scan', { threshold: threshold || 0.7 }).then(r => r.data)
