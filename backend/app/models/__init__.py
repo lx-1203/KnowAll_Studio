@@ -399,7 +399,8 @@ class KnowledgeSummary(Base):
     __tablename__ = "knowledge_summaries"
 
     id = Column(String(36), primary_key=True, default=gen_uuid)
-    document_id = Column(String(36), ForeignKey("documents.id", ondelete="CASCADE"), nullable=False)
+    document_id = Column(String(36), ForeignKey("documents.id", ondelete="SET NULL"), nullable=True)
+    document_ids = Column(JSON, default=list)  # 所有源文档 ID 列表
     content_md = Column(Text, nullable=False)  # 完整 Markdown 内容
     node_count = Column(Integer, default=0)
     level_stats = Column(JSON, default=dict)  # {"L1":3,"L2":12,"L3":45}
