@@ -8,6 +8,28 @@ from app.core.api_scheduler import api_client, TaskType, GenerationConfig
 class FlashcardGenerator:
     """Generate flashcard content via API."""
 
+    async def generate_cards(
+        self,
+        knowledge_text: str,
+        card_type: str = "qa",
+        count: int = 20,
+        deck_name: str = "默认牌组",
+        model: str = "deepseek-chat",
+        knowledge_point_id: str = None,
+    ) -> list[dict]:
+        """Generate flashcards with optional knowledge point linking.
+
+        Extended interface used by agents for coverage-mapped generation.
+        """
+        cards = await self.generate(knowledge_text, card_type, count, model)
+
+        # Tag each card with knowledge_point_id if provided
+        if knowledge_point_id:
+            for card in cards:
+                card["knowledge_point_id"] = knowledge_point_id
+
+        return cards
+
     async def generate(
         self,
         knowledge_text: str,
