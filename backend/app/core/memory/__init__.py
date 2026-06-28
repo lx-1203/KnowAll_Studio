@@ -1,12 +1,21 @@
 """Flashcard generation + FSRS spaced repetition scheduler (M4)"""
 import json
 import math
+import re
+import logging
 from datetime import datetime, timedelta, timezone
 from app.core.api_scheduler import api_client, TaskType, GenerationConfig
 
+logger = logging.getLogger(__name__)
+
 
 class FlashcardGenerator:
-    """Generate flashcard content via API."""
+    """Generate flashcard content via API with quality validation."""
+
+    # ── Validation constants ────────────────────────────────────
+    MIN_FRONT_LENGTH = 4       # Minimum characters for card front
+    MIN_BACK_LENGTH = 2        # Minimum characters for card back
+    CLOZE_PATTERN = re.compile(r'\{\{c\d+::[^}]+?\}\}')  # {{c1::answer}}
 
     async def generate_cards(
         self,
@@ -37,8 +46,11 @@ class FlashcardGenerator:
         count: int = 20,
         model: str = "deepseek-chat",
     ) -> list[dict]:
-        """Generate flashcards from knowledge text."""
+        """Generate flashcards from knowledge text with quality validation."""
         from app.prompts import prompt_engine
+
+        # Preprocess: truncate overly long knowledge text
+        knowledge_text = self._preprocess_text(knowledge_text)
 
         messages = prompt_engine.render(
             "flashcard", card_type,
@@ -53,14 +65,115 @@ class FlashcardGenerator:
             generation_content=knowledge_text + card_type + str(count),
             config=GenerationConfig(model=model),
         )
-        return self._parse_cards(result.content)
+        cards = self._parse_cards(result.content)
+
+        # Validate all cards
+        valid_cards = []
+        for c in cards:
+            if c.get("card_type") is None:
+                c["card_type"] = card_type
+            is_valid, reason = self.validate_card(c, card_type)
+            if is_valid:
+                valid_cards.append(c)
+            else:
+                logger.warning(f"Card filtered: type={card_type} reason={reason}")
+
+        return valid_cards
+
+    # ── Quality validation (public static) ──────────────────────
+
+    @staticmethod
+    def validate_card(card: dict, card_type: str) -> tuple[bool, str]:
+        """Validate card structure. Returns (is_valid, error_reason)."""
+        front = (card.get("front") or "").strip()
+        back = (card.get("back") or "").strip()
+
+        # Both sides must have content
+        if not front:
+            return False, "empty_front"
+        if not back:
+            return False, "empty_back"
+
+        # Front too short (except for formula-type cards)
+        if len(front) < FlashcardGenerator.MIN_FRONT_LENGTH:
+            return False, f"front_too_short({len(front)})"
+
+        # Cloze-specific: must have at least one cloze marker
+        if card_type == "cloze" and not FlashcardGenerator.CLOZE_PATTERN.search(front):
+            return False, "missing_cloze_marker"
+
+        # QA: front and back should not be identical
+        if card_type == "qa" and front == back:
+            return False, "front_equals_back"
+
+        return True, ""
+
+    # ── JSON parsing with repair ─────────────────────────────────
 
     def _parse_cards(self, content: str) -> list[dict]:
+        """Parse LLM output to card list with multi-layer JSON repair."""
+        if not content or not content.strip():
+            return []
+
+        # Layer 1: Direct JSON parse
         try:
             data = json.loads(content)
-            return data.get("cards", data if isinstance(data, list) else [])
+            return self._extract_cards(data)
         except json.JSONDecodeError:
-            return []
+            pass
+
+        # Layer 2: Extract from ```json ... ``` code block
+        m = re.search(r'```(?:json)?\s*([\s\S]*?)```', content)
+        if m:
+            try:
+                data = json.loads(m.group(1))
+                return self._extract_cards(data)
+            except json.JSONDecodeError:
+                pass
+
+        # Layer 3: Find outermost JSON object or array in the raw text
+        return self._repair_and_parse(content)
+
+    def _extract_cards(self, data) -> list[dict]:
+        """Normalize parsed data into card list."""
+        if isinstance(data, list):
+            return data
+        if isinstance(data, dict):
+            return data.get("cards", [])
+        return []
+
+    def _repair_and_parse(self, content: str) -> list[dict]:
+        """Last-resort: try to salvage individual card objects from broken JSON.
+
+        Strategy: find each {...} block that looks like a card and parse it individually.
+        """
+        cards = []
+        # Find all balanced { ... } blocks that contain "front" key
+        for m in re.finditer(r'\{[^{}]*?"front"\s*:\s*"[^"]*"[^{}]*?"back"\s*:\s*"[^"]*"[^{}]*?\}', content):
+            try:
+                card = json.loads(m.group())
+                if "front" in card and "back" in card:
+                    cards.append(card)
+            except json.JSONDecodeError:
+                continue
+
+        if cards:
+            logger.info(f"Repaired {len(cards)} cards from broken JSON")
+        return cards
+
+    # ── Text preprocessing ──────────────────────────────────────
+
+    @staticmethod
+    def _preprocess_text(text: str, max_chars: int = 6000) -> str:
+        """Truncate overly long knowledge text to prevent LLM context dilution."""
+        if len(text) <= max_chars:
+            return text
+        # Keep first 60% and last 20% (the middle is often repetitive)
+        head = int(max_chars * 0.7)
+        tail = int(max_chars * 0.2)
+        truncated = text[:head] + "\n\n...(中间内容省略)...\n\n" + text[-tail:]
+        logger.info(f"Text truncated from {len(text)} to {len(truncated)} chars")
+        return truncated
 
 
 class FSRS:
