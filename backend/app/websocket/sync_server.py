@@ -145,7 +145,21 @@ async def sync_websocket(
     token: str = Query(""),
 ):
     """实时同步 WebSocket 端点。query 参数: doc_id, user_id, user_name, token"""
-    # TODO: token 验证
+    # JWT token 验证
+    if token:
+        payload = _verify_token(token)
+        if payload is None:
+            await ws.accept()
+            await ws.send_text(json.dumps({
+                "type": "error",
+                "data": {"code": "AUTH_FAILED", "msg": "Token 验证失败"},
+            }))
+            await ws.close(code=4001)
+            return
+    else:
+        # 允许本地开发模式下无 token 连接
+        logger.debug("WebSocket 连接无 token（允许本地模式）")
+
     await ws.accept()
     logger.info("WebSocket 连接: doc=%s user=%s(%s)", doc_id, user_id, user_name)
 
@@ -153,8 +167,10 @@ async def sync_websocket(
     if doc_id not in _rooms:
         _rooms[doc_id] = set()
     _rooms[doc_id].add((ws, user_id, user_name))
+
+    # ── 初始化房间版本（从持久化存储恢复） ──
     if doc_id not in _room_versions:
-        _room_versions[doc_id] = 0
+        _room_versions[doc_id] = await sync_store.get_room_version(doc_id)
 
     # ── 发送全量同步（首次连接） ──
     await ws.send_text(json.dumps({
@@ -162,12 +178,12 @@ async def sync_websocket(
         "doc_id": doc_id,
         "data": {
             "version": _room_versions[doc_id],
-            "content": None,  # 由业务层填充
+            "content": None,
         },
     }, ensure_ascii=False))
 
-    # ── 推送离线消息 ──
-    offline = _offline_msgs.pop(user_id, [])
+    # ── 推送离线消息（从持久化存储弹出） ──
+    offline = await sync_store.pop_offline_messages(user_id)
     for msg in offline:
         try:
             await ws.send_text(json.dumps(msg, ensure_ascii=False))
