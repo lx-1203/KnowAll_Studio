@@ -129,7 +129,7 @@ class BOISAnalyzer:
 
         # 6. 覆盖完整性
         metrics.coverage_completeness = self._compute_coverage(
-            nodes, children_map, parent_map, metrics.max_depth
+            nodes, node_map, children_map, parent_map, metrics.max_depth
         )
 
         # 7. 节点分类
