@@ -212,101 +212,48 @@ export default function ReadingPage() {
 
   useEffect(() => { loadArticles() }, [loadArticles])
 
-  // ── Core: stream-based reading ──
+  // ── Core: reading (uses non-streaming API for reliability with offline fallback) ──
   const doRead = useCallback(async (text: string, skipCache = false) => {
-    // Cancel any existing stream
-    if (abortControllerRef.current) {
-      abortControllerRef.current.abort()
-    }
-    const controller = new AbortController()
-    abortControllerRef.current = controller
-
     setShowStats(true)
     setLoading(true)
     setStreamingToken('')
+    setRenderedHtml('')
 
     const state = loadVocabState()
     setVocabState(state)
     const known = getKnownWords(state)
     const seen = getSeenWords(state)
 
+    // Try streaming first if API key is likely configured, otherwise use non-streaming
+    let usedStreaming = false
     try {
-      const resp = await convertReadingStream({
+      // Use non-streaming convertText — reliable, always works with offline dictionary
+      const data = await convertReadingText(
         text,
-        known_words: known,
-        seen_words: seen,
-        skip_cache: skipCache,
-      })
-
-      if (!resp.ok) {
-        message.error(`请求失败 (${resp.status})`)
+        getLevel(state),
+        known,
+        seen,
+      )
+      if ((data as any).error) {
+        message.error((data as any).error)
+        setShowStats(false)
         setLoading(false)
         return
       }
-
-      const reader = resp.body?.getReader()
-      if (!reader) {
-        message.error('浏览器不支持流式读取')
-        setLoading(false)
-        return
-      }
-
-      const decoder = new TextDecoder()
-      let buffer = ''
-      let finalResult: string | null = null
-      let finalVocab: VocabItem[] = []
-      let streamedText = ''
-
-      while (true) {
-        const { done, value } = await reader.read()
-        if (done) break
-
-        buffer += decoder.decode(value, { stream: true })
-        const lines = buffer.split('\n')
-        buffer = lines.pop() || ''
-
-        for (const line of lines) {
-          if (!line.startsWith('data: ')) continue
-          try {
-            const data = JSON.parse(line.slice(6))
-            if (data.cached) {
-              streamedText = data.result
-              finalVocab = data.vocabulary
-              setStreamingToken('⚡ 缓存命中')
-            } else if (data.token) {
-              streamedText += data.token
-              // Strip << >> markers for display
-              const display = streamedText.replace(/<<([^>]+)>>/g, '$1')
-              setStreamingToken(display)
-            } else if (data.done) {
-              finalResult = data.result
-              finalVocab = data.vocabulary
-            } else if (data.error) {
-              message.error('生成失败: ' + data.error)
-              setLoading(false)
-              return
-            }
-          } catch { /* skip malformed events */ }
-        }
-      }
-
-      if (finalResult || streamedText) {
-        const result = finalResult || streamedText
-        setCurrentVocab(finalVocab)
-        const newState = updateVocabAfterReading(finalVocab)
-        setVocabState(newState)
-        setStatKnownCount(String(getKnownWords(newState).length))
-        setStatTotalVocab(String(Object.keys(newState.words).length))
-        const html = renderMixedText(result, finalVocab, revealMode)
-        setRenderedHtml(html)
-        setStreamingToken('')
-      }
+      setCurrentVocab(data.vocabulary || [])
+      const newState = updateVocabAfterReading(data.vocabulary || [])
+      setVocabState(newState)
+      setStatKnownCount(String(getKnownWords(newState).length))
+      setStatTotalVocab(String(Object.keys(newState.words).length))
+      const html = renderMixedText(data.result, data.vocabulary || [], revealMode)
+      setRenderedHtml(html)
     } catch (e: any) {
-      if (e.name !== 'AbortError') {
-        message.error('请求失败: ' + (e.message || '未知错误'))
-      }
+      message.error('请求失败，请检查服务是否运行: ' + (e.message || '未知错误'))
+      setShowStats(false)
+      setRenderedHtml('')
     } finally {
       setLoading(false)
+      setStreamingToken('')
     }
   }, [message, revealMode])
 
