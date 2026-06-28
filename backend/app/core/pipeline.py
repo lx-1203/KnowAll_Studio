@@ -388,10 +388,14 @@ class PipelineOrchestrator:
         state.result = {
             "document_id": document_id,
             "tree_id": state.tree_id,
+            "outline_id": state.outline_id,
+            "summary_id": state.summary_id,
             "question_count": len(state.question_ids),
             "question_ids": state.question_ids,
             "deck_id": state.deck_id,
             "card_count": card_count,
+            "agent_results": state.agent_results.get("results", {}) if state.agent_results else {},
+            "coverage_report": state.agent_results.get("coverage_report") if state.agent_results else None,
         }
 
     async def run_partial(
