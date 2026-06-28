@@ -2,7 +2,7 @@
 import logging
 from datetime import datetime, timezone
 from sqlalchemy import select, func, and_
-from app.database import get_session
+from app.database import async_session
 from app.models import (
     AnswerRecord, Flashcard, ReviewQueue, KnowledgeCoverage,
     KnowledgePointNode, ReviewSchedule,
