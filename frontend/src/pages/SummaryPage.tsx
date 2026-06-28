@@ -37,6 +37,7 @@ const AGENT_TAB_MAP: Record<string, string> = {
 export default function SummaryPage() {
   const { id } = useParams<{ id: string }>()
   const navigate = useNavigate()
+  const { message } = App.useApp()
 
   const [summary, setSummary] = useState<any>(null)
   const [loading, setLoading] = useState(true)
