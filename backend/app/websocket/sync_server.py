@@ -310,36 +310,41 @@ async def sync_websocket(
 
             elif msg_type == "operation":
                 client_version = msg.get("version", 0)
-                server_version = _room_versions.get(doc_id, 0)
 
-                # ── 版本严重分叉检测 ──
-                if server_version - client_version > 100:
-                    await ws.send_text(json.dumps({
-                        "type": "error",
-                        "data": {
-                            "code": "VERSION_CONFLICT",
-                            "msg": f"版本差距过大 (client={client_version}, server={server_version})，请请求全量同步",
-                        },
-                    }))
-                    continue
+                # ── 获取房间锁，保证版本号原子操作 ──
+                lock = _room_locks.setdefault(doc_id, asyncio.Lock())
+                async with lock:
+                    server_version = _room_versions.get(doc_id, 0)
 
-                # ── OT 变换 ──
-                transformed_data = dict(msg_data)
-                if client_version < server_version:
-                    ops_since = await sync_store.get_ops_since(doc_id, client_version)
-                    for applied_op in ops_since:
-                        transformed_data, _ = _ot_transform(
-                            {"operation": msg_data.get("operation", ""),
-                             "position": msg_data.get("position", 0),
-                             "value": msg_data.get("value", ""),
-                             "path": msg_data.get("path", [])},
-                            applied_op.get("data", applied_op),
-                        )
-                        msg_data.update(transformed_data)
+                    # ── 版本严重分叉检测 ──
+                    if server_version - client_version > 100:
+                        await ws.send_text(json.dumps({
+                            "type": "error",
+                            "data": {
+                                "code": "VERSION_CONFLICT",
+                                "msg": f"版本差距过大 (client={client_version}, server={server_version})，请请求全量同步",
+                            },
+                        }))
+                        continue
 
-                # ── 应用操作：版本号 +1 ──
-                _room_versions[doc_id] = server_version + 1
-                new_version = _room_versions[doc_id]
+                    # ── OT 变换 ──
+                    transformed_data = dict(msg_data)
+                    if client_version < server_version:
+                        ops_since = await sync_store.get_ops_since(doc_id, client_version)
+                        for applied_op in ops_since:
+                            transformed_data, _ = _ot_transform(
+                                {"operation": msg_data.get("operation", ""),
+                                 "position": msg_data.get("position", 0),
+                                 "value": msg_data.get("value", ""),
+                                 "length": msg_data.get("length", 0),
+                                 "path": msg_data.get("path", [])},
+                                applied_op.get("data", applied_op),
+                            )
+                            msg_data.update(transformed_data)
+
+                    # ── 应用操作：版本号 +1 ──
+                    _room_versions[doc_id] = server_version + 1
+                    new_version = _room_versions[doc_id]
 
                 # ── 记录操作日志（持久化） ──
                 log_entry = {
