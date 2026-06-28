@@ -55,7 +55,9 @@ function parseHeadings(md: string): Heading[] {
     if (match) {
       const level = match[1].length
       const text = match[2].replace(/[🔴🟡🟢🟠]【[^】]*】/, '').trim()
-      const id = 'heading-' + encodeURIComponent(text)
+      // 过滤孤立代理对，避免 encodeURIComponent 抛出 URIError
+      const safe = text.replace(/[\uD800-\uDFFF]/g, '\uFFFD')
+      const id = 'heading-' + encodeURIComponent(safe)
       headings.push({ id, level, text })
     }
   }
