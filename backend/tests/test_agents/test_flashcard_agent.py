@@ -162,7 +162,7 @@ class TestFlashcardAgentRun:
             mock_session_ctx.return_value.__aenter__ = AsyncMock(return_value=mock_session)
             mock_session_ctx.return_value.__aexit__ = AsyncMock(return_value=None)
 
-            with patch("app.core.agents.flashcard_agent.card_generator") as mock_cg:
+            with patch("app.core.memory.card_generator") as mock_cg:
                 mock_cg.generate = AsyncMock(return_value=[
                     {"knowledge_point_id": "kp_1", "card_type": "qa", "front": "Q1", "back": "A1", "hints": "", "tags": []}
                 ])
@@ -223,7 +223,7 @@ class TestFlashcardAgentRun:
             mock_session_ctx.return_value.__aenter__ = AsyncMock(return_value=mock_session)
             mock_session_ctx.return_value.__aexit__ = AsyncMock(return_value=None)
 
-            with patch("app.core.agents.flashcard_agent.card_generator") as mock_cg:
+            with patch("app.core.memory.card_generator") as mock_cg:
                 mock_cg.generate = AsyncMock(return_value=[
                     {"knowledge_point_id": "kp_1", "card_type": "qa", "front": "Q1", "back": "A1", "hints": "", "tags": []}
                 ])
@@ -294,7 +294,7 @@ class TestFlashcardAgentRun:
             mock_session_ctx.return_value.__aenter__ = AsyncMock(return_value=mock_session)
             mock_session_ctx.return_value.__aexit__ = AsyncMock(return_value=None)
 
-            with patch("app.core.agents.flashcard_agent.card_generator") as mock_cg:
+            with patch("app.core.memory.card_generator") as mock_cg:
                 mock_cg.generate = AsyncMock(return_value=[
                     {"knowledge_point_id": "kp_1", "card_type": "qa", "front": "Q1", "back": "A1", "hints": "", "tags": []},
                     {"knowledge_point_id": "kp_1", "card_type": "qa", "front": "", "back": "", "hints": "", "tags": []},
@@ -368,7 +368,7 @@ class TestFlashcardAgentRun:
             mock_session_ctx.return_value.__aenter__ = AsyncMock(return_value=mock_session)
             mock_session_ctx.return_value.__aexit__ = AsyncMock(return_value=None)
 
-            with patch("app.core.agents.flashcard_agent.card_generator") as mock_cg:
+            with patch("app.core.memory.card_generator") as mock_cg:
                 mock_cg.generate = AsyncMock(return_value=cards)
                 mock_cg.validate_card.return_value = (True, "")
 
@@ -446,7 +446,7 @@ class TestFlashcardAgentRun:
             mock_session_ctx.return_value.__aenter__ = AsyncMock(return_value=mock_session)
             mock_session_ctx.return_value.__aexit__ = AsyncMock(return_value=None)
 
-            with patch("app.core.agents.flashcard_agent.card_generator") as mock_cg:
+            with patch("app.core.memory.card_generator") as mock_cg:
                 mock_cg.generate = AsyncMock(return_value=cards)
                 mock_cg.validate_card.return_value = (True, "")
 
@@ -531,7 +531,7 @@ class TestFlashcardAgentRun:
             mock_session_ctx.return_value.__aenter__ = AsyncMock(return_value=mock_session)
             mock_session_ctx.return_value.__aexit__ = AsyncMock(return_value=None)
 
-            with patch("app.core.agents.flashcard_agent.card_generator") as mock_cg:
+            with patch("app.core.memory.card_generator") as mock_cg:
                 mock_cg.generate = AsyncMock(return_value=cards)
                 mock_cg.validate_card.return_value = (True, "")
 
@@ -593,7 +593,7 @@ class TestFlashcardAgentRun:
             mock_session_ctx.return_value.__aenter__ = AsyncMock(return_value=mock_session)
             mock_session_ctx.return_value.__aexit__ = AsyncMock(return_value=None)
 
-            with patch("app.core.agents.flashcard_agent.card_generator") as mock_cg:
+            with patch("app.core.memory.card_generator") as mock_cg:
                 mock_cg.generate = AsyncMock(return_value=[
                     {"knowledge_point_id": "kp_cov", "card_type": "qa", "front": "Q1", "back": "A1", "hints": "", "tags": []},
                     {"knowledge_point_id": "kp_cov", "card_type": "cloze", "front": "Q2", "back": "A2", "hints": "", "tags": []},
