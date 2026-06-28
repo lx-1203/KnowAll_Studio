@@ -233,6 +233,48 @@ export default function QuizPage() {
     } catch (e: any) { message.error('创建失败') }
   }
 
+  // ---- 一键刷题 (all filtered questions) ----
+  const handleStartPractice = async () => {
+    if (!allQuestions.length) { message.warning('题库为空，请先生成题目'); return }
+    const ids = allQuestions.map((q: any) => q.id)
+    try {
+      const exam = await createExam({ title: `刷题练习-${new Date().toLocaleDateString()}`, question_ids: ids })
+      setCurrentExam(exam)
+      setResults(null as any)
+      reset()
+      setActiveTab('exam')
+      message.success(`已加载 ${exam.question_count} 题，开始刷题！`)
+    } catch (e: any) { message.error('创建失败') }
+  }
+
+  // ---- 随机刷题 ----
+  const handleRandomPractice = async (count: number = 10) => {
+    if (!allQuestions.length) { message.warning('题库为空，请先生成题目'); return }
+    const shuffled = [...allQuestions].sort(() => Math.random() - 0.5)
+    const picked = shuffled.slice(0, Math.min(count, shuffled.length))
+    const ids = picked.map((q: any) => q.id)
+    try {
+      const exam = await createExam({ title: `随机刷题-${new Date().toLocaleDateString()}`, question_ids: ids })
+      setCurrentExam(exam)
+      setResults(null as any)
+      reset()
+      setActiveTab('exam')
+      message.success(`随机抽取 ${exam.question_count} 题，开始刷题！`)
+    } catch (e: any) { message.error('创建失败') }
+  }
+
+  // ---- 单题练习 ----
+  const handlePracticeSingle = async (qid: string) => {
+    try {
+      const exam = await createExam({ title: `单题练习-${new Date().toLocaleDateString()}`, question_ids: [qid] })
+      setCurrentExam(exam)
+      setResults(null as any)
+      reset()
+      setActiveTab('exam')
+      message.success('开始单题练习')
+    } catch (e: any) { message.error('创建失败') }
+  }
+
   // ---- Bank ops ----
   const handleBankDelete = async () => {
     if (!bankSelected.size) return
