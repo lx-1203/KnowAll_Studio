@@ -38,13 +38,13 @@ export default function DashboardPage() {
 
       <Row gutter={16} style={{ marginBottom: 16 }}>
         {[
-          { title: '文档资料', value: stats?.documents || 0, icon: <FileTextOutlined />, color: '#4f46e5' },
-          { title: '题库总量', value: stats?.questions || 0, icon: <FormOutlined />, color: '#1890ff' },
-          { title: '正确率', value: `${stats?.correct_rate || 0}%`, icon: <CheckCircleOutlined />, color: '#52c41a' },
-          { title: '待复习卡片', value: stats?.cards_due || 0, icon: <IdcardOutlined />, color: '#faad14' },
+          { title: '文档资料', value: stats?.documents || 0, icon: <FileTextOutlined />, color: '#4f46e5', link: '/upload' },
+          { title: '题库总量', value: stats?.questions || 0, icon: <FormOutlined />, color: '#1890ff', link: '/quiz' },
+          { title: '正确率', value: `${stats?.correct_rate || 0}%`, icon: <CheckCircleOutlined />, color: '#52c41a', link: '/quiz' },
+          { title: '待复习卡片', value: stats?.cards_due || 0, icon: <IdcardOutlined />, color: '#faad14', link: '/flashcards' },
         ].map(item => (
           <Col span={6} key={item.title}>
-            <Card>
+            <Card hoverable onClick={() => navigate(item.link)} style={{ cursor: 'pointer' }}>
               <Statistic
                 title={item.title}
                 value={item.value}
@@ -57,13 +57,13 @@ export default function DashboardPage() {
 
       <Row gutter={16} style={{ marginBottom: 16 }}>
         {[
-          { title: '今日复习', value: stats?.reviews_today || 0, icon: <ThunderboltOutlined />, color: '#722ed1' },
-          { title: '错题数', value: stats?.errors || 0, icon: <CloseCircleOutlined />, color: '#ff4d4f' },
-          { title: '闪卡总数', value: stats?.cards_total || 0, icon: <IdcardOutlined />, color: '#13c2c2' },
-          { title: 'API费用(估)', value: `$${(stats?.cost_estimate || 0).toFixed(4)}`, icon: <DollarOutlined />, color: '#fa8c16' },
+          { title: '今日复习', value: stats?.reviews_today || 0, icon: <ThunderboltOutlined />, color: '#722ed1', link: '/flashcards' },
+          { title: '错题数', value: stats?.errors || 0, icon: <CloseCircleOutlined />, color: '#ff4d4f', link: '/quiz' },
+          { title: '闪卡总数', value: stats?.cards_total || 0, icon: <IdcardOutlined />, color: '#13c2c2', link: '/flashcards' },
+          { title: 'API费用(估)', value: `$${(stats?.cost_estimate || 0).toFixed(4)}`, icon: <DollarOutlined />, color: '#fa8c16', link: '/settings' },
         ].map(item => (
           <Col span={6} key={item.title}>
-            <Card>
+            <Card hoverable onClick={() => navigate(item.link)} style={{ cursor: 'pointer' }}>
               <Statistic
                 title={item.title}
                 value={item.value}
