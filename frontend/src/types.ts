@@ -289,9 +289,56 @@ export interface MindMapEdge {
   relation: string
 }
 
+export interface BOISMetrics {
+  score: number
+  max_depth: number
+  depth_distribution: Record<string, number>
+  avg_children_per_node: number
+  branching_factor: number
+  hierarchy_balance: number
+  coverage_completeness: number
+  peer_variance: number
+  suggestions: string[]
+  grade: string
+}
+
+export interface RestructurePlan {
+  merge_suggestions: Array<{
+    parent: { id: string; label: string }
+    child: { id: string; label: string }
+    reason: string
+  }>
+  split_suggestions: Array<{
+    node: { id: string; label: string }
+    child_count: number
+    reason: string
+    suggested_groups: Array<{
+      suggested_category: string
+      members: Array<{ id: string; label: string }>
+      count: number
+    }>
+  }>
+  reclassify_suggestions: Array<{
+    node: { id: string; label: string }
+    current_level: number
+    reason: string
+  }>
+  summary: string
+}
+
+export interface CategoryFramework {
+  '上位阶（大类）': Array<{ id: string; label: string; child_count?: number }>
+  '中位阶（中类）': Array<{ id: string; label: string; parent_id?: string }>
+  '下位阶（小类）': Array<{ id: string; label: string }>
+}
+
 export interface MindMapData {
   nodes: MindMapNode[]
   edges: MindMapEdge[]
+  bois_metrics?: BOISMetrics
+  restructure_plan?: RestructurePlan
+  category_framework?: CategoryFramework
+  llm_restructured?: boolean
 }
 
 // ===== Agent Orchestration Types =====
