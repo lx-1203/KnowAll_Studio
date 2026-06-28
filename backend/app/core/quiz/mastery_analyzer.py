@@ -252,7 +252,7 @@ class MasteryAnalyzer:
                 next_day = day + timedelta(days=1)
                 day_stmt = select(
                     func.count(AnswerRecord.id),
-                    func.sum(AnswerRecord.is_correct.cast(int)),
+                    func.sum(cast(AnswerRecord.is_correct, Integer)),
                 ).where(
                     AnswerRecord.user_id == user_id,
                     AnswerRecord.answered_at >= day,
