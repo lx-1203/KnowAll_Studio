@@ -323,6 +323,10 @@ class StudyPlan(Base):
     user_id = Column(String(36), nullable=False, default="local_user")
     name = Column(String(200), nullable=False)
     description = Column(Text)
+    plan_type = Column(String(16), default="long")  # 'short' (1-3天按小时) | 'long' (1-4周按天)
+    daily_hours = Column(Float, default=2.0)
+    knowledge_point_ids = Column(JSON, default=list)  # 关联知识点ID列表
+    ebbinghaus_nodes = Column(JSON, default=list)  # [{day:1,review:true}, {day:2,review:true}, ...]
     target_end_date = Column(DateTime)  # 计划截止日期
     progress = Column(Float, default=0.0)  # 0-100
     status = Column(String(50), default="active")  # active/completed/paused
