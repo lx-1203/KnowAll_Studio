@@ -290,7 +290,7 @@ class PipelineOrchestrator:
             yield self._progress(state, PipelineStage.AGENTS, 85, "跳过Agent调度（无知识点总结）")
 
         # ---- Stage 4: Generate quiz questions ----
-        yield self._progress(state, PipelineStage.QUIZ, 40, f"正在生成 {question_count} 道题目...")
+        yield self._progress(state, PipelineStage.QUIZ, 85, f"正在生成 {question_count} 道题目...")
         try:
             from app.core.quiz import quiz_generator, QuizGenerationConfig
             from app.models import QuestionBank
