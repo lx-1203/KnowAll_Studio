@@ -89,6 +89,10 @@ export default function QuizPage() {
   const [errorsLoading, setErrorsLoading] = useState(false)
   const [variantGenerating, setVariantGenerating] = useState<string | null>(null)
 
+  // ---- Review mode ----
+  const [reviewMode, setReviewMode] = useState<'all' | 'review'>('all')
+  const [reviewFilter, setReviewFilter] = useState<'all' | 'wrong'>('all')
+
   // ---- Load bank ----
   useEffect(() => { refreshBank() }, [bankFilter])
   const refreshBank = useCallback(() => {
