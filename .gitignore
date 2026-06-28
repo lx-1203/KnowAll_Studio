@@ -29,8 +29,9 @@ frontend/.vite/
 .DS_Store
 Thumbs.db
 
-# Data (local runtime data)
-backend/data/*.db
+# Data (local runtime data — NEVER upload)
+backend/data/*.db*                    # *.db, *.db-shm, *.db-wal, *.db-journal
+backend/data/*.sqlite3*               # ChromaDB SQLite artifacts
 backend/data/documents/
 backend/data/exports/
 backend/data/vector_db/

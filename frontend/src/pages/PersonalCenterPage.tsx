@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback } from 'react'
 import {
-  Tabs, Card, Form, Input, Button, Avatar, message, List, Tag, Badge,
+  Tabs, Card, Form, Input, Button, Avatar, App, List, Tag, Badge,
   Empty, Popconfirm, Modal, Typography, Space, Spin, Select, Divider
 } from 'antd'
 import {
@@ -43,6 +43,7 @@ export default function PersonalCenterPage() {
   const [activeTab, setActiveTab] = useState('profile')
   const [loading, setLoading] = useState(false)
   const [profile, setProfile] = useState<UserProfile | null>(null)
+  const { message } = App.useApp()
 
   // Load profile on mount
   useEffect(() => {
@@ -111,6 +112,7 @@ export default function PersonalCenterPage() {
 // ==================== Profile Tab ====================
 
 function ProfileTab({ profile, onUpdate }: { profile: UserProfile | null; onUpdate: () => void }) {
+  const { message } = App.useApp()
   const [editing, setEditing] = useState(false)
   const [saving, setSaving] = useState(false)
   const [form] = Form.useForm()
@@ -192,6 +194,7 @@ const PROVIDER_ICONS: Record<string, string> = {
 }
 
 function SecurityTab() {
+  const { message } = App.useApp()
   const [pwdModalOpen, setPwdModalOpen] = useState(false)
   const [pwdSaving, setPwdSaving] = useState(false)
   const [binds, setBinds] = useState<UserBind[]>([])
@@ -349,6 +352,7 @@ function SecurityTab() {
 // ==================== History Tab ====================
 
 function HistoryTab() {
+  const { message } = App.useApp()
   const [data, setData] = useState<UserHistoryType[]>([])
   const [total, setTotal] = useState(0)
   const [page, setPage] = useState(1)
@@ -429,6 +433,7 @@ function HistoryTab() {
 // ==================== Notification Tab ====================
 
 function NotificationTab() {
+  const { message } = App.useApp()
   const [data, setData] = useState<NotificationType[]>([])
   const [total, setTotal] = useState(0)
   const [unreadCount, setUnreadCount] = useState(0)

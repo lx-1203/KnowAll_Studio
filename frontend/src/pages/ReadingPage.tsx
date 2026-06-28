@@ -108,8 +108,6 @@ export default function ReadingPage() {
   const [statRatio, setStatRatio] = useState('-')
   const [statWords, setStatWords] = useState('-')
   const [titleText, setTitleText] = useState('选择一篇文章开始阅读')
-  const [convertSource, setConvertSource] = useState('')
-
   const customTextRef = useRef<HTMLTextAreaElement>(null)
   const currentLevelRef = useRef(currentLevel)
   currentLevelRef.current = currentLevel
@@ -144,7 +142,6 @@ export default function ReadingPage() {
       setStatLevel('L' + data.level)
       setStatRatio(data.ratio)
       setStatWords(String(data.word_count))
-      setConvertSource(data.source)
       const finalTitle = data.source === 'dictionary' ? title + ' [离线模式]' : title
       setTitleText(finalTitle)
       const html = renderMixedText(data.result, data.vocabulary, revealMode)
@@ -170,7 +167,7 @@ export default function ReadingPage() {
       const article = await getReadingArticle(id)
       if ((article as any).error) return
       await loadArticles()
-      await doConvert(article.content, currentLevelRef.current, '📖 ' + article.title, article)
+      await doConvert(article.content, currentLevelRef.current, article.title, article)
       setSidebarOpen(false)
     } catch {
       // silent
@@ -180,7 +177,7 @@ export default function ReadingPage() {
   // Re-convert when level changes
   useEffect(() => {
     if (currentArticle) {
-      doConvert(currentArticle.content, currentLevel, '📖 ' + currentArticle.title, currentArticle)
+      doConvert(currentArticle.content, currentLevel, currentArticle.title, currentArticle)
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [currentLevel])
@@ -192,7 +189,7 @@ export default function ReadingPage() {
       message.warning('请输入文本')
       return
     }
-    await doConvert(text, currentLevel, '✏️ 自定义文本', null)
+    await doConvert(text, currentLevel, '自定义文本', null)
   }, [customText, currentLevel, doConvert, message])
 
   // Click handler for word toggling (delegated via the reading area)
@@ -234,7 +231,7 @@ export default function ReadingPage() {
   // Refresh reading
   const refreshReading = useCallback(() => {
     if (currentArticle) {
-      doConvert(currentArticle.content, currentLevel, '📖 ' + currentArticle.title, currentArticle)
+      doConvert(currentArticle.content, currentLevel, currentArticle.title, currentArticle)
     }
   }, [currentArticle, currentLevel, doConvert])
 
@@ -285,7 +282,7 @@ export default function ReadingPage() {
       {/* Left Sidebar */}
       <aside className={`reading-sidebar${sidebarOpen ? ' mobile-open' : ''}`}>
         <div className="reading-sidebar-header">
-          <div className="reading-logo">📖 阅读语言</div>
+          <div className="reading-logo">阅读语言</div>
           <div className="reading-logo-sub">渐进式语言学习工具</div>
         </div>
 
@@ -307,13 +304,13 @@ export default function ReadingPage() {
             className={activeTab === 'articles' ? 'active' : ''}
             onClick={() => setActiveTab('articles')}
           >
-            📚 文章库
+            文章库
           </button>
           <button
             className={activeTab === 'custom' ? 'active' : ''}
             onClick={() => setActiveTab('custom')}
           >
-            ✏️ 自定义
+            自定义
           </button>
         </div>
 
@@ -348,7 +345,7 @@ export default function ReadingPage() {
                 placeholder={"在此粘贴中文文本...\n\n例如：我们的世界很大，让我们去看看"}
               />
               <button className="reading-btn-convert" onClick={convertCustom} disabled={loading}>
-                🔄 开始阅读
+                开始阅读
               </button>
             </div>
           )}
@@ -365,16 +362,16 @@ export default function ReadingPage() {
               onClick={toggleReveal}
               title="切换显示/隐藏中文"
             >
-              {revealMode ? '👁️ 显示中文' : '🙈 隐藏中文'}
+              {revealMode ? '显示中文' : '隐藏中文'}
             </button>
             <button className="reading-btn-icon" onClick={refreshReading} disabled={loading}>
-              🔄 刷新
+              刷新
             </button>
             <button className="reading-btn-icon" onClick={() => setSidebarOpen(v => !v)}>
-              ☰
+              菜单
             </button>
             <button className="reading-btn-icon" onClick={() => setPanelOpen(v => !v)}>
-              📝 单词本
+              单词本
             </button>
           </div>
         </div>
@@ -382,16 +379,16 @@ export default function ReadingPage() {
         {showStats && (
           <div className="reading-stats-bar">
             <div className="reading-stat-item">
-              📊 等级: <span className="reading-stat-value">{statLevel}</span>
+              等级: <span className="reading-stat-value">{statLevel}</span>
             </div>
             <div className="reading-stat-item">
-              🔄 替换率: <span className="reading-stat-value">{statRatio}</span>
+              替换率: <span className="reading-stat-value">{statRatio}</span>
             </div>
             <div className="reading-stat-item">
-              📝 生词: <span className="reading-stat-value">{statWords}</span>
+              生词: <span className="reading-stat-value">{statWords}</span>
             </div>
             <div className="reading-stat-item">
-              💾 已收藏: <span className="reading-stat-value">{savedCount}</span>
+              已收藏: <span className="reading-stat-value">{savedCount}</span>
             </div>
           </div>
         )}
@@ -400,7 +397,6 @@ export default function ReadingPage() {
           <div className="reading-content">
             {!showStats ? (
               <div className="reading-empty">
-                <div className="reading-empty-icon">📖</div>
                 <h3>欢迎使用阅读语言</h3>
                 <p>
                   从左侧选择一篇文章，或输入自定义文本<br />

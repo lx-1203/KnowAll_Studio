@@ -1,9 +1,11 @@
 import { Suspense, lazy, useState, useEffect } from 'react'
 import { Routes, Route, Link, useLocation } from 'react-router-dom'
-import { Layout, Menu, Button, Spin, Drawer, Grid } from 'antd'
-import { FileTextOutlined, ApartmentOutlined, FormOutlined, IdcardOutlined, RobotOutlined, SettingOutlined, BulbOutlined, ThunderboltOutlined, DashboardOutlined, PlayCircleOutlined, ScheduleOutlined, ShareAltOutlined, SearchOutlined, UserOutlined, ReadOutlined, MenuOutlined } from '@ant-design/icons'
+import { Layout, Menu, Button, Spin, Drawer, Grid, Space } from 'antd'
+import { FileTextOutlined, ApartmentOutlined, FormOutlined, IdcardOutlined, RobotOutlined, SettingOutlined, BulbOutlined, ThunderboltOutlined, DashboardOutlined, PlayCircleOutlined, ScheduleOutlined, ShareAltOutlined, SearchOutlined, UserOutlined, ReadOutlined, MenuOutlined, LogoutOutlined } from '@ant-design/icons'
 import { useTheme } from './components/ThemeProvider'
 import ErrorBoundary from './components/ErrorBoundary'
+import LoginPage from './pages/LoginPage'
+import { useAuthStore } from './stores'
 
 // Lazy-load all pages for code splitting
 const DashboardPage = lazy(() => import('./pages/DashboardPage'))
@@ -40,8 +42,25 @@ export default function App() {
   const [drawerOpen, setDrawerOpen] = useState(false)
   const selectedKey = '/' + location.pathname.split('/')[1] || '/'
 
+  // Auth
+  const isAuthenticated = useAuthStore(s => s.isAuthenticated)
+  const user = useAuthStore(s => s.user)
+  const logout = useAuthStore(s => s.logout)
+  const restore = useAuthStore(s => s.restore)
+  const [authReady, setAuthReady] = useState(false)
+
+  useEffect(() => { restore(); setAuthReady(true) }, [])
+
   // Close the mobile drawer whenever the route changes
   useEffect(() => { setDrawerOpen(false) }, [location.pathname])
+
+  if (!authReady) {
+    return <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100vh' }}><Spin size="large" /></div>
+  }
+
+  if (!isAuthenticated) {
+    return <LoginPage />
+  }
 
   const menuItems = [
     { key: '/', icon: <DashboardOutlined />, label: <Link to="/">仪表盘</Link> },
@@ -82,9 +101,14 @@ export default function App() {
             KnowAll Studio
           </h1>
         </div>
-        <Button type="text" icon={<BulbOutlined />} onClick={toggle}
-          style={{ color: '#fff', fontSize: 18 }}
-          title={isDark ? '浅色模式' : '深色模式'} />
+        <Space size="middle">
+          <span style={{ color: 'rgba(255,255,255,0.9)', fontSize: 14 }}>{user?.username}</span>
+          <Button type="text" icon={<BulbOutlined />} onClick={toggle}
+            style={{ color: '#fff', fontSize: 18 }}
+            title={isDark ? '浅色模式' : '深色模式'} />
+          <Button type="text" icon={<LogoutOutlined />} onClick={logout}
+            style={{ color: '#fff' }} title="登出" />
+        </Space>
       </Header>
       <Layout>
         {isMobile ? (

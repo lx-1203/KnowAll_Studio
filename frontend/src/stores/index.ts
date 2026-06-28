@@ -1,4 +1,6 @@
 import { create } from 'zustand'
+import type { AuthUser } from '../types'
+import { setAuthToken } from '../api'
 
 interface Document {
   id: string; filename: string; file_type: string; status: string;
@@ -11,6 +13,59 @@ interface Question {
 }
 interface Flashcard {
   id: string; card_type: string; front: string; back: string; hints: string; tags: string[];
+}
+
+// ========== Auth Store ==========
+
+interface AuthState {
+  token: string | null
+  user: AuthUser | null
+  isAuthenticated: boolean
+  login: (token: string, user: AuthUser) => void
+  logout: () => void
+  restore: () => boolean
+}
+
+export const useAuthStore = create<AuthState>((set) => ({
+  token: null,
+  user: null,
+  isAuthenticated: false,
+
+  login: (token, user) => {
+    setAuthToken(token)
+    localStorage.setItem('knowall_user', JSON.stringify(user))
+    set({ token, user, isAuthenticated: true })
+  },
+
+  logout: () => {
+    setAuthToken(null)
+    localStorage.removeItem('knowall_user')
+    set({ token: null, user: null, isAuthenticated: false })
+  },
+
+  restore: () => {
+    const token = localStorage.getItem('knowall_token')
+    if (!token) return false
+    try {
+      const user = JSON.parse(localStorage.getItem('knowall_user') || '')
+      if (user && user.id) {
+        setAuthToken(token)
+        set({ token, user, isAuthenticated: true })
+        return true
+      }
+    } catch {}
+    // Token exists but no user data — clear stale token
+    setAuthToken(null)
+    localStorage.removeItem('knowall_user')
+    return false
+  },
+}))
+
+// Listen for unauthorized event from API interceptor
+if (typeof window !== 'undefined') {
+  window.addEventListener('auth:logout', () => {
+    useAuthStore.getState().logout()
+  })
 }
 
 export const useAppStore = create<{

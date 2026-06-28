@@ -13,7 +13,9 @@ class Settings(BaseSettings):
     app_version: str = "0.1.0"
     debug: bool = True
 
-    # Database (single SQLite for MVP)
+    # Database — use MySQL for production (sensitive data must NOT live in SQLite)
+    # MySQL format: mysql+asyncmy://user:password@host:port/database
+    # SQLite fallback (local dev only):
     database_url: str = f"sqlite+aiosqlite:///{BASE_DIR}/data/app.db"
 
     # ChromaDB
