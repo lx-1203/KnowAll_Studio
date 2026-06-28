@@ -122,7 +122,11 @@ class AnswerRecord(Base):
     paper_id = Column(String(36), ForeignKey("exam_papers.id"))
     user_answer = Column(Text)
     is_correct = Column(Boolean)
-    time_spent = Column(Integer)  # seconds
+    time_spent = Column(Integer)  # seconds (legacy)
+    time_spent_ms = Column(Integer, default=0)  # milliseconds
+    attempt_count = Column(Integer, default=1)
+    knowledge_point_ids = Column(JSON, default=list)  # [kp_xxx, kp_yyy]
+    is_review_queue = Column(Boolean, default=False)
     answered_at = Column(DateTime, default=now)
 
 
