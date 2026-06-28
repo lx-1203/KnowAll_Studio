@@ -238,17 +238,6 @@ export const generateReviewRecommendations = (model?: string) =>
   api.post('/review/recommend', { model: model || 'deepseek-chat' }).then(r => r.data)
 export const getReviewKnowledgePoints = () => api.get('/review/knowledge-points').then(r => r.data)
 
-// ===== Memory Feedback (NEW) =====
-export const scanFeedback = (threshold?: number) =>
-  api.post('/memory/feedback/scan', { threshold: threshold || 0.7 }).then(r => r.data)
-export const getReviewQueue = (limit?: number) =>
-  api.get('/memory/review-queue', { params: { limit: limit || 20 } }).then(r => r.data)
-export const completeReviewItem = (queueId: string) =>
-  api.post('/memory/review-queue/complete', { queue_id: queueId }).then(r => r.data)
-export const getMemoryStats = () => api.get('/memory/stats').then(r => r.data)
-export const recordFlashcardResult = (cardId: string, isCorrect: boolean) =>
-  api.post(`/memory/flashcards/${cardId}/record`, null, { params: { is_correct: isCorrect } }).then(r => r.data)
-
 // ===== Enhanced Study Plan (NEW) =====
 export const generateEnhancedPlan = (params: object) =>
   api.post('/study/generate-plan-enhanced', params).then(r => r.data)
