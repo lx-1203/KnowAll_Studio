@@ -241,3 +241,153 @@ async def export_deck_anki(deck_id: str, db: AsyncSession = Depends(get_db)):
         )
     except Exception as e:
         raise HTTPException(500, f"Export failed: {str(e)}")
+
+
+# ── Search & Related Cards ──────────────────────────────────────
+
+
+@router.get("/search")
+async def search_cards(
+    q: str = "",
+    top_k: int = 10,
+    tags: str = "",
+    db: AsyncSession = Depends(get_db),
+):
+    """Semantic/keyword search for flashcards.
+
+    Falls back to SQL LIKE search when ChromaDB is unavailable.
+    """
+    from sqlalchemy import or_
+
+    if not q.strip():
+        return {"results": [], "search_method": "empty_query"}
+
+    # Try ChromaDB semantic search first
+    try:
+        from app.core.memory.retrieval import card_retriever
+        results = await card_retriever.search(q, top_k)
+        if results:
+            return {"results": results, "search_method": "semantic"}
+    except Exception:
+        pass
+
+    # Fallback: SQL LIKE keyword search
+    tag_list = [t.strip() for t in tags.split(",") if t.strip()]
+    conditions = [
+        or_(
+            Flashcard.front.ilike(f"%{q}%"),
+            Flashcard.back.ilike(f"%{q}%"),
+            Flashcard.hints.ilike(f"%{q}%"),
+        )
+    ]
+
+    stmt = select(Flashcard).where(*conditions).limit(top_k)
+    result = await db.execute(stmt)
+    cards = result.scalars().all()
+
+    return {
+        "results": [
+            {
+                "id": c.id,
+                "card_type": c.card_type,
+                "front": c.front,
+                "back": c.back,
+                "hints": c.hints,
+                "tags": c.tags,
+                "deck_id": c.deck_id,
+            }
+            for c in cards
+        ],
+        "search_method": "keyword_fallback",
+    }
+
+
+@router.get("/related/{card_id}")
+async def get_related_cards(
+    card_id: str,
+    top_k: int = 5,
+    db: AsyncSession = Depends(get_db),
+):
+    """Get cards related to the given card (same knowledge point or deck)."""
+    from app.core.memory.feedback_loop import feedback_engine
+
+    related = await feedback_engine.get_related_cards(card_id, top_k)
+    return {"card_id": card_id, "related_count": len(related), "cards": related}
+
+
+# ── Deck Summary ─────────────────────────────────────────────────
+
+
+class DeckSummaryRequest(BaseModel):
+    model: str = "deepseek-chat"
+
+
+@router.post("/deck/{deck_id}/summary")
+async def generate_deck_summary(
+    deck_id: str,
+    req: DeckSummaryRequest = DeckSummaryRequest(),
+    db: AsyncSession = Depends(get_db),
+):
+    """Generate an AI summary of a flashcard deck's content."""
+    from app.prompts import prompt_engine
+    from app.core.api_scheduler import api_client, TaskType, GenerationConfig
+
+    # Load deck
+    result = await db.execute(select(Deck).where(Deck.id == deck_id))
+    deck = result.scalar_one_or_none()
+    if not deck:
+        raise HTTPException(404, "Deck not found")
+
+    # Load cards
+    result = await db.execute(
+        select(Flashcard).where(Flashcard.deck_id == deck_id).limit(50)
+    )
+    cards = result.scalars().all()
+
+    if not cards:
+        raise HTTPException(404, "No cards in deck")
+
+    # Build type distribution
+    type_dist = {}
+    for c in cards:
+        type_dist[c.card_type] = type_dist.get(c.card_type, 0) + 1
+    type_dist_str = ", ".join(f"{k}: {v}张" for k, v in type_dist.items())
+
+    # Sample cards for context
+    sample = "\n\n".join(
+        f"[{c.card_type}] Q: {c.front[:100]}\nA: {c.back[:100]}"
+        for c in cards[:10]
+    )
+
+    messages = prompt_engine.render(
+        "flashcard", "deck_summary",
+        deck_name=deck.name,
+        card_count=str(len(cards)),
+        type_distribution=type_dist_str,
+        sample_cards=sample,
+    )
+
+    result = await api_client.generate(
+        task_type=TaskType.FLASHCARD_GEN,
+        messages=messages,
+        prompt_template_id="flashcard.deck_summary",
+        generation_content=deck.name + str(len(cards)),
+        config=GenerationConfig(model=req.model, max_tokens=1024, temperature=0.5),
+    )
+
+    import json as json_module
+    try:
+        summary = json_module.loads(result.content)
+    except json_module.JSONDecodeError:
+        summary = {"summary": result.content[:300]}
+
+    return {
+        "deck_id": deck_id,
+        "deck_name": deck.name,
+        "card_count": len(cards),
+        "summary": summary.get("summary", ""),
+        "core_topics": summary.get("core_topics", []),
+        "difficulty_level": summary.get("difficulty_level", "medium"),
+        "estimated_study_time_minutes": summary.get("estimated_study_time_minutes", 30),
+        "learning_tips": summary.get("learning_tips", ""),
+    }
