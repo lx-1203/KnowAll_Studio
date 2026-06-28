@@ -294,7 +294,7 @@ export default function UploadPage() {
           columns={docColumns}
           pagination={{ pageSize: 10, showSizeChanger: true, showTotal: (total) => `共 ${total} 条` }}
           onRow={(doc) => ({
-            style: { background: selectedDoc === doc.id ? '#f0f5ff' : undefined },
+            style: { background: selectedDocIds.includes(doc.id) ? '#f0f5ff' : undefined },
           })}
           size="middle"
         />
