@@ -98,47 +98,54 @@ async def upload_document(file: UploadFile = File(...), db: AsyncSession = Depen
 
     # Save to database
     try:
-    # Enhance metadata with structured document info if available
-    doc_metadata = dict(parsed.metadata)
-    native_outline = None
+        # Enhance metadata with structured document info if available
+        doc_metadata = dict(parsed.metadata)
+        native_outline = None
 
-    if parsed.headings:
-        outline_result = outline_extractor.extract(parsed.headings)
-        doc_metadata["headings"] = [h.to_dict() for h in parsed.headings]
-        doc_metadata["native_outline_md"] = outline_result.markdown
-        doc_metadata["image_count"] = len(parsed.images)
-        doc_metadata["table_count"] = len(parsed.tables)
-        native_outline = outline_result.markdown
+        if parsed.headings:
+            outline_result = outline_extractor.extract(parsed.headings)
+            doc_metadata["headings"] = [h.to_dict() for h in parsed.headings]
+            doc_metadata["native_outline_md"] = outline_result.markdown
+            doc_metadata["image_count"] = len(parsed.images)
+            doc_metadata["table_count"] = len(parsed.tables)
+            native_outline = outline_result.markdown
 
-    doc = Document(
-        filename=file.filename,
-        file_type=ext,
-        file_size=len(content),
-        sha256=sha256,
-        local_path=local_path,
-        status="ready",
-        page_count=parsed.page_count,
-        metadata_=doc_metadata,
-    )
-    db.add(doc)
-    await db.flush()  # ensure doc.id is generated before creating chunks
-
-    orm_chunks = []
-    for chunk in chunks:
-        orm_chunk = DocumentChunk(
-            doc_id=doc.id,
-            chunk_index=chunk.index,
-            content_hash=chunk.content_hash,
-            text_content=chunk.text,
-            token_count=chunk.token_count,
-            page_range=chunk.page_range,
+        doc = Document(
+            filename=file.filename,
+            file_type=ext,
+            file_size=len(content),
+            sha256=sha256,
+            local_path=local_path,
+            status="ready",
+            page_count=parsed.page_count,
+            metadata_=doc_metadata,
         )
-        db.add(orm_chunk)
-        orm_chunks.append(orm_chunk)
+        db.add(doc)
+        await db.flush()  # ensure doc.id is generated before creating chunks
 
-    await db.flush()  # generate IDs for ORM objects
+        orm_chunks = []
+        for chunk in chunks:
+            orm_chunk = DocumentChunk(
+                doc_id=doc.id,
+                chunk_index=chunk.index,
+                content_hash=chunk.content_hash,
+                text_content=chunk.text,
+                token_count=chunk.token_count,
+                page_range=chunk.page_range,
+            )
+            db.add(orm_chunk)
+            orm_chunks.append(orm_chunk)
 
-    await db.commit()
+        await db.flush()  # generate IDs for ORM objects
+
+        await db.commit()
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error("文档保存失败: file=%s error=%s\n%s",
+                     file.filename, e, traceback.format_exc())
+        await db.rollback()
+        raise HTTPException(500, f"Failed to save document: {str(e)}")
 
     return {
         "document_id": doc.id,
