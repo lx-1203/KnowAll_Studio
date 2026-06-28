@@ -83,12 +83,21 @@ async def upload_document(file: UploadFile = File(...), db: AsyncSession = Depen
         raise HTTPException(500, f"Failed to parse document: {str(e)}")
 
     # Clean text
-    cleaned_text = cleaner.clean(parsed.text)
+    try:
+        cleaned_text = cleaner.clean(parsed.text)
+    except Exception as e:
+        logger.error("文本清洗失败: file=%s error=%s", file.filename, e)
+        raise HTTPException(500, f"Failed to clean document text: {str(e)}")
 
     # Split into chunks
-    chunks = splitter.split(cleaned_text, parsed.page_count)
+    try:
+        chunks = splitter.split(cleaned_text, parsed.page_count)
+    except Exception as e:
+        logger.error("文本分块失败: file=%s error=%s", file.filename, e)
+        raise HTTPException(500, f"Failed to split document into chunks: {str(e)}")
 
     # Save to database
+    try:
     # Enhance metadata with structured document info if available
     doc_metadata = dict(parsed.metadata)
     native_outline = None
