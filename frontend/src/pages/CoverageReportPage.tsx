@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
-import { Card, Button, Spin, message, Table, Tag, Progress, Space, Typography, Row, Col, Statistic } from 'antd'
+import { Card, Button, Spin, App, Table, Tag, Progress, Space, Typography, Row, Col, Statistic } from 'antd'
 import { ArrowLeftOutlined, ReloadOutlined, WarningOutlined, CheckCircleOutlined } from '@ant-design/icons'
 import { getCoverageReport, refreshCoverage } from '../api'
 import type { CoverageReport } from '../types'
