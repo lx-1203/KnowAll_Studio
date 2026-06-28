@@ -22,6 +22,10 @@ const SharePage = lazy(() => import('./pages/SharePage'))
 const SearchPage = lazy(() => import('./pages/SearchPage'))
 const PersonalCenterPage = lazy(() => import('./pages/PersonalCenterPage'))
 const ReadingPage = lazy(() => import('./pages/ReadingPage'))
+const SummaryPage = lazy(() => import('./pages/SummaryPage'))
+const MindMapPage = lazy(() => import('./pages/MindMapPage'))
+const InteractiveQuizPage = lazy(() => import('./pages/InteractiveQuizPage'))
+const CoverageReportPage = lazy(() => import('./pages/CoverageReportPage'))
 
 const { Header, Sider, Content } = Layout
 const { useBreakpoint } = Grid
