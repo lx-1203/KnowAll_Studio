@@ -3,6 +3,8 @@ import sqlite3
 import zipfile
 import uuid
 import json
+import tempfile
+import shutil
 from datetime import datetime, timezone
 from pathlib import Path
 from app.config import settings
@@ -25,29 +27,24 @@ def export_apkg(cards: list[dict], deck_name: str, output_path: str | None = Non
         timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
         output_path = str(export_dir / f"{deck_name}_{timestamp}.apkg")
 
-    # Build in-memory Anki SQLite database
-    # Schema follows Anki's collection.anki2 format
-    conn = sqlite3.connect(":memory:")
-    conn.execute("PRAGMA journal_mode=WAL")
+    # Build SQLite database in a temp file (avoids serialize() compatibility issues)
+    tmp_dir = tempfile.mkdtemp()
+    try:
+        db_path = Path(tmp_dir) / "collection.anki2"
+        conn = sqlite3.connect(str(db_path))
 
-    _create_anki_schema(conn)
-    _populate_anki_data(conn, cards, deck_name)
+        _create_anki_schema(conn)
+        _populate_anki_data(conn, cards, deck_name)
+        conn.close()
 
-    # Write to zip (apkg is a zip of collection.anki2 + media)
-    with zipfile.ZipFile(output_path, "w", zipfile.ZIP_DEFLATED) as zf:
-        # Write the SQLite DB to a temp file then add to zip
-        db_bytes = conn.serialize()
-        import tempfile
-        with tempfile.NamedTemporaryFile(suffix=".anki2", delete=False) as tmp:
-            tmp.write(db_bytes)
-            tmp_path = tmp.name
-        zf.write(tmp_path, "collection.anki2")
-        Path(tmp_path).unlink()
+        # Write to zip (apkg is a zip of collection.anki2 + media)
+        with zipfile.ZipFile(output_path, "w", zipfile.ZIP_DEFLATED) as zf:
+            zf.write(str(db_path), "collection.anki2")
+            # Empty media file (required by Anki)
+            zf.writestr("media", "{}")
+    finally:
+        shutil.rmtree(tmp_dir, ignore_errors=True)
 
-        # Empty media file (required by Anki)
-        zf.writestr("media", "{}")
-
-    conn.close()
     return output_path
 
 
