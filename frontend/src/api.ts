@@ -50,12 +50,15 @@ export const generateOutline = (params: object) => api.post('/knowledge/outline/
 
 // Quiz
 export const generateQuestions = (params: object) => api.post('/quiz/generate', params).then(r => r.data)
+export const saveToBank = (params: object) => api.post('/quiz/bank/save', params).then(r => r.data)
+export const deleteQuestion = (questionId: string) => api.delete(`/quiz/bank/${questionId}`).then(r => r.data)
+export const deleteQuestionsBatch = (ids: string[]) => api.post('/quiz/bank/delete-batch', ids).then(r => r.data)
 export const createExam = (params: object) => api.post('/quiz/exam/create', params).then(r => r.data)
 export const submitExam = (params: object) => api.post('/quiz/exam/submit', params).then(r => r.data)
 export const getErrorQuestions = () => api.get('/quiz/errors').then(r => r.data)
 export const generateVariants = (errorId: string, count: number) => api.post(`/quiz/errors/${errorId}/variants`, null, { params: { count } }).then(r => r.data)
 export const listQuestions = (params?: object) =>
-  api.get('/quiz/questions', { params: { limit: 50, offset: 0, ...params } }).then(r => r.data)
+  api.get('/quiz/questions', { params: { limit: 200, offset: 0, ...params } }).then(r => r.data)
 
 // Flashcards
 export const generateCards = (params: object) => api.post('/flashcards/generate', params).then(r => r.data)
