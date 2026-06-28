@@ -113,16 +113,6 @@ export function AIIcon(p: SVGProps<SVGSVGElement>) {
   )
 }
 
-/** 答题回顾 — 眼睛 + 趋势折线 */
-export function ReviewIcon(p: SVGProps<SVGSVGElement>) {
-  return (
-    <svg {...base} {...p}>
-      <path d="M2 12s3-7 10-7 10 7 10 7-3 7-10 7-10-7-10-7z" />
-      <circle cx="12" cy="12" r="3" />
-    </svg>
-  )
-}
-
 /** 互动游戏 — 游戏手柄 */
 export function GameIcon(p: SVGProps<SVGSVGElement>) {
   return (
