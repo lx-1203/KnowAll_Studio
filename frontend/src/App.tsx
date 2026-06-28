@@ -100,6 +100,7 @@ export default function App() {
   )
 
   return (
+    <SyncProvider>
     <Layout style={{ minHeight: '100vh' }}>
       <Header style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: isMobile ? '0 16px' : '0 24px', background: 'linear-gradient(90deg, #4f46e5 0%, #6366f1 100%)' }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
@@ -166,5 +167,6 @@ export default function App() {
         </Content>
       </Layout>
     </Layout>
+    </SyncProvider>
   )
 }
