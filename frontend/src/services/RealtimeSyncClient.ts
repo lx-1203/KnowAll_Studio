@@ -41,7 +41,7 @@ export class RealtimeSyncClient {
 
   constructor(options: SyncClientOptions) {
     this.options = {
-      url: `ws://localhost:8000/ws/sync`,
+      url: `${window.location.protocol === 'https:' ? 'wss:' : 'ws:'}//${window.location.host}/ws/sync`,
       token: '',
       onMessage: () => {},
       onPresence: () => {},
