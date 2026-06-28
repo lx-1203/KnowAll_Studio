@@ -1,4 +1,4 @@
-"""Question Bank Agent - generates quiz questions from knowledge points (v2 with Bloom + Review)"""
+"""Question Bank Agent - generates quiz questions from knowledge points (v2 with Bloom + Review + KG Relations)"""
 import logging
 import random
 from app.core.agents.base import BaseAgent, AgentRegistry, AgentResult
