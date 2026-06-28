@@ -134,6 +134,7 @@ app.include_router(answer_review_router)
 app.include_router(sync_router)
 app.include_router(sync_upload_router)
 app.include_router(version_control_router)
+app.include_router(game_quiz_router)
 
 
 @app.get("/")
