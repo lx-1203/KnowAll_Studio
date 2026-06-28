@@ -171,7 +171,7 @@ export default function QuizPage() {
             options={questionTypes} style={{ minWidth: 100 }} />
           <Select value={genConfig.cognitive_level} onChange={v => setGenConfig(g => ({ ...g, cognitive_level: v }))}
             options={cognitiveLevels} style={{ minWidth: 110 }}
-            dropdownRender={menu => (
+            popupRender={menu => (
               <>
                 {menu}
                 <div style={{ padding: '8px 12px', color: '#888', fontSize: 12, borderTop: '1px solid #f0f0f0' }}>
