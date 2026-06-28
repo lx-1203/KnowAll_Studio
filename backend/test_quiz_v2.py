@@ -122,7 +122,7 @@ async def main():
             if isinstance(answers, str):
                 answers = [answers]
             for opt in options:
-                mark = " ✓" if opt['label'] in answers else ""
+                mark = " [ANSWER]" if opt['label'] in answers else ""
                 print(f"  {opt['label']}. {opt['text']}{mark}")
         print(f"解析: {q.get('analysis', '')[:200]}")
 
