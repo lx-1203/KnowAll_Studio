@@ -194,7 +194,7 @@ class CoverageEngine:
 
                 # Generate a flashcard
                 try:
-                    cards = await flashcard_generator.generate_cards(
+                    cards = await card_generator.generate_cards(
                         knowledge_text=knowledge_text,
                         card_type="qa",
                         count=1,
