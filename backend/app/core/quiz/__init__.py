@@ -387,6 +387,177 @@ class QuizGenerator:
             return revised_list[0]
         return None
 
+    # -------- KG Relation-Aware Generation --------
+
+    async def generate_with_relations(
+        self,
+        knowledge_text: str,
+        config: QuizGenerationConfig,
+        distractor_hints: str = "",
+        cross_topic_hints: list[dict] | None = None,
+        model: str = "deepseek-chat",
+    ) -> list[dict]:
+        """Generate questions enhanced with knowledge graph relation hints.
+
+        Args:
+            knowledge_text: Knowledge point content text.
+            config: Generation configuration.
+            distractor_hints: Pre-formatted confusion pair hints for better distractors.
+            cross_topic_hints: Cross-topic relation hints for comprehensive questions.
+            model: LLM model.
+        """
+        from app.prompts import prompt_engine
+
+        cat, name = self.TYPE_TO_TEMPLATE.get(
+            config.question_type, ("quiz_gen", "single_choice")
+        )
+
+        cognitive_instruction = get_cognitive_level_instruction(config.cognitive_level)
+        diff_label = self._difficulty_label(config.difficulty_score)
+
+        # Augment knowledge text with relation hints
+        augmented_text = knowledge_text
+        if distractor_hints:
+            augmented_text = knowledge_text + "\n\n" + distractor_hints
+
+        messages = prompt_engine.render(
+            cat, name,
+            knowledge_points=augmented_text,
+            count=config.count,
+            difficulty=config.difficulty,
+            difficulty_score=diff_label,
+            cognitive_level=config.cognitive_level,
+            cognitive_level_instruction=cognitive_instruction,
+        )
+
+        result = await api_client.generate(
+            task_type=TaskType.QUIZ_GEN,
+            messages=messages,
+            prompt_template_id=f"{cat}.{name}",
+            generation_content=augmented_text + config.question_type + str(config.count) + config.cognitive_level,
+            config=GenerationConfig(model=model),
+        )
+
+        questions = self._parse_questions(result.content)
+
+        if config.enable_review and questions:
+            questions = await self._review_and_refine(questions, augmented_text, config, model)
+
+        return questions
+
+    async def generate_cross_topic(
+        self,
+        node_a: dict,
+        node_b: dict,
+        relation_type: str,
+        relation_description: str,
+        model: str = "deepseek-chat",
+    ) -> list[dict]:
+        """Generate a cross-topic question linking two related knowledge points.
+
+        Uses a specialized prompt that asks the LLM to create questions testing
+        the relationship between two concepts (prerequisite, confusion, etc.).
+        """
+        from app.prompts import prompt_engine
+
+        # Build a standalone generation prompt for cross-topic questions
+        cross_prompt = self._build_cross_topic_prompt(
+            node_a, node_b, relation_type, relation_description
+        )
+
+        messages = [
+            {"role": "system", "content": cross_prompt["system"]},
+            {"role": "user", "content": cross_prompt["user"]},
+        ]
+
+        result = await api_client.generate(
+            task_type=TaskType.QUIZ_GEN,
+            messages=messages,
+            prompt_template_id="quiz_gen.cross_topic",
+            generation_content=f"{node_a.get('title','')}_{node_b.get('title','')}_{relation_type}",
+            config=GenerationConfig(model=model),
+        )
+
+        questions = self._parse_questions(result.content)
+        for q in questions:
+            q["cross_topic"] = True
+            q["cross_topic_sources"] = [
+                node_a.get("id", node_a.get("title", "")),
+                node_b.get("id", node_b.get("title", "")),
+            ]
+            q["relation_type"] = relation_type
+
+        return questions
+
+    def _build_cross_topic_prompt(
+        self,
+        node_a: dict,
+        node_b: dict,
+        relation_type: str,
+        relation_description: str,
+    ) -> dict:
+        """Build a prompt for cross-topic question generation."""
+        title_a = node_a.get("title", "")
+        expl_a = node_a.get("explanation", "")[:300]
+        title_b = node_b.get("title", "")
+        expl_b = node_b.get("explanation", "")[:300]
+
+        rel_labels = {
+            "prerequisite": "前置依赖关系",
+            "confused_with": "易混淆关系",
+            "extends": "扩展延伸关系",
+            "analogous_to": "类同关系",
+            "contradicts": "对立关系",
+            "applies_to": "应用关系",
+        }
+        rel_label = rel_labels.get(relation_type, "关联关系")
+
+        if relation_type == "prerequisite":
+            question_focus = (
+                f"考察学生是否理解「{title_a}」是「{title_b}」的前置基础。"
+                f"题目应检验：如果不掌握A，为什么学不好B？或者A中的哪个核心概念是B的关键支撑？"
+            )
+        elif relation_type == "confused_with":
+            question_focus = (
+                f"辨析「{title_a}」和「{title_b}」的核心区别。"
+                f"干扰项应基于两者的典型混淆点设计。"
+            )
+        elif relation_type == "extends":
+            question_focus = (
+                f"考察「{title_a}」到「{title_b}」的递进关系。"
+                f"题目应检验对扩展逻辑的理解——B在A的基础上增加了什么？"
+            )
+        else:
+            question_focus = f"考察「{title_a}」和「{title_b}」之间的{rel_label}。"
+
+        system = (
+            f"你是一位专业命题专家。请生成一道跨知识点综合题，考察两个关联知识点之间的{rel_label}。\n\n"
+            f"知识点A：{title_a}\n{expl_a}\n\n"
+            f"知识点B：{title_b}\n{expl_b}\n\n"
+            f"关系说明：{relation_description}\n\n"
+            f"{question_focus}\n\n"
+            f"输出格式（严格JSON）：\n"
+            f'{{"questions": [{{"id": "cross_1", "type": "single_choice", '
+            f'"cognitive_level": "L4_analyze", "difficulty_score": 0.65, '
+            f'"tags": ["跨知识点", "{title_a}", "{title_b}"], '
+            f'"question_text": "题目内容", '
+            f'"options": [{{"label": "A", "text": ""}}, ...], '
+            f'"answer": "A", '
+            f'"analysis": "详细解析，说明两个知识点的关系和每个选项的对错原因"'
+            f'}}]}}\n\n'
+            f"只输出JSON。"
+        )
+
+        user = (
+            f"请为以下两个知识点生成1道{rel_label}综合题：\n"
+            f"知识点A：{title_a}\n"
+            f"知识点B：{title_b}\n"
+            f"关系：{relation_description}\n"
+            f"输出JSON："
+        )
+
+        return {"system": system, "user": user}
+
     # -------- Parsing Utilities --------
 
     def _parse_questions(self, content: str) -> list[dict]:
