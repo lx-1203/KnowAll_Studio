@@ -104,22 +104,24 @@ export function SyncProvider({ children, spaceId = 'default' }: { children: Reac
     sc.connect()
     syncClientRef.current = sc
 
+    let active = true
+
     // 连接状态监控
     const checkInterval = setInterval(() => {
+      if (!active) return
       setConnected(sc.isConnected())
     }, 2000)
 
     // 重连后重放离线队列
-    const origOnOpen = sc['ws']?.onopen
     const replayInterval = setInterval(async () => {
-      if (sc.isConnected() && offlineRef.current.length > 0) {
-        await offlineRef.current.replay(async (op) => {
-          sc.sendOperation(op.data)
-        })
-      }
+      if (!active || !sc.isConnected() || offlineRef.current.length === 0) return
+      await offlineRef.current.replay(async (op) => {
+        sc.sendOperation(op.data)
+      })
     }, 5000)
 
     return () => {
+      active = false
       sc.disconnect()
       unsubNotif()
       clearInterval(checkInterval)
