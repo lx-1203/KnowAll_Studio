@@ -503,7 +503,7 @@ export interface ReviewQueueItem {
   resource_id: string
   knowledge_point_id: string | null
   priority: number
-  reason: string | null
+  reason: 'urgent' | 'review' | 'monitor' | 'decay' | 'low_accuracy' | string | null
   pushed_at: string | null
   completed: boolean
 }
@@ -515,6 +515,12 @@ export interface MemoryStats {
   weak_points_count: number
   due_today: number
   review_queue_count: number
+  decay_count?: number
+  tier_distribution?: {
+    urgent: number
+    review: number
+    monitor: number
+  }
 }
 
 // ===== Language Vocabulary Types =====
