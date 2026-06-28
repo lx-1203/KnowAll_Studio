@@ -197,8 +197,6 @@ export default function QuizPage() {
       // Create exam
       const exam = await createExam({ title: `快速测验-${new Date().toLocaleDateString()}`, question_ids: ids })
       setCurrentExam(exam)
-      setResults(null as any)
-      reset()
       setPreviewQuestions([])
       refreshBank()
       setActiveTab('exam')
