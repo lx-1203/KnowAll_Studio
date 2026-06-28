@@ -226,7 +226,11 @@ async def submit_exam(
     ]
 
     paper_with_qs = {"questions": question_dicts}
-    results = exam_engine.grade(paper_with_qs, req.answers)
+    results = await exam_engine.grade_enhanced(
+        paper_with_qs, req.answers,
+        enable_semantic=req.enable_semantic,
+        model=req.model,
+    )
 
     # Save answer records
     for detail in results["details"]:
