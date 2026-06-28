@@ -34,7 +34,7 @@ class FeedbackEngine:
         weak_found = 0
         pushed_to_queue = 0
 
-        async for session in get_session():
+        async with async_session() as session:
             # Find all knowledge points with answer records
             # Get all answer records with knowledge_point_ids
             ans_stmt = select(AnswerRecord).where(
@@ -132,7 +132,7 @@ class FeedbackEngine:
         limit: int = 20,
     ) -> list[dict]:
         """Get the review queue for a user, sorted by priority."""
-        async for session in get_session():
+        async with async_session() as session:
             stmt = select(ReviewQueue).where(
                 and_(
                     ReviewQueue.user_id == user_id,
@@ -158,7 +158,7 @@ class FeedbackEngine:
 
     async def mark_completed(self, queue_id: str) -> bool:
         """Mark a review queue item as completed."""
-        async for session in get_session():
+        async with async_session() as session:
             item = await session.get(ReviewQueue, queue_id)
             if not item:
                 return False
@@ -173,7 +173,7 @@ class FeedbackEngine:
         is_correct: bool,
     ) -> None:
         """Update flashcard accuracy stats after a review."""
-        async for session in get_session():
+        async with async_session() as session:
             card = await session.get(Flashcard, card_id)
             if not card:
                 return
@@ -190,7 +190,7 @@ class FeedbackEngine:
 
     async def get_memory_stats(self, user_id: str = "local_user") -> dict:
         """Get memory/learning statistics for a user."""
-        async for session in get_session():
+        async with async_session() as session:
             # Total flashcards
             total_stmt = select(func.count()).select_from(Flashcard)
             total_result = await session.execute(total_stmt)
