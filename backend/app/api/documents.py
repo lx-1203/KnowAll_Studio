@@ -46,7 +46,7 @@ async def upload_document(file: UploadFile = File(...), db: AsyncSession = Depen
     """Upload and parse a document. Returns document ID and chunks."""
     # Validate file
     ext = file.filename.rsplit(".", 1)[-1].lower() if "." in file.filename else ""
-    supported = {"pdf", "docx", "pptx", "md", "markdown", "txt",
+    supported = {"pdf", "docx", "pptx", "xlsx", "csv", "md", "markdown", "txt",
                  "png", "jpg", "jpeg", "gif", "bmp", "webp",
                  "xmind", "html",
                  "py", "js", "ts", "jsx", "tsx", "java", "cpp", "c",
