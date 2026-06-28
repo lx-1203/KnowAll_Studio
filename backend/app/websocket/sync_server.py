@@ -440,3 +440,39 @@ async def list_rooms():
 async def room_members(room_id: str):
     """获取房间成员"""
     return {"members": _get_room_members(room_id)}
+
+
+# ── SSE 备选通道（按规范 4.1 节：WebSocket 不可用时使用 SSE） ────────
+
+from fastapi.responses import StreamingResponse
+
+
+@router.get("/sse/{room_id}")
+async def sse_events(room_id: str, user_id: str = ""):
+    """SSE 端点：单向推送房间事件（备选通道）"""
+    import asyncio
+
+    async def event_stream():
+        last_version = _room_versions.get(room_id, 0)
+        # 先推送当前版本
+        yield f"data: {json.dumps({'type': 'sync_full', 'data': {'version': last_version, 'content': None}}, ensure_ascii=False)}\n\n"
+        while True:
+            await asyncio.sleep(2)  # 每 2 秒轮询
+            current = _room_versions.get(room_id, 0)
+            if current > last_version:
+                diff_ops = await sync_store.get_ops_since(room_id, last_version)
+                if diff_ops:
+                    yield f"data: {json.dumps({'type': 'sync_diff', 'data': {'ops': diff_ops, 'version': current}}, ensure_ascii=False)}\n\n"
+                last_version = current
+            # 发送心跳注释保持连接
+            yield f": heartbeat\n\n"
+
+    return StreamingResponse(
+        event_stream(),
+        media_type="text/event-stream",
+        headers={
+            "Cache-Control": "no-cache",
+            "Connection": "keep-alive",
+            "X-Accel-Buffering": "no",
+        },
+    )
