@@ -1,5 +1,6 @@
 import { useState, useRef, useEffect, useCallback } from 'react'
 import { Card, Radio, Checkbox, Input, Tag, Space, Tooltip, Progress, Button } from 'antd'
+import type { InputRef } from 'antd'
 import { CheckCircleOutlined } from '@ant-design/icons'
 import { RichText } from './LaTeX'
 import VoiceInput from './VoiceInput'
