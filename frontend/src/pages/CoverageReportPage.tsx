@@ -10,6 +10,7 @@ const { Title, Text } = Typography
 export default function CoverageReportPage() {
   const { summaryId } = useParams<{ summaryId: string }>()
   const navigate = useNavigate()
+  const { message } = App.useApp()
   const [report, setReport] = useState<CoverageReport | null>(null)
   const [loading, setLoading] = useState(true)
   const [refreshing, setRefreshing] = useState(false)
