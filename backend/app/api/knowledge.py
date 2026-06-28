@@ -501,7 +501,7 @@ async def get_summary(
 
     return {
         "summary_id": summary.id,
-        "document_id": summary.document_id,
+        "document_ids": summary.document_ids or ([summary.document_id] if summary.document_id else []),
         "content_md": summary.content_md,
         "node_count": summary.node_count,
         "level_stats": summary.level_stats,
