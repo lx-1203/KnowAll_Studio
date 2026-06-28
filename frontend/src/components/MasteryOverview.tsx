@@ -1,4 +1,4 @@
-import { Card, Progress, Tag, Row, Col, Tooltip, Empty, Typography } from 'antd'
+import { Card, Progress, Tag, Row, Col, Tooltip, Empty, Typography, Space } from 'antd'
 import {
   TrophyOutlined, WarningOutlined, RiseOutlined, FallOutlined,
   MinusOutlined, QuestionCircleOutlined,
