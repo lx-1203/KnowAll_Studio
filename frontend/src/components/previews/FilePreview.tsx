@@ -81,7 +81,8 @@ export default function FilePreview({ documentId, fileType, fileName, maxHeight 
     <Suspense fallback={
       <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center',
         height: maxHeight || '60vh', flexDirection: 'column', gap: 16 }}>
-        <Spin size="large" tip="加载预览组件..."><div style={{ minHeight: 200 }} /></Spin>
+        <Spin size="large" />
+        <span style={{ color: '#999' }}>加载预览组件...</span>
       </div>
     }>
       <PreviewComponent
