@@ -16,7 +16,7 @@ class CoverageEngine:
         Returns:
             Coverage report dict with total, covered, rates, uncovered, weak points
         """
-        async for session in get_session():
+        async with async_session() as session:
             # Get all knowledge points for this summary
             stmt = select(KnowledgePointNode).where(
                 KnowledgePointNode.summary_id == summary_id
@@ -160,7 +160,7 @@ class CoverageEngine:
         generated_questions = 0
         generated_cards = 0
 
-        async for session in get_session():
+        async with async_session() as session:
             from app.models import KnowledgePointNode, KnowledgeCoverage
 
             for pt in uncovered:
