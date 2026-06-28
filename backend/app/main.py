@@ -130,6 +130,7 @@ app.include_router(coverage_router)
 app.include_router(interactive_quiz_router)
 app.include_router(sync_router)
 app.include_router(sync_upload_router)
+app.include_router(version_control_router)
 
 
 @app.get("/")
