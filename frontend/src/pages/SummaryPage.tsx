@@ -145,7 +145,7 @@ export default function SummaryPage() {
     }
   }
 
-  if (loading) return <div style={{ textAlign: 'center', padding: 100 }}><Spin size="large" tip="加载知识总纲..." /></div>
+  if (loading) return <div style={{ textAlign: 'center', padding: 100 }}><Spin size="large" tip="加载知识总纲..."><div style={{ minHeight: 200 }} /></Spin></div>
   if (!summary) return <div style={{ textAlign: 'center', padding: 100 }}>知识总纲未找到</div>
 
   const tabItems = [
