@@ -149,7 +149,6 @@ export default function App() {
                   <Route path="/flashcards" element={<FlashcardPage />} />
                   <Route path="/game" element={<GamePage />} />
                   <Route path="/chat" element={<ChatPage />} />
-                  <Route path="/pipeline" element={<PipelinePage />} />
                   <Route path="/study" element={<StudyPage />} />
                   <Route path="/share" element={<SharePage />} />
                   <Route path="/settings" element={<SettingsPage />} />
