@@ -435,6 +435,82 @@ async def generate_error_variants(
     }
 
 
+# ===== Question Bank Management =====
+
+@router.post("/bank/save")
+async def save_to_bank(
+    req: SaveToBankRequest,
+    db: AsyncSession = Depends(get_db),
+):
+    """Batch save selected preview questions to the question bank."""
+    if not req.questions:
+        raise HTTPException(400, "No questions provided")
+
+    saved = []
+    for q in req.questions:
+        db_q = QuestionBank(
+            question_type=q.get("question_type", q.get("type", "single_choice")),
+            difficulty=q.get("difficulty", "medium"),
+            difficulty_score=q.get("difficulty_score", 0.5),
+            cognitive_level=q.get("cognitive_level", "L2_understand"),
+            tags=q.get("tags", []),
+            question_text=q.get("question_text", ""),
+            options=q.get("options", []),
+            correct_answer=str(q.get("answer", q.get("correct_answer", ""))),
+            analysis=q.get("analysis", ""),
+            review_scores=q.get("review_scores", {}),
+            review_total=q.get("review_total"),
+            source_chunk_id=req.source_chunk_id,
+        )
+        db.add(db_q)
+        saved.append(db_q)
+
+    await db.commit()
+
+    return {
+        "saved_count": len(saved),
+        "question_ids": [q.id for q in saved],
+        "questions": [
+            {
+                "id": q.id,
+                "question_type": q.question_type,
+                "difficulty_score": q.difficulty_score,
+                "cognitive_level": q.cognitive_level,
+                "question_text": q.question_text[:80] + "..." if len(q.question_text or "") > 80 else q.question_text,
+            }
+            for q in saved
+        ],
+    }
+
+
+@router.delete("/bank/{question_id}")
+async def delete_question(
+    question_id: str,
+    db: AsyncSession = Depends(get_db),
+):
+    """Delete a single question from the bank."""
+    from sqlalchemy import select as sel
+    result = await db.execute(sel(QuestionBank).where(QuestionBank.id == question_id))
+    q = result.scalar_one_or_none()
+    if not q:
+        raise HTTPException(404, "Question not found")
+    await db.delete(q)
+    await db.commit()
+    return {"deleted": question_id}
+
+
+@router.post("/bank/delete-batch")
+async def delete_questions_batch(
+    ids: list[str],
+    db: AsyncSession = Depends(get_db),
+):
+    """Delete multiple questions from the bank."""
+    from sqlalchemy import select as sel, delete
+    await db.execute(delete(QuestionBank).where(QuestionBank.id.in_(ids)))
+    await db.commit()
+    return {"deleted_count": len(ids)}
+
+
 @router.get("/questions")
 async def list_questions(
     question_type: str | None = None,
