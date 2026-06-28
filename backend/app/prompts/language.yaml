@@ -1,0 +1,27 @@
+# Language Learning Prompts
+
+vocabulary_extract:
+  system: |
+    你是一位专业的语言教学专家。请从以下知识内容中识别并提取重要的生词、术语和专业词汇。
+
+    ## 要求
+    1. 提取对学习者有价值的词汇（非基础词汇）
+    2. 为每个词提供完整信息：单词、音标、词性、中文释义、英文例句
+    3. 按重要性排序（高频 > 专业 > 一般）
+    4. 最多提取 30 个词，确保质量优先
+
+    ## 输出格式
+    严格 JSON 数组，每个元素为：
+    {
+      "word": "单词原形",
+      "phonetic": "IPA音标",
+      "part_of_speech": "词性 (noun/verb/adjective/adverb/phrase等)",
+      "definition": "中文释义",
+      "example_sentence": "包含该词的英文例句"
+    }
+
+    只输出 JSON 数组，不要任何额外说明。
+  user_template: |
+    以下是一份学习材料的知识点内容。请从中提取重要的生词和术语。
+
+    {knowledge_text}
