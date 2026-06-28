@@ -712,7 +712,150 @@ class ExamEngine:
     """Exam paper assembly and grading — local rules + optional LLM semantic grading."""
 
     # Question types that benefit from LLM semantic grading
-    SEMANTIC_GRADE_TYPES = {"short_answer", "material_analysis", "fill_blank"}
+    SEMANTIC_GRADE_TYPES = {"short_answer", "material_analysis", "fill_blank", "term_definition"}
+
+    def _score_open_answer(self, user: str, question: dict, qtype: str) -> dict:
+        """Score open-ended answers with partial credit support.
+
+        Returns dict with: is_correct, score_ratio (0.0-1.0), details
+        """
+        correct = str(question.get("answer", question.get("correct_answer", "")))
+
+        if qtype == "fill_blank":
+            blanks = question.get("blanks", [])
+            if blanks:
+                return self._score_multi_blank(user, blanks)
+            # Single blank: fall through to simple keyword matching
+            return self._score_keyword_match(user, correct)
+
+        if qtype == "term_definition":
+            scoring_points = question.get("scoring_points", [])
+            if scoring_points:
+                return self._score_by_points(user, scoring_points)
+            return self._score_keyword_match(user, correct)
+
+        # Default: keyword match
+        return self._score_keyword_match(user, correct)
+
+    def _score_multi_blank(self, user_answer: str, blanks: list[dict]) -> dict:
+        """Score multi-blank fill-in questions. User answers separated by ; or newline."""
+        import re
+        # Split user answers by semicolon, comma, or newline
+        user_parts = re.split(r'[;；,，\n]+', user_answer.strip())
+        user_parts = [p.strip() for p in user_parts if p.strip()]
+
+        total = len(blanks)
+        correct_count = 0
+        details = []
+
+        for i, blank in enumerate(blanks):
+            expected = blank.get("answer", "").strip()
+            user_val = user_parts[i] if i < len(user_parts) else ""
+
+            # Exact match first, then fuzzy
+            is_match = False
+            if user_val:
+                if user_val.lower() == expected.lower():
+                    is_match = True
+                else:
+                    # Fuzzy: check if user answer contains key chars or vice versa
+                    import re as _re
+                    expected_words = set(_re.findall(r'[\u4e00-\u9fff]+|[a-z0-9]{2,}', expected.lower()))
+                    user_words = set(_re.findall(r'[\u4e00-\u9fff]+|[a-z0-9]{2,}', user_val.lower()))
+                    if expected_words and user_words:
+                        overlap = len(user_words & expected_words) / len(expected_words)
+                        is_match = overlap >= 0.6
+
+            if is_match:
+                correct_count += 1
+
+            details.append({
+                "blank_index": blank.get("index", i + 1),
+                "expected": expected,
+                "user_answer": user_val,
+                "is_correct": is_match,
+                "hint": blank.get("hint", ""),
+            })
+
+        score_ratio = correct_count / max(1, total)
+        return {
+            "is_correct": score_ratio >= 0.6,
+            "score_ratio": score_ratio,
+            "correct_blanks": correct_count,
+            "total_blanks": total,
+            "blank_details": details,
+        }
+
+    def _score_by_points(self, user_answer: str, scoring_points: list[dict]) -> dict:
+        """Score by checking keywords in each scoring point."""
+        import re
+        user_lower = user_answer.strip().lower()
+        user_words = set(re.findall(r'[\u4e00-\u9fff]+|[a-z0-9]{2,}', user_lower))
+
+        total_score = sum(p.get("score", 0) for p in scoring_points)
+        earned_score = 0
+        point_details = []
+
+        for p in scoring_points:
+            keywords = p.get("keywords", [])
+            point_score = p.get("score", 0)
+            matched = []
+            for kw in keywords:
+                kw_lower = kw.lower()
+                if kw_lower in user_lower:
+                    matched.append(kw)
+                else:
+                    # Check individual chars for Chinese (2+ char match)
+                    for uw in user_words:
+                        if kw_lower in uw or uw in kw_lower:
+                            if kw not in matched:
+                                matched.append(kw)
+                            break
+
+            match_ratio = len(matched) / max(1, len(keywords))
+            point_earned = round(point_score * min(1.0, match_ratio * 1.5), 1)  # 1.5x bonus for partial
+            earned_score += point_earned
+
+            point_details.append({
+                "point": p.get("point", ""),
+                "max_score": point_score,
+                "earned": point_earned,
+                "keywords_matched": matched,
+                "keywords_expected": keywords,
+                "match_ratio": round(match_ratio, 2),
+            })
+
+        score_ratio = earned_score / max(1, total_score)
+        return {
+            "is_correct": score_ratio >= 0.5,
+            "score_ratio": score_ratio,
+            "earned_score": earned_score,
+            "total_score": total_score,
+            "point_details": point_details,
+        }
+
+    def _score_keyword_match(self, user_answer: str, correct_answer: str) -> dict:
+        """Simple keyword overlap scoring."""
+        import re
+        user_clean = user_answer.strip().lower()
+        correct_clean = correct_answer.strip().lower()
+
+        if not user_clean or len(user_clean) <= 1:
+            return {"is_correct": False, "score_ratio": 0.0}
+
+        if user_clean == correct_clean:
+            return {"is_correct": True, "score_ratio": 1.0}
+
+        correct_words = set(re.findall(r'[\u4e00-\u9fff]+|[a-z0-9]{2,}', correct_clean))
+        if not correct_words:
+            return {"is_correct": user_clean in correct_clean, "score_ratio": 0.5 if user_clean in correct_clean else 0.0}
+
+        user_words = set(re.findall(r'[\u4e00-\u9fff]+|[a-z0-9]{2,}', user_clean))
+        if not user_words:
+            return {"is_correct": False, "score_ratio": 0.0}
+
+        overlap = len(user_words & correct_words) / len(correct_words)
+        return {"is_correct": overlap >= 0.5, "score_ratio": overlap}
 
     async def grade_semantic(
         self,
