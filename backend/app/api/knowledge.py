@@ -386,7 +386,8 @@ async def generate_summary(
 
         if doc.metadata_ and doc.metadata_.get("headings"):
             from app.core.parsing.outline_extractor import outline_extractor
-            heading_text = outline_extractor.headings_to_text(doc.metadata_.get("headings", []))
+            heading_nodes = _dicts_to_nodes(doc.metadata_.get("headings", []))
+            heading_text = outline_extractor.inject_context(heading_nodes)
             if heading_text:
                 all_structure_contexts.append(f"【{doc.filename}】\n{heading_text}")
 
