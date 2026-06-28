@@ -29,7 +29,6 @@ const InteractiveQuizPage = lazy(() => import('./pages/InteractiveQuizPage'))
 const CoverageReportPage = lazy(() => import('./pages/CoverageReportPage'))
 const AnswerReviewPage = lazy(() => import('./pages/AnswerReviewPage'))
 const LanguageLearningPage = lazy(() => import('./pages/LanguageLearningPage'))
-const PipelinePage = lazy(() => import('./pages/PipelinePage'))
 
 const { Header, Sider, Content } = Layout
 const { useBreakpoint } = Grid
