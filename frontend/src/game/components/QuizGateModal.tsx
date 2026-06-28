@@ -1,35 +1,18 @@
-import React, { useEffect } from 'react'
+import React from 'react'
 import { Button, Card, Radio, Checkbox, Space, Tag } from 'antd'
-import { CloseOutlined } from '@ant-design/icons'
 import { QuizTimer } from './QuizTimer'
-import type { QuizGateState } from '../types'
 import { DEFAULT_GAME_CONFIG } from '../config'
-import { useQuizGate } from '../hooks/useQuizGate'
+import { useQuizGateStore } from '../hooks/useQuizGateStore'
 
 interface QuizGateModalProps {
   isDark: boolean
 }
 
 export const QuizGateModal: React.FC<QuizGateModalProps> = ({ isDark }) => {
-  const { quizState, selectAnswer, submitAnswer, dismissFeedback } = useQuizGate()
-  const { question, userAnswer, timeLeft, isSubmitted, result, showFeedback } = quizState
-
-  // 超时自动提交
-  useEffect(() => {
-    if (timeLeft <= 0 && !isSubmitted) {
-      submitAnswer()
-    }
-  }, [timeLeft, isSubmitted, submitAnswer])
-
-  // 反馈1.5秒后自动关闭
-  useEffect(() => {
-    if (showFeedback && result) {
-      const timer = setTimeout(() => {
-        dismissFeedback()
-      }, 1500)
-      return () => clearTimeout(timer)
-    }
-  }, [showFeedback, result, dismissFeedback])
+  const quizState = useQuizGateStore(s => s.quizState)
+  const selectAnswer = useQuizGateStore(s => s.selectAnswer)
+  const submitAnswer = useQuizGateStore(s => s.submitAnswer)
+  const { question, userAnswer, timeLeft, isSubmitted, result } = quizState
 
   if (!question) return null
 
