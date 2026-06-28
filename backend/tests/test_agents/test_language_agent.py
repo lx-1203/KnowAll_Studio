@@ -220,6 +220,8 @@ class TestLanguageAgentRun:
         """run() with non-JSON LLM response falls back to regex extraction."""
         from app.core.agents.language_agent import LanguageAgent
 
+        agent = LanguageAgent()
+
         llm_content = 'Here are some words: [{"word":"test","phonetic":"tɛst","part_of_speech":"noun","definition":"测试","example_sentence":"This is a test."}] done.'
 
         mock_summary = MagicMock()
