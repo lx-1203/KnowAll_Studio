@@ -126,6 +126,11 @@ export interface ResultDetail {
   }
   key_points_matched?: string[]
   key_points_missed?: string[]
+  partial_score?: number
+  blank_details?: { blank_index: number; expected: string; user_answer: string; is_correct: boolean; hint?: string }[]
+  point_details?: { point: string; max_score: number; earned: number; keywords_matched: string[]; keywords_expected: string[] }[]
+  earned_score?: number
+  score_total?: number
 }
 
 export interface FlashcardTags {
