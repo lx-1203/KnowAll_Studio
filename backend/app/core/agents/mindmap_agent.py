@@ -69,7 +69,15 @@ class MindMapAgent(BaseAgent):
                         error="Summary not found"
                     )
 
-                node_dicts = await self._load_nodes(session, summary, document_id)
+                # 确定主文档 ID（用于节点提取）
+                doc_ids = document_ids or (
+                    summary.document_ids
+                    if summary.document_ids
+                    else [summary.document_id] if summary.document_id else []
+                )
+                primary_doc_id = doc_ids[0] if doc_ids else "unknown"
+
+                node_dicts = await self._load_nodes(session, summary, primary_doc_id)
 
                 if not node_dicts:
                     return AgentResult(
@@ -81,7 +89,7 @@ class MindMapAgent(BaseAgent):
                 mindmap_nodes, mindmap_edges = self._build_mindmap(node_dicts)
 
                 # 3. 加载横向关联边
-                cross_edges = await self._load_cross_edges(session, document_id)
+                cross_edges = await self._load_cross_edges(session, doc_ids)
                 mindmap_edges.extend(cross_edges)
 
                 # 4. BOIS 质量分析
