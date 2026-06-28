@@ -168,7 +168,7 @@ class TestFlashcardAgentRun:
                 ])
                 mock_cg.validate_card.return_value = (True, "")
 
-                with patch("app.core.agents.flashcard_agent.fsrs") as mock_fsrs:
+                with patch("app.core.memory.fsrs") as mock_fsrs:
                     mock_fsrs.init_card.return_value = {
                         "stability": 0, "difficulty": 0, "retrievability": 0, "state": "new"
                     }
@@ -229,7 +229,7 @@ class TestFlashcardAgentRun:
                 ])
                 mock_cg.validate_card.return_value = (True, "")
 
-                with patch("app.core.agents.flashcard_agent.fsrs") as mock_fsrs:
+                with patch("app.core.memory.fsrs") as mock_fsrs:
                     mock_fsrs.init_card.return_value = {
                         "stability": 0, "difficulty": 0, "retrievability": 0, "state": "new"
                     }
@@ -302,7 +302,7 @@ class TestFlashcardAgentRun:
                 ])
                 mock_cg.validate_card.side_effect = validate_side_effect
 
-                with patch("app.core.agents.flashcard_agent.fsrs") as mock_fsrs:
+                with patch("app.core.memory.fsrs") as mock_fsrs:
                     mock_fsrs.init_card.return_value = {
                         "stability": 0, "difficulty": 0, "retrievability": 0, "state": "new"
                     }
@@ -372,7 +372,7 @@ class TestFlashcardAgentRun:
                 mock_cg.generate = AsyncMock(return_value=cards)
                 mock_cg.validate_card.return_value = (True, "")
 
-                with patch("app.core.agents.flashcard_agent.fsrs") as mock_fsrs:
+                with patch("app.core.memory.fsrs") as mock_fsrs:
                     mock_fsrs.init_card.return_value = {
                         "stability": 0, "difficulty": 0, "retrievability": 0, "state": "new"
                     }
@@ -450,7 +450,7 @@ class TestFlashcardAgentRun:
                 mock_cg.generate = AsyncMock(return_value=cards)
                 mock_cg.validate_card.return_value = (True, "")
 
-                with patch("app.core.agents.flashcard_agent.fsrs") as mock_fsrs:
+                with patch("app.core.memory.fsrs") as mock_fsrs:
                     mock_fsrs.init_card.return_value = {
                         "stability": 0, "difficulty": 0, "retrievability": 0, "state": "new"
                     }
@@ -535,7 +535,7 @@ class TestFlashcardAgentRun:
                 mock_cg.generate = AsyncMock(return_value=cards)
                 mock_cg.validate_card.return_value = (True, "")
 
-                with patch("app.core.agents.flashcard_agent.fsrs") as mock_fsrs:
+                with patch("app.core.memory.fsrs") as mock_fsrs:
                     mock_fsrs.init_card.return_value = {
                         "stability": 0, "difficulty": 0, "retrievability": 0, "state": "new"
                     }
@@ -600,7 +600,7 @@ class TestFlashcardAgentRun:
                 ])
                 mock_cg.validate_card.return_value = (True, "")
 
-                with patch("app.core.agents.flashcard_agent.fsrs") as mock_fsrs:
+                with patch("app.core.memory.fsrs") as mock_fsrs:
                     mock_fsrs.init_card.return_value = {
                         "stability": 0, "difficulty": 0, "retrievability": 0, "state": "new"
                     }
