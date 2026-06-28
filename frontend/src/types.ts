@@ -60,6 +60,7 @@ export type QuestionType =
   | 'formula'
   | 'coding'
   | 'material_analysis'
+  | 'term_definition'
 
 export type CognitiveLevel =
   | 'L1_remember'
