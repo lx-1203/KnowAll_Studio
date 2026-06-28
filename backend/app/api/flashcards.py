@@ -143,39 +143,58 @@ async def review_card(req: ReviewRequest, db: AsyncSession = Depends(get_db)):
 
 @router.get("/due")
 async def get_due_cards(limit: int = 20, db: AsyncSession = Depends(get_db)):
-    """Get cards due for review today."""
-    from sqlalchemy import select
+    """Get cards due for review today (SQL-level filtering for performance)."""
+    from sqlalchemy import select, and_, or_
 
-    # Get all cards with schedules
+    now = datetime.now(timezone.utc).replace(tzinfo=None)
+
+    # SQL-level filtering: new cards OR cards past their review time
     result = await db.execute(
         select(Flashcard, ReviewSchedule)
         .join(ReviewSchedule, Flashcard.id == ReviewSchedule.card_id)
+        .where(
+            or_(
+                ReviewSchedule.state == "new",
+                and_(
+                    ReviewSchedule.next_review_at.isnot(None),
+                    ReviewSchedule.next_review_at <= now,
+                ),
+            )
+        )
+        .order_by(ReviewSchedule.next_review_at.asc().nullsfirst())
+        .limit(limit)
     )
     rows = result.all()
 
-    now = datetime.now(timezone.utc).replace(tzinfo=None)
     due_cards = []
     for card, schedule in rows:
-        if schedule.state == "new":
-            due_cards.append(card)
-        elif schedule.next_review_at and schedule.next_review_at <= now:
-            due_cards.append(card)
+        due_cards.append({
+            "id": card.id,
+            "card_type": card.card_type,
+            "front": card.front,
+            "back": card.back,
+            "hints": card.hints,
+            "tags": card.tags,
+            "schedule": {
+                "state": schedule.state,
+                "stability": schedule.fsrs_stability,
+                "difficulty": schedule.fsrs_difficulty,
+                "next_review_at": schedule.next_review_at.isoformat() if schedule.next_review_at else None,
+                "review_count": schedule.review_count,
+            },
+        })
 
-    # Limit and format
-    due_cards = due_cards[:limit]
+    # Load balancing: if all cards are due within the same hour, spread them
+    if len(due_cards) > 50:
+        from app.core.memory import fsrs
+        due_cards = fsrs.balance_load(
+            [{"schedule": c["schedule"]} for c in due_cards],
+            max_per_day=50,
+        )
+
     return {
         "due_count": len(due_cards),
-        "cards": [
-            {
-                "id": c.id,
-                "card_type": c.card_type,
-                "front": c.front,
-                "back": c.back,
-                "hints": c.hints,
-                "tags": c.tags,
-            }
-            for c in due_cards
-        ],
+        "cards": due_cards,
     }
 
 
