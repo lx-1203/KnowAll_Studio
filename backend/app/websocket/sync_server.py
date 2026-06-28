@@ -319,11 +319,14 @@ async def sync_websocket(
                 })
 
             elif msg_type == "chat_message":
-                await _broadcast(doc_id, {
+                broadcast_msg = {
                     "type": "chat_message",
                     "data": {**msg_data, "from_user_id": user_id, "from_user_name": user_name,
                              "timestamp": int(time.time() * 1000)},
-                })
+                }
+                await _broadcast(doc_id, broadcast_msg)
+                # 保存离线消息给不在线的用户
+                await _offline_msg_append("all", broadcast_msg)
 
             elif msg_type == "upload_progress":
                 await _broadcast(doc_id, {
