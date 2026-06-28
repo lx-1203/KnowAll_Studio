@@ -116,13 +116,16 @@ export const useFlashcardStore = create<{
   dueCards: Flashcard[];
   currentIndex: number;
   isFlipped: boolean;
+  reviewLimit: number;
   setDueCards: (cards: Flashcard[]) => void;
   flip: () => void;
   next: () => void;
   prev: () => void;
   setCurrentIndex: (i: number) => void;
+  setReviewLimit: (n: number) => void;
 }>(set => ({
   dueCards: [], currentIndex: 0, isFlipped: false,
+  reviewLimit: Number(localStorage.getItem('knowall_review_limit') || 20),
   setDueCards: (cards) => set({ dueCards: cards, currentIndex: 0, isFlipped: false }),
   flip: () => set(s => ({ isFlipped: !s.isFlipped })),
   next: () => set(s => ({
@@ -134,4 +137,8 @@ export const useFlashcardStore = create<{
     isFlipped: false,
   })),
   setCurrentIndex: (i) => set({ currentIndex: i, isFlipped: false }),
+  setReviewLimit: (n) => {
+    localStorage.setItem('knowall_review_limit', String(n))
+    set({ reviewLimit: n })
+  },
 }))
