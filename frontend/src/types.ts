@@ -720,8 +720,8 @@ export interface StudyDayItem {
 }
 
 // Extended Flashcard with review tracking
-export interface FlashcardExtended extends Flashcard {
-  knowledge_point_id: string | null | undefined
+export interface FlashcardExtended extends Omit<Flashcard, 'knowledge_point_id'> {
+  knowledge_point_id: string | null
   review_count: number
   correct_count: number
   last_review_at: string | null
