@@ -81,7 +81,8 @@ class GlobalExceptionMiddleware(BaseHTTPMiddleware):
             return JSONResponse(status_code=404, content={"error": "not_found", "detail": str(e)})
         except Exception as e:
             logger.exception("Unhandled exception on %s %s", request.method, request.url.path)
-            return JSONResponse(status_code=500, content={"error": "internal_error", "detail": "An unexpected error occurred"})
+            import traceback
+            return JSONResponse(status_code=500, content={"error": "internal_error", "detail": f"{type(e).__name__}: {str(e)}", "traceback": traceback.format_exc()[-2000:]})
 
 
 def setup_middleware(app):
