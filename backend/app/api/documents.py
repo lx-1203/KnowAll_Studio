@@ -74,7 +74,12 @@ async def upload_document(file: UploadFile = File(...), db: AsyncSession = Depen
     # Parse document
     try:
         parsed = await parser.parse(local_path, ext)
+    except ValueError as e:
+        logger.warning("文档解析不支持: file=%s ext=%s error=%s", file.filename, ext, e)
+        raise HTTPException(400, str(e))
     except Exception as e:
+        logger.error("文档解析失败: file=%s ext=%s error=%s\n%s",
+                     file.filename, ext, e, traceback.format_exc())
         raise HTTPException(500, f"Failed to parse document: {str(e)}")
 
     # Clean text
