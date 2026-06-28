@@ -77,8 +77,9 @@ class TestLanguageAgentAutoDetect:
 
         # When the auto_detect runs the internal async function, we mock asyncio.run
         agent = LanguageAgent()
-        with patch("asyncio.run", return_value=True):
-            result = agent._auto_detect_language_material("doc_1")
+        with patch("app.database.async_session_ctx", create=True):
+            with patch("asyncio.run", return_value=True):
+                result = agent._auto_detect_language_material("doc_1")
         assert result is True
 
     def test_auto_detect_returns_false_for_pure_chinese_text(self):
