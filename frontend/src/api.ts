@@ -196,13 +196,28 @@ export const deleteNotification = (id: string) => api.delete(`/notifications/${i
 export const batchDeleteNotifications = (ids: string[]) =>
   api.delete('/notifications', { params: { ids: ids.join(',') } }).then(r => r.data)
 
-// Reading Language (阅读语言)
+// Reading Language (阅读语言) - Progressive Chinese-English Mixed Reading
 export const getReadingArticles = (difficulty?: number) =>
   api.get('/reading/articles', { params: difficulty ? { difficulty } : {} }).then(r => r.data)
-export const getReadingArticle = (id: number) =>
+export const getReadingArticle = (id: string) =>
   api.get(`/reading/articles/${id}`).then(r => r.data)
-export const convertReadingText = (text: string, level: number) =>
-  api.post('/reading/convert', { text, level }).then(r => r.data)
+export const convertReadingText = (text: string, level: number, knownWords?: {cn:string;en:string}[], seenWords?: {cn:string;en:string}[]) =>
+  api.post('/reading/convert', { text, level, known_words: knownWords || [], seen_words: seenWords || [] }).then(r => r.data)
+export const convertReadingStream = (params: { text: string; known_words: {cn:string;en:string}[]; seen_words: {cn:string;en:string}[]; skip_cache?: boolean }) =>
+  fetch('/api/v1/reading/convert/stream', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', 'Authorization': api.defaults.headers.common['Authorization'] as string || '' },
+    body: JSON.stringify(params),
+  })
+export const uploadReadingArticle = (title: string, content: string) =>
+  api.post('/reading/articles/upload', { title, content }).then(r => r.data)
+export const uploadReadingArticleFile = (file: File) => {
+  const form = new FormData()
+  form.append('file', file)
+  return api.post('/reading/articles/upload-file', form).then(r => r.data)
+}
+export const deleteReadingArticle = (id: string) =>
+  api.delete(`/reading/articles/${id}`).then(r => r.data)
 
 // ===== Knowledge Summary (NEW) =====
 export const generateSummary = (params: object) => api.post('/knowledge/summary/generate', params).then(r => r.data)
