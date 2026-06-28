@@ -168,7 +168,6 @@ export default function App() {
                   <Route path="/review" element={<AnswerReviewPage />} />
                   <Route path="/language" element={<LanguageLearningPage />} />
                   <Route path="/language/:docId" element={<LanguageLearningPage />} />
-                  <Route path="/pipeline" element={<PipelinePage />} />
                 </Routes>
               </div>
             </Suspense>
