@@ -99,10 +99,10 @@ async def upload_init(req: UploadInitRequest):
 async def upload_chunk(
     upload_id: str,
     chunk_index: int,
-    file: UploadFile = File(...),
+    request: Request,
     x_chunk_hash: str | None = Header(None),
 ):
-    """上传单个分片"""
+    """上传单个分片（接收原始二进制流，Content-Type: application/octet-stream）"""
     session = _upload_sessions.get(upload_id)
     if not session:
         raise HTTPException(404, "上传会话不存在或已过期")
@@ -110,17 +110,18 @@ async def upload_chunk(
     if session["status"] != "uploading":
         raise HTTPException(400, "上传状态异常")
 
-    # 写入分片文件
-    chunk_path = CHUNK_DIR / f"{upload_id}_{chunk_index:06d}"
-    chunk_data = await file.read()
+    # 读取原始二进制流
+    chunk_data = await request.body()
 
-    # 校验 hash（可选）
+    # 校验 hash（按规范 3.2.2：X-Chunk-Hash: sha256=<hash>）
     if x_chunk_hash:
         algo, _, expected = x_chunk_hash.partition("=")
         actual = hashlib.new(algo or "sha256", chunk_data).hexdigest()
         if actual != expected:
             raise HTTPException(400, f"分片 hash 校验失败")
 
+    # 写入分片文件
+    chunk_path = CHUNK_DIR / f"{upload_id}_{chunk_index:06d}"
     chunk_path.write_bytes(chunk_data)
     session["received_chunks"].add(chunk_index)
     session["received_bytes"] += len(chunk_data)
