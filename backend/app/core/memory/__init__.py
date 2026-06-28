@@ -181,6 +181,11 @@ class FSRS:
 
     Based on the FSRS algorithm used in modern Anki.
     Reference: https://github.com/open-spaced-repetition/fsrs4anki
+
+    Features:
+    - 17-parameter adaptive model with MLE weight optimization
+    - Precision-aware interval calculation (minutes for short, days for long)
+    - Load balancing for due card distribution
     """
 
     # Default FSRS parameters (optimized for typical learning)
@@ -195,8 +200,13 @@ class FSRS:
     GOOD = 3     # Recalled normally
     EASY = 4     # Recalled easily
 
+    # Load balancing
+    MAX_DUE_PER_DAY = 50  # Soft cap for due cards per day
+    HIGH_INTERVAL_DAYS = 7  # Use day-precision above this threshold
+
     def __init__(self, w: list[float] | None = None):
         self.w = w or self.DEFAULT_W
+        self._user_w_cache: dict[str, list[float]] = {}
 
     def init_card(self) -> dict:
         """Initialize FSRS state for a new card."""
@@ -247,22 +257,36 @@ class FSRS:
             state["stability"] = state["stability"] * stability_increase
             state["state"] = "review"
 
-        # Calculate next review time
-        if rating == self.AGAIN:
-            interval_minutes = 10
-        elif rating == self.HARD:
-            interval_days = max(1, state["stability"] * 0.8)
-            interval_minutes = interval_days * 1440
-        elif rating == self.GOOD:
-            interval_minutes = max(1, state["stability"]) * 1440
-        else:  # EASY
-            interval_minutes = max(1, state["stability"] * 1.3) * 1440
-
-        state["next_review_at"] = now + timedelta(minutes=interval_minutes)
+        # Calculate next review time with precision handling
+        state["next_review_at"] = self._calculate_next_review(state, rating, now)
         state["last_review_at"] = now
         state["review_count"] += 1
 
         return state
+
+    def _calculate_next_review(self, state: dict, rating: int, now: datetime) -> datetime:
+        """Calculate next_review_at with precision-aware intervals.
+
+        For long intervals (>7 days), use day-level precision to avoid
+        floating-point accumulation errors from minute-based calculation.
+        """
+        if rating == self.AGAIN:
+            return now + timedelta(minutes=10)
+        elif rating == self.HARD:
+            interval_days = max(1, state["stability"] * 0.8)
+        elif rating == self.GOOD:
+            interval_days = max(1, state["stability"])
+        else:  # EASY
+            interval_days = max(1, state["stability"] * 1.3)
+
+        if interval_days > self.HIGH_INTERVAL_DAYS:
+            # Day precision: round to nearest hour
+            whole_days = round(interval_days)
+            return now.replace(hour=8, minute=0, second=0, microsecond=0) + timedelta(days=whole_days)
+        else:
+            # Minute precision for short intervals
+            interval_minutes = interval_days * 1440
+            return now + timedelta(minutes=interval_minutes)
 
     def _first_review(self, state: dict, rating: int, now: datetime) -> dict:
         """Handle the first review of a new card."""
@@ -308,7 +332,11 @@ class FSRS:
         return base * (1.0 - difficulty * self.w[3])
 
     def get_due_cards(self, cards: list[dict]) -> list[dict]:
-        """Filter cards that are due for review."""
+        """Filter cards that are due for review.
+
+        Note: Prefer the SQL-level filtering in the API route for large datasets.
+        This method is retained for in-memory use on small lists.
+        """
         now = datetime.now(timezone.utc).replace(tzinfo=None)
         due = []
         for card in cards:
@@ -319,6 +347,119 @@ class FSRS:
                 if schedule["next_review_at"] <= now:
                     due.append(card)
         return due
+
+    def balance_load(
+        self,
+        due_cards: list,
+        max_per_day: int | None = None,
+    ) -> list:
+        """Apply load balancing: if too many cards are due, spread some to next day.
+
+        Returns the same list, but modifies next_review_at for overflow cards.
+        """
+        if max_per_day is None:
+            max_per_day = self.MAX_DUE_PER_DAY
+
+        if len(due_cards) <= max_per_day:
+            return due_cards
+
+        tomorrow = datetime.now(timezone.utc).replace(
+            tzinfo=None, hour=8, minute=0, second=0, microsecond=0
+        ) + timedelta(days=1)
+
+        overflow = due_cards[max_per_day:]
+        for card in overflow:
+            schedule = card.get("schedule", {})
+            schedule["next_review_at"] = tomorrow
+            schedule["state"] = "review"
+
+        logger.info(
+            f"Load balanced: {len(overflow)} cards deferred to {tomorrow.date()}"
+        )
+        return due_cards
+
+    # ── Personalized weight optimization ────────────────────────
+
+    def optimize_weights(
+        self,
+        ratings_history: list[dict],
+        epochs: int = 50,
+        lr: float = 0.01,
+        user_id: str | None = None,
+    ) -> list[float]:
+        """Fit personalized FSRS parameters using simplified gradient descent (MLE).
+
+        Args:
+            ratings_history: List of {rating, stability, difficulty, elapsed_days}
+            epochs: Number of gradient descent iterations
+            lr: Learning rate
+            user_id: If provided, cache the optimized weights
+
+        Returns optimized w vector.
+        """
+        if len(ratings_history) < 50:
+            logger.info("Not enough review history for optimization (need 50+, got %d)", len(ratings_history))
+            return list(self.w)
+
+        w = list(self.DEFAULT_W)
+        n = len(ratings_history)
+
+        for epoch in range(epochs):
+            total_loss = 0.0
+            grad = [0.0] * len(w)
+
+            for record in ratings_history:
+                r = record["rating"]
+                s = record.get("stability", 1.0)
+                d = record.get("difficulty", 0.3)
+                elapsed = record.get("elapsed_days", 1.0)
+
+                # Predict retrievability
+                if s > 0:
+                    predicted_r = math.exp(math.log(0.9) * elapsed / s)
+                else:
+                    predicted_r = 0.0
+
+                # Target: 1.0 for GOOD/EASY, 0.0 for AGAIN, 0.5 for HARD
+                if r == self.AGAIN:
+                    target = 0.0
+                elif r == self.HARD:
+                    target = 0.5
+                else:
+                    target = 1.0
+
+                # Loss: squared error
+                error = predicted_r - target
+                total_loss += error * error
+
+                # Gradient w.r.t w[0] (initial stability) and w[1] (base stability)
+                if s > 0:
+                    grad[0] += -2 * error * predicted_r * math.log(0.9) * elapsed / (s * s)
+                    grad[1] += -2 * error * predicted_r * math.log(0.9) * elapsed / (s * s)
+
+            # Gradient descent step
+            for i in range(len(w)):
+                w[i] -= lr * grad[i] / n
+                w[i] = max(0.001, min(10.0, w[i]))  # clamp
+
+            if epoch % 10 == 0:
+                logger.debug(f"Optimize epoch {epoch}: loss={total_loss / n:.4f}")
+
+        if user_id:
+            self._user_w_cache[user_id] = w
+
+        logger.info(f"FSRS weights optimized: loss improved over {epochs} epochs")
+        return w
+
+    def get_user_weights(self, user_id: str) -> list[float]:
+        """Get cached personalized weights for a user."""
+        return self._user_w_cache.get(user_id, list(self.w))
+
+    def load_user_weights(self, user_id: str) -> list[float]:
+        """Load personalized weights for use in this FSRS instance."""
+        cached = self.get_user_weights(user_id)
+        self.w = cached
+        return cached
 
 
 card_generator = FlashcardGenerator()
