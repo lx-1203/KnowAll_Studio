@@ -260,6 +260,8 @@ class TestLanguageAgentRun:
         """run() with completely unparseable content returns empty results."""
         from app.core.agents.language_agent import LanguageAgent
 
+        agent = LanguageAgent()
+
         mock_summary = MagicMock()
         mock_summary.content_md = "# Test"
         mock_node = MagicMock()
