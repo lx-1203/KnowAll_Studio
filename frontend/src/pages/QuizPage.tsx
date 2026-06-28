@@ -776,6 +776,34 @@ export default function QuizPage() {
           </Button>
         </Space>
       }>
+      {/* 刷题快捷操作栏 */}
+      <Card size="small" style={{ marginBottom: 16, background: '#f6ffed', borderColor: '#b7eb8f' }}>
+        <Space wrap>
+          <Button type="primary" icon={<ThunderboltOutlined />} size="large"
+            disabled={!allQuestions.length}
+            onClick={handleStartPractice}>
+            一键刷题 ({allQuestions.length}题)
+          </Button>
+          <Tooltip title="从题库中随机抽题练习">
+            <Button icon={<SyncOutlined />} disabled={!allQuestions.length}
+              onClick={() => handleRandomPractice(10)}>
+              随机10题
+            </Button>
+          </Tooltip>
+          <Button icon={<SyncOutlined />} disabled={!allQuestions.length}
+            onClick={() => handleRandomPractice(5)}>
+            随机5题
+          </Button>
+          <Button icon={<SyncOutlined />} disabled={!allQuestions.length}
+            onClick={() => handleRandomPractice(20)}>
+            随机20题
+          </Button>
+          <span style={{ fontSize: 12, color: '#888' }}>
+            无需勾选，直接刷题；筛选条件对「一键刷题」和「随机刷题」生效
+          </span>
+        </Space>
+      </Card>
+
       <Table loading={questionsLoading} dataSource={allQuestions} rowKey="id" size="middle"
         locale={{ emptyText: '暂无题目，去「出题」Tab生成' }}
         rowSelection={{ selectedRowKeys: Array.from(bankSelected), onChange: (keys) => setBankSelected(new Set(keys as string[])) }}
@@ -794,6 +822,13 @@ export default function QuizPage() {
               return <Tag color={r.difficulty === 'easy' ? 'green' : r.difficulty === 'hard' ? 'red' : 'orange'}>
                 {r.difficulty === 'easy' ? '简单' : r.difficulty === 'hard' ? '困难' : '中等'}</Tag>
             } },
+          { title: '操作', width: 80, fixed: 'right' as const,
+            render: (_: any, record: any) => (
+              <Button size="small" type="link" icon={<PlayCircleOutlined />}
+                onClick={() => handlePracticeSingle(record.id)}>
+                练习
+              </Button>
+            ) },
         ]}
         pagination={{ pageSize: 15, showSizeChanger: true, showTotal: t => `共 ${t} 题` }} />
     </Card>
