@@ -66,8 +66,9 @@ class TestLanguageAgentAutoDetect:
         async def mock_check():
             return True
 
-        with patch("asyncio.run", return_value=True):
-            result = agent._auto_detect_language_material("doc_1")
+        with patch("app.database.async_session_ctx", create=True):
+            with patch("asyncio.run", return_value=True):
+                result = agent._auto_detect_language_material("doc_1")
         assert result is True
 
     def test_auto_detect_latin_ratio_above_40_percent(self):
