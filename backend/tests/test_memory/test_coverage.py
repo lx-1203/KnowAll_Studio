@@ -407,6 +407,87 @@ class TestCoverageAccuracy:
         # 6/8 = 0.75
         assert abs(result - 0.75) < 0.001
 
+    @pytest.mark.asyncio
+    async def test_get_accuracy_handles_exception_gracefully(self):
+        """_get_accuracy() returns None on DB exception."""
+        from app.core.memory.coverage import CoverageEngine
+
+        engine = CoverageEngine()
+        mock_session = AsyncMock()
+        mock_session.execute = AsyncMock(side_effect=RuntimeError("DB query failed"))
+
+        result = await engine._get_accuracy("kp_1", mock_session)
+        assert result is None
+
+    @pytest.mark.asyncio
+    async def test_get_accuracy_returns_none_when_no_answer_records_found(self):
+        """_get_accuracy() returns None when coverage exists but no answer records."""
+        from app.core.memory.coverage import CoverageEngine
+
+        engine = CoverageEngine()
+        mock_session = AsyncMock()
+
+        async def execute_side_effect(stmt):
+            r = MagicMock()
+            if not hasattr(execute_side_effect, "count"):
+                execute_side_effect.count = 0
+            execute_side_effect.count += 1
+            if execute_side_effect.count == 1:
+                r.fetchall.return_value = [("q_1",)]
+            else:
+                r.fetchone.return_value = (0, 0)  # 0 total records
+            return r
+
+        mock_session.execute = AsyncMock(side_effect=execute_side_effect)
+        result = await engine._get_accuracy("kp_1", mock_session)
+        assert result is None
+
+
+class TestCoverageHelpers:
+    """Additional tests for CoverageEngine coverage report fields."""
+
+    @pytest.mark.asyncio
+    async def test_calculate_on_pure_question_only_coverage(self):
+        """calculate() reports correct uncovered when only question coverage exists."""
+        from app.core.memory.coverage import CoverageEngine
+
+        engine = CoverageEngine()
+        mock_node = MagicMock()
+        mock_node.id = "kp_only_q"
+        mock_node.title = "OnlyQ"
+        mock_node.level = 2
+
+        mock_session = AsyncMock()
+        mock_scalars_nodes = MagicMock()
+        mock_scalars_nodes.all.return_value = [mock_node]
+
+        mock_q_fetchall = MagicMock()
+        mock_q_fetchall.fetchall.return_value = [("kp_only_q", 2)]
+        mock_f_fetchall = MagicMock()
+        mock_f_fetchall.fetchall.return_value = []
+
+        execute_responses = [
+            MagicMock(scalars=MagicMock(return_value=mock_scalars_nodes)),
+            MagicMock(),
+            MagicMock(),
+        ]
+        execute_responses[1].fetchall = mock_q_fetchall.fetchall
+        execute_responses[2].fetchall = mock_f_fetchall.fetchall
+
+        mock_session.execute = AsyncMock(side_effect=execute_responses)
+
+        with patch("app.core.memory.coverage.async_session") as mock_session_ctx:
+            mock_session_ctx.return_value.__aenter__ = AsyncMock(return_value=mock_session)
+            mock_session_ctx.return_value.__aexit__ = AsyncMock(return_value=None)
+
+            with patch.object(engine, "_get_accuracy", new_callable=AsyncMock) as mock_acc:
+                mock_acc.return_value = None
+                report = await engine.calculate("sum_1")
+
+        assert report["covered_by_questions"] == 1
+        assert report["covered_by_flashcards"] == 0
+        assert report["full_coverage"] == 0
+
 
 class TestEnsureFullCoverage:
     """Tests for CoverageEngine.ensure_full_coverage()."""
