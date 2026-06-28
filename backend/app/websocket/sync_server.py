@@ -252,7 +252,8 @@ async def sync_websocket(
             msg_data = msg.get("data", {})
 
             if msg_type == "heartbeat":
-                # 心跳回复
+                # 心跳：更新时间戳，回复 ack
+                _last_heartbeat[id(ws)] = time.time()
                 await ws.send_text(json.dumps({"type": "heartbeat_ack", "data": {}}))
 
             elif msg_type == "reconnect":
