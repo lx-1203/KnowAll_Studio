@@ -111,9 +111,9 @@ export class RealtimeSyncClient {
       this.ws.onclose = null;
       this.ws.onerror = null;
       this.ws.onmessage = null;
-      // Only close if already OPEN — calling close() on CONNECTING (0)
-      // causes "closed before connection is established" error (e.g. React StrictMode double-mount)
-      if (this.ws.readyState === WebSocket.OPEN) {
+      // Close if OPEN or CONNECTING. CONNECTING (0) needs explicit close()
+      // to prevent stale connections — critical for React StrictMode double-mount.
+      if (this.ws.readyState === WebSocket.OPEN || this.ws.readyState === WebSocket.CONNECTING) {
         this.ws.close();
       }
       this.ws = null;
