@@ -412,11 +412,33 @@ async def generate_summary(
         _logger.exception("Summary generation failed for docs=%s: %s", req.document_ids, e)
         raise HTTPException(500, f"摘要生成失败: {str(e)}")
 
-    # Store summary
+    # Store summary (check for existing cache key first)
     import hashlib
     cache_key = hashlib.sha256(
         (",".join(sorted(req.document_ids)) + req.model + str(req.max_depth)).encode()
     ).hexdigest()
+
+    # Return existing summary if cache hit
+    existing = await db.execute(
+        select(KnowledgeSummary).where(KnowledgeSummary.generation_cache_key == cache_key)
+    )
+    existing_summary = existing.scalar_one_or_none()
+    if existing_summary:
+        # Refresh node count from stored data
+        nodes_result = await db.execute(
+            select(KnowledgePointNode).where(KnowledgePointNode.summary_id == existing_summary.id)
+        )
+        nodes = nodes_result.scalars().all()
+        return {
+            "summary_id": existing_summary.id,
+            "document_ids": existing_summary.document_ids,
+            "content_md": existing_summary.content_md,
+            "node_count": existing_summary.node_count,
+            "level_stats": existing_summary.level_stats,
+            "generated_at": existing_summary.generated_at.isoformat() if existing_summary.generated_at else None,
+            "model_used": existing_summary.model_used,
+            "cached": True,
+        }
 
     summary = KnowledgeSummary(
         document_id=primary_doc_id,
