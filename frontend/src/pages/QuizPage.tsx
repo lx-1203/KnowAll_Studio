@@ -1,10 +1,10 @@
-import { useState, useEffect, useCallback } from 'react'
-import { Card, Button, Select, Slider, App, Space, Progress, Tag, Spin, Table, List, Tooltip, Row, Col, Checkbox, Popconfirm, Tabs, Badge, Modal } from 'antd'
+import { useState, useEffect, useCallback, useRef } from 'react'
+import { Card, Button, Select, Slider, App, Space, Progress, Tag, Spin, Table, List, Tooltip, Row, Col, Checkbox, Popconfirm, Tabs, Badge, Modal, Drawer } from 'antd'
 import {
   RobotOutlined, FormOutlined, TrophyOutlined, BugOutlined, SyncOutlined,
   SafetyCertificateOutlined, InboxOutlined, DeleteOutlined, CheckSquareOutlined,
   BorderOutlined, SelectOutlined, PlayCircleOutlined, ThunderboltOutlined,
-  FileTextOutlined, ReloadOutlined,
+  FileTextOutlined, ReloadOutlined, OrderedListOutlined, SaveOutlined, StarOutlined,
 } from '@ant-design/icons'
 import {
   generateQuestions, saveToBank, deleteQuestionsBatch, createExam,
@@ -21,6 +21,7 @@ const questionTypes = [
   { value: 'true_false', label: '判断题' },
   { value: 'fill_blank', label: '填空题' },
   { value: 'short_answer', label: '简答题' },
+  { value: 'term_definition', label: '名词解释' },
 ]
 const cognitiveLevels = [
   { value: 'L1_remember', label: 'L1 记忆' },
