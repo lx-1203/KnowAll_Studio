@@ -101,8 +101,16 @@ export class RealtimeSyncClient {
       this.reconnectTimer = null;
     }
     if (this.ws) {
-      this.ws.onclose = null; // 防止触发重连
-      this.ws.close();
+      // Null all handlers to prevent callbacks after disconnect
+      this.ws.onopen = null;
+      this.ws.onclose = null;
+      this.ws.onerror = null;
+      this.ws.onmessage = null;
+      // Only close if already OPEN — calling close() on CONNECTING (0)
+      // causes "closed before connection is established" error (e.g. React StrictMode double-mount)
+      if (this.ws.readyState === WebSocket.OPEN) {
+        this.ws.close();
+      }
       this.ws = null;
     }
   }
