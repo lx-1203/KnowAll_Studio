@@ -251,8 +251,6 @@ export default function QuizPage() {
     try {
       const exam = await createExam({ title: `测验-${new Date().toLocaleDateString()}`, question_ids: Array.from(bankSelected) })
       setCurrentExam(exam)
-      setResults(null as any)
-      reset()
       setBankSelected(new Set())
       setActiveTab('exam')
       message.success(`试卷已创建: ${exam.question_count} 题`)
