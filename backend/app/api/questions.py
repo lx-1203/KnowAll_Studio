@@ -88,7 +88,37 @@ async def generate_questions(
     except Exception as e:
         raise HTTPException(500, f"Generation failed: {str(e)}")
 
-    # Save generated questions to database
+    # Build response question dicts (with temporary IDs for preview)
+    preview_questions = []
+    for i, q in enumerate(questions):
+        preview_questions.append({
+            "_idx": i,
+            "_selected": True,  # default checked
+            "question_type": q.get("type", q.get("question_type", req.question_type)),
+            "difficulty": q.get("difficulty", req.difficulty),
+            "difficulty_score": q.get("difficulty_score", req.difficulty_score),
+            "cognitive_level": q.get("cognitive_level", req.cognitive_level),
+            "tags": q.get("tags", []),
+            "question_text": q.get("question_text", ""),
+            "options": q.get("options", []),
+            "answer": str(q.get("answer", q.get("correct_answer", ""))),
+            "analysis": q.get("analysis", ""),
+            "review_scores": q.get("review_scores", {}),
+            "review_total": q.get("review_total"),
+            "reviewed": q.get("reviewed", False),
+            "review_decision": q.get("review_decision", ""),
+        })
+
+    if req.preview:
+        # Preview mode: return questions without saving
+        return {
+            "mode": "preview",
+            "generated_count": len(preview_questions),
+            "reviewed_count": sum(1 for q in questions if q.get("reviewed")),
+            "questions": preview_questions,
+        }
+
+    # Auto-save mode (backward compatible)
     saved_questions = []
     for q in questions:
         db_q = QuestionBank(
@@ -111,6 +141,7 @@ async def generate_questions(
     await db.commit()
 
     return {
+        "mode": "saved",
         "generated_count": len(saved_questions),
         "reviewed_count": sum(1 for q in questions if q.get("reviewed")),
         "questions": [
