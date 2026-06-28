@@ -391,6 +391,9 @@ export default function QuizPage() {
   )
 
   // ===== TAB: 答题 =====
+  const questionCount = currentExam?.questions?.length || 0
+  const answeredCount = Object.keys(userAnswers).length
+
   const examTab = (
     <div>
       {!currentExam ? (
@@ -403,57 +406,120 @@ export default function QuizPage() {
           </div>
         </Card>
       ) : (
-        <Card title={currentExam.title || '当前试卷'}
-          extra={
-            !results ? (
-              <Tooltip title={Object.keys(userAnswers).length < (currentExam.questions?.length || 0) / 2
-                ? `请至少回答 ${Math.ceil((currentExam.questions?.length || 0) / 2)} 题` : '提交试卷'}>
-                <Button type="primary" size="large" onClick={handleSubmit}
-                  disabled={Object.keys(userAnswers).length < (currentExam.questions?.length || 0) / 2}>
-                  提交 ({Object.keys(userAnswers).length}/{currentExam.questions?.length || 0})
-                </Button>
-              </Tooltip>
-            ) : (
-              <Space>
-                <Button onClick={() => { setCurrentExam(null as any); setResults(null as any); reset() }}
-                  icon={<ReloadOutlined />}>返回</Button>
-                <Button icon={<BugOutlined />} onClick={() => { loadErrors(); setActiveTab('errors') }}>错题</Button>
-              </Space>
-            )
-          }>
-          {/* Results banner */}
-          {results && (
-            <>
-              <Card size="small" style={{ marginBottom: 16, background: '#f0f5ff' }}>
-                <Space wrap>
-                  <TrophyOutlined style={{ fontSize: 24, color: '#faad14' }} />
-                  <span style={{ fontSize: 18, fontWeight: 600 }}>{results.score}/{results.total * 5} ({results.percentage}%)</span>
-                  <Progress percent={results.percentage} style={{ width: 200 }} />
-                  <Tag color="green">正确: {results.correct}</Tag>
-                  <Tag color="red">错误: {results.total - results.correct}</Tag>
+        <Row gutter={16}>
+          {/* Main exam area */}
+          <Col flex="1" style={{ minWidth: 0 }}>
+            <Card
+              title={currentExam.title || '当前试卷'}
+              extra={
+                <Space>
+                  {/* Answer sheet button */}
+                  <Button icon={<OrderedListOutlined />} onClick={() => setAnswerSheetOpen(true)}>
+                    答题卡 ({answeredCount}/{questionCount})
+                  </Button>
+                  {!results ? (
+                    <Tooltip title={answeredCount < questionCount / 2
+                      ? `请至少回答 ${Math.ceil(questionCount / 2)} 题` : '提交试卷'}>
+                      <Button type="primary" size="large" onClick={handleSubmit}
+                        disabled={answeredCount < questionCount / 2}>
+                        提交 ({answeredCount}/{questionCount})
+                      </Button>
+                    </Tooltip>
+                  ) : (
+                    <Space>
+                      <Button onClick={() => {
+                        setCurrentExam(null as any); setResults(null as any); reset()
+                        setMarkedQuestions(new Set())
+                        localStorage.removeItem(`exam_progress_${currentExam.paper_id}`)
+                      }} icon={<ReloadOutlined />}>返回</Button>
+                      <Button icon={<BugOutlined />} onClick={() => { loadErrors(); setActiveTab('errors') }}>错题</Button>
+                      <Button icon={<SaveOutlined />} onClick={() => {
+                        const saveKey = `exam_progress_${currentExam.paper_id}`
+                        const progress = { answers: useQuizStore.getState().userAnswers, marked: Array.from(markedQuestions), savedAt: new Date().toISOString() }
+                        localStorage.setItem(saveKey, JSON.stringify(progress))
+                        message.success('进度已保存')
+                      }}>保存进度</Button>
+                    </Space>
+                  )}
                 </Space>
-              </Card>
-              {results.cognitive_breakdown && (
-                <Card size="small" title="认知层次分析" style={{ marginBottom: 16, background: '#fafafa' }}>
-                  <Row gutter={[12, 8]}>
-                    {Object.entries(results.cognitive_breakdown).map(([level, stats]: [string, any]) => (
-                      <Col key={level} xs={12} sm={8} md={4}>
-                        <Card size="small" style={{ textAlign: 'center' }} bodyStyle={{ padding: '10px 8px' }}>
-                          <Tag color={COGNITIVE_LEVEL_COLORS[level as CognitiveLevel] || 'default'}>
-                            {COGNITIVE_LEVEL_LABELS[level as CognitiveLevel] || level}
-                          </Tag>
-                          <div style={{ fontSize: 18, fontWeight: 600, marginTop: 4 }}>{stats.correct}/{stats.total}</div>
-                          <div style={{ fontSize: 12, color: stats.accuracy >= 70 ? '#52c41a' : '#ff4d4f' }}>{stats.accuracy}%</div>
-                        </Card>
-                      </Col>
-                    ))}
-                  </Row>
-                </Card>
+              }>
+              {results && (
+                <>
+                  <Card size="small" style={{ marginBottom: 16, background: '#f0f5ff' }}>
+                    <Space wrap>
+                      <TrophyOutlined style={{ fontSize: 24, color: '#faad14' }} />
+                      <span style={{ fontSize: 18, fontWeight: 600 }}>{results.score}/{results.total * 5} ({results.percentage}%)</span>
+                      <Progress percent={results.percentage} style={{ width: 200 }} />
+                      <Tag color="green">正确: {results.correct}</Tag>
+                      <Tag color="red">错误: {results.total - results.correct}</Tag>
+                    </Space>
+                  </Card>
+                  {results.cognitive_breakdown && (
+                    <Card size="small" title="认知层次分析" style={{ marginBottom: 16, background: '#fafafa' }}>
+                      <Row gutter={[12, 8]}>
+                        {Object.entries(results.cognitive_breakdown).map(([level, stats]: [string, any]) => (
+                          <Col key={level} xs={12} sm={8} md={4}>
+                            <Card size="small" style={{ textAlign: 'center' }} bodyStyle={{ padding: '10px 8px' }}>
+                              <Tag color={COGNITIVE_LEVEL_COLORS[level as CognitiveLevel] || 'default'}>
+                                {COGNITIVE_LEVEL_LABELS[level as CognitiveLevel] || level}
+                              </Tag>
+                              <div style={{ fontSize: 18, fontWeight: 600, marginTop: 4 }}>{stats.correct}/{stats.total}</div>
+                              <div style={{ fontSize: 12, color: stats.accuracy >= 70 ? '#52c41a' : '#ff4d4f' }}>{stats.accuracy}%</div>
+                            </Card>
+                          </Col>
+                        ))}
+                      </Row>
+                    </Card>
+                  )}
+                </>
               )}
-            </>
-          )}
-          {currentExam?.questions?.map((q: any, i: number) => renderQuestion(q, i))}
-        </Card>
+              {currentExam?.questions?.map((q: any, i: number) => renderQuestion(q, i))}
+            </Card>
+          </Col>
+
+          {/* Answer sheet drawer */}
+          <Drawer
+            title={<Space><OrderedListOutlined /> 答题卡 <Tag>{answeredCount}/{questionCount} 已答</Tag><Tag color="orange">{markedQuestions.size} 标记</Tag></Space>}
+            placement="right"
+            width={280}
+            open={answerSheetOpen}
+            onClose={() => setAnswerSheetOpen(false)}
+          >
+            <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
+              {currentExam?.questions?.map((q: any, i: number) => {
+                const answered = !!userAnswers[q.id]
+                const isMarked = markedQuestions.has(q.id)
+                const isCorrect = results?.details?.find((d: any) => d.question_id === q.id)?.is_correct
+                let bgColor = '#f0f0f0' // unanswered
+                if (answered && !results) bgColor = '#e6f7ff' // answered, not yet graded
+                if (isMarked) bgColor = '#fff7e6' // marked
+                if (results && isCorrect) bgColor = '#f6ffed' // correct
+                if (results && !isCorrect) bgColor = '#fff2f0' // wrong
+
+                return (
+                  <Tooltip key={q.id} title={`${i + 1}. ${(q.question_text || '').slice(0, 40)}...`}>
+                    <Button
+                      size="small"
+                      style={{ width: 36, height: 36, background: bgColor, borderColor: isMarked ? '#faad14' : undefined }}
+                      onClick={() => {
+                        setAnswerSheetOpen(false)
+                        // Scroll to question
+                        const el = document.getElementById(`question-${q.id}`)
+                        el?.scrollIntoView({ behavior: 'smooth', block: 'center' })
+                      }}
+                    >
+                      {isMarked ? <StarOutlined style={{ color: '#faad14', fontSize: 12 }} /> : i + 1}
+                    </Button>
+                  </Tooltip>
+                )
+              })}
+            </div>
+            <div style={{ marginTop: 16, fontSize: 12, color: '#888' }}>
+              <div><Tag color="blue">已答</Tag> <Tag>未答</Tag> <Tag color="orange">标记</Tag></div>
+              <div style={{ marginTop: 8 }}>点击题号快速跳转</div>
+            </div>
+          </Drawer>
+        </Row>
       )}
     </div>
   )
