@@ -77,6 +77,7 @@ export default function App() {
       { key: '/flashcards', icon: <FlashcardIcon />, label: <Link to="/flashcards">记忆闪卡</Link> },
       { key: '/study', icon: <StudyPlanIcon />, label: <Link to="/study">学习计划</Link> },
       { key: '/knowledge', icon: <MindMapIcon />, label: <Link to="/knowledge">思维导图</Link> },
+      { key: '/language', icon: <BookOutlined />, label: <Link to="/language">词汇学习</Link> },
     ]},
     { type: 'group', label: '知识管理', children: [
       { key: '/upload', icon: <UploadIcon />, label: <Link to="/upload">资料导入</Link> },
