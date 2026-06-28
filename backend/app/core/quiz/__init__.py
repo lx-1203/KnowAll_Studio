@@ -628,24 +628,57 @@ class QuizGenerator:
     # -------- Parsing Utilities --------
 
     def _parse_questions(self, content: str) -> list[dict]:
-        """Parse and validate question JSON from API response."""
+        """Parse and validate question JSON from API response.
+
+        Handles common LLM output issues: markdown code blocks, extra text around JSON.
+        """
+        import re
+
+        # Try direct parse first
         try:
             data = json.loads(content)
             questions = data.get("questions", data if isinstance(data, list) else [])
-            # Normalize fields: ensure each question has core fields
-            for q in questions:
-                if "cognitive_level" not in q:
-                    q["cognitive_level"] = "L2_understand"
-                if "difficulty_score" not in q:
-                    q["difficulty_score"] = 0.5
-                if "answer" not in q and "correct_answer" in q:
-                    q["answer"] = q["correct_answer"]
-                if "question_type" not in q and "type" in q:
-                    q["question_type"] = q["type"]
-            return questions
+            return self._normalize_questions(questions)
         except json.JSONDecodeError:
-            logger.warning("Failed to parse question JSON from LLM response")
-            return []
+            pass
+
+        # Try extracting JSON from markdown code blocks
+        code_block_match = re.search(r'```(?:json)?\s*\n?(.*?)\n?```', content, re.DOTALL)
+        if code_block_match:
+            try:
+                data = json.loads(code_block_match.group(1))
+                questions = data.get("questions", data if isinstance(data, list) else [])
+                return self._normalize_questions(questions)
+            except json.JSONDecodeError:
+                pass
+
+        # Try finding JSON object/array boundaries
+        json_match = re.search(r'(\[.*\]|\{.*\})', content, re.DOTALL)
+        if json_match:
+            try:
+                data = json.loads(json_match.group(1))
+                questions = data.get("questions", data if isinstance(data, list) else [])
+                return self._normalize_questions(questions)
+            except json.JSONDecodeError:
+                pass
+
+        logger.warning("Failed to parse question JSON from LLM response")
+        return []
+
+    def _normalize_questions(self, questions: list[dict]) -> list[dict]:
+        """Normalize question dicts to ensure consistent field names."""
+        for q in questions:
+            if "cognitive_level" not in q:
+                q["cognitive_level"] = "L2_understand"
+            if "difficulty_score" not in q:
+                q["difficulty_score"] = 0.5
+            if "answer" not in q and "correct_answer" in q:
+                q["answer"] = q["correct_answer"]
+            if "question_type" not in q and "type" in q:
+                q["question_type"] = q["type"]
+            elif "question_type" not in q and "type" not in q:
+                q["question_type"] = "unknown"
+        return questions
 
     def _parse_review(self, content: str) -> dict:
         """Parse review JSON from API response."""
