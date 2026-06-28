@@ -239,6 +239,9 @@ export default function QuizPage() {
     try {
       const result = await submitExam({ paper_id: currentExam.paper_id, answers: userAnswers })
       setResults(result)
+      // Clean up auto-save after successful submit
+      localStorage.removeItem(`exam_progress_${currentExam.paper_id}`)
+      if (autoSaveTimer.current) clearInterval(autoSaveTimer.current)
       message.success(`得分: ${result.score}/${result.total * 5} (${result.percentage}%)`)
     } catch (e: any) { message.error('提交失败') }
   }
