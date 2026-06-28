@@ -22,6 +22,7 @@ const typeIcons: Record<string, React.ReactNode> = {
 }
 
 export default function UploadPage() {
+  const navigate = useNavigate()
   const { documents, setDocuments, setSelectedDoc, selectedDoc, loading, setLoading } = useAppStore()
   const { message } = App.useApp()
   const [uploading, setUploading] = useState(false)
@@ -32,6 +33,8 @@ export default function UploadPage() {
   const [previewDoc, setPreviewDoc] = useState<{ id: string; type: string; name: string } | null>(null)
   const [indexingId, setIndexingId] = useState<string | null>(null)
   const [analyzingDocId, setAnalyzingDocId] = useState<string | null>(null)
+  const [selectedDocIds, setSelectedDocIds] = useState<string[]>([])
+  const [generatingSummary, setGeneratingSummary] = useState(false)
 
   useEffect(() => {
     listDocuments().then(setDocuments).catch(console.error)
