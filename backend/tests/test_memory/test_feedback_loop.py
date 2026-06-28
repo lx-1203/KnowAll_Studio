@@ -571,3 +571,127 @@ class TestMemoryStats:
         assert stats["due_today"] == 3
         assert stats["review_queue_count"] == 2
         assert stats["decay_count"] == 1
+
+
+class TestFeedbackDetectDecay:
+    """Tests for detect_decay() method."""
+
+    @pytest.mark.asyncio
+    async def test_detect_decay_no_cards_with_enough_reviews(self):
+        """detect_decay() returns empty list when no cards have enough review history."""
+        from app.core.memory.feedback_loop import FeedbackEngine
+
+        engine = FeedbackEngine()
+
+        mock_session = AsyncMock()
+        mock_card_scalars = MagicMock()
+        mock_card_scalars.all.return_value = []
+        mock_result = MagicMock()
+        mock_result.scalars.return_value = mock_card_scalars
+        mock_session.execute = AsyncMock(return_value=mock_result)
+        mock_session.commit = AsyncMock()
+
+        with patch("app.core.memory.feedback_loop.async_session") as mock_session_ctx:
+            mock_session_ctx.return_value.__aenter__ = AsyncMock(return_value=mock_session)
+            mock_session_ctx.return_value.__aexit__ = AsyncMock(return_value=None)
+
+            result = await engine.detect_decay()
+
+        assert result == []
+
+    @pytest.mark.asyncio
+    async def test_record_answer_result_nonexistent_card_no_error(self):
+        """record_answer_result() does not raise error for non-existent card."""
+        from app.core.memory.feedback_loop import FeedbackEngine
+
+        engine = FeedbackEngine()
+
+        mock_session = AsyncMock()
+        mock_session.get = AsyncMock(return_value=None)
+
+        with patch("app.core.memory.feedback_loop.async_session") as mock_session_ctx:
+            mock_session_ctx.return_value.__aenter__ = AsyncMock(return_value=mock_session)
+            mock_session_ctx.return_value.__aexit__ = AsyncMock(return_value=None)
+
+            # Should not raise
+            await engine.record_answer_result("nonexistent_card", is_correct=True)
+
+    @pytest.mark.asyncio
+    async def test_record_answer_result_incorrect_updates_counts(self):
+        """record_answer_result() with incorrect answer updates review_count only."""
+        from app.core.memory.feedback_loop import FeedbackEngine
+
+        engine = FeedbackEngine()
+
+        mock_card = MagicMock()
+        mock_card.id = "card_1"
+        mock_card.review_count = 3
+        mock_card.correct_count = 2
+
+        mock_session = AsyncMock()
+        mock_session.get = AsyncMock(return_value=mock_card)
+        mock_session.commit = AsyncMock()
+
+        with patch("app.core.memory.feedback_loop.async_session") as mock_session_ctx:
+            mock_session_ctx.return_value.__aenter__ = AsyncMock(return_value=mock_session)
+            mock_session_ctx.return_value.__aexit__ = AsyncMock(return_value=None)
+
+            await engine.record_answer_result("card_1", is_correct=False)
+
+        assert mock_card.review_count == 4
+        assert mock_card.correct_count == 2  # unchanged
+        assert mock_card.accuracy_rate == 0.5  # 2/4
+
+    @pytest.mark.asyncio
+    async def test_get_related_cards_returns_empty_for_nonexistent(self):
+        """get_related_cards() returns empty list for non-existent card."""
+        from app.core.memory.feedback_loop import FeedbackEngine
+
+        engine = FeedbackEngine()
+
+        mock_session = AsyncMock()
+        mock_session.get = AsyncMock(return_value=None)
+
+        with patch("app.core.memory.feedback_loop.async_session") as mock_session_ctx:
+            mock_session_ctx.return_value.__aenter__ = AsyncMock(return_value=mock_session)
+            mock_session_ctx.return_value.__aexit__ = AsyncMock(return_value=None)
+
+            result = await engine.get_related_cards("nonexistent_card")
+
+        assert result == []
+
+    @pytest.mark.asyncio
+    async def test_scan_respects_since_parameter(self):
+        """scan() respects the since parameter for filtering records."""
+        from app.core.memory.feedback_loop import FeedbackEngine
+
+        engine = FeedbackEngine()
+
+        mock_session = AsyncMock()
+
+        execute_count = [0]
+
+        async def execute_side_effect(stmt):
+            execute_count[0] += 1
+            r = MagicMock()
+            if execute_count[0] == 1:
+                mock_ans_scalars = MagicMock()
+                mock_ans_scalars.all.return_value = []
+                r.scalars.return_value = mock_ans_scalars
+            elif execute_count[0] == 2:
+                mock_card_scalars = MagicMock()
+                mock_card_scalars.all.return_value = []
+                r.scalars.return_value = mock_card_scalars
+            return r
+
+        mock_session.execute = AsyncMock(side_effect=execute_side_effect)
+        mock_session.commit = AsyncMock()
+
+        with patch("app.core.memory.feedback_loop.async_session") as mock_session_ctx:
+            mock_session_ctx.return_value.__aenter__ = AsyncMock(return_value=mock_session)
+            mock_session_ctx.return_value.__aexit__ = AsyncMock(return_value=None)
+
+            result = await engine.scan(since="2025-01-01T00:00:00")
+
+        assert result["since"] == "2025-01-01T00:00:00"
+        assert result["total_scanned"] == 0
