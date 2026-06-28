@@ -134,14 +134,18 @@ class BOISAnalyzer:
 
         # 7. 节点分类
         root_ids = {n["id"] for n in nodes if n.get("parent_id") is None}
+        # 孤节点：声称为子节点但无对应 parent_child 边（父节点缺失）
         metrics.orphan_nodes = sum(
             1 for n in nodes
             if n.get("parent_id") and n["id"] not in parent_map
             and n["id"] not in root_ids
         )
+        # 浅层节点（叶节点）：无子节点的节点
+        parent_ids = {e["source"] for e in edges if e.get("relation") == "parent_child"}
         metrics.shallow_nodes = sum(
-            1 for rid, childs in children_map.items() if len(childs) == 0
+            1 for n in nodes if n["id"] not in parent_ids
         )
+        # 深层节点：深度 >= 3
         metrics.deep_nodes = sum(
             1 for n in nodes if n.get("level", 0) >= 3
         )
