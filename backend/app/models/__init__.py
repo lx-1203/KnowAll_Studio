@@ -530,3 +530,26 @@ class SyncFileVersion(Base):
     storage_path = Column(String(500))
     updated_by = Column(String(64), default="")
     created_at = Column(DateTime, default=now)
+
+
+# ==================== Reading Language Models ====================
+
+class ReadingArticle(Base):
+    """阅读语言 - 用户上传的文章"""
+    __tablename__ = "reading_articles"
+
+    id = Column(Integer, primary_key=True, autoincrement=True)
+    title = Column(String(200), nullable=False)
+    content = Column(Text, nullable=False)
+    char_count = Column(Integer, default=0)
+    created_at = Column(DateTime, default=now)
+
+
+class ReadingConversionCache(Base):
+    """阅读语言 - 转换结果缓存"""
+    __tablename__ = "reading_conversion_cache"
+
+    cache_key = Column(String(64), primary_key=True)
+    result = Column(Text, nullable=False)
+    vocabulary = Column(Text, nullable=False)  # JSON string
+    created_at = Column(DateTime, default=now)
