@@ -25,7 +25,8 @@ class QuestionBankAgent(BaseAgent):
         model = kwargs.get("model", "deepseek-chat")
 
         try:
-            async for session in get_session():
+            from app.database import async_session
+            async with async_session() as session:
                 # Load summary and nodes
                 summary = await session.get(KnowledgeSummary, summary_id)
                 if not summary:
