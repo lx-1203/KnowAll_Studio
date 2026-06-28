@@ -60,6 +60,16 @@ class SummaryGenerator:
 
         content_md = result.content
 
+        # Validate: ensure LLM response contains at least one heading (#)
+        # If not, the response is unstructured — wrap it so downstream mindmap works
+        if not re.search(r'^#{1,3}\s+', content_md, re.MULTILINE):
+            logger.warning(
+                "LLM returned unstructured summary (no headings found). "
+                "Wrapping in basic structure. First 200 chars: %s",
+                content_md[:200]
+            )
+            content_md = f"# 知识点总结\n\n{content_md}"
+
         # Extract nodes from the generated Markdown
         nodes = self.extract_nodes_from_markdown(content_md, document_id)
         level_stats = self._compute_level_stats(nodes)
