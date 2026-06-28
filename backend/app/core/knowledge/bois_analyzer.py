@@ -411,12 +411,14 @@ class BOISAnalyzer:
             if edge.get("relation") == "parent_child":
                 children_map[edge["source"]].append(edge["target"])
 
+        node_map = {n["id"]: n for n in nodes}
+
         # 找可以合并的节点（同一个父节点下仅1-2个子节点且深度一致）
         merge_candidates = []
         for parent_id, child_ids in children_map.items():
             if len(child_ids) == 1:
-                parent = next((n for n in nodes if n["id"] == parent_id), None)
-                child = next((n for n in nodes if n["id"] == child_ids[0]), None)
+                parent = node_map.get(parent_id)
+                child = node_map.get(child_ids[0])
                 if parent and child:
                     merge_candidates.append({
                         "parent": {"id": parent_id, "label": parent.get("label", "")},
@@ -428,24 +430,18 @@ class BOISAnalyzer:
         split_candidates = []
         for parent_id, child_ids in children_map.items():
             if len(child_ids) > self.IDEAL_MAX_CHILDREN:
-                parent = next((n for n in nodes if n["id"] == parent_id), None)
+                parent = node_map.get(parent_id)
                 split_candidates.append({
                     "node": {"id": parent_id, "label": parent.get("label", "") if parent else ""},
                     "child_count": len(child_ids),
                     "reason": f"子节点过多({len(child_ids)}个)，建议引入中间类别分组",
-                    "suggested_groups": self._suggest_groups([n for n in nodes if n["id"] in child_ids]),
+                    "suggested_groups": self._suggest_groups([node_map[cid] for cid in child_ids if cid in node_map]),
                 })
 
         # 找需要重新分类的节点（孤立节点或深度异常）
         reclassify = []
         root_ids = {n["id"] for n in nodes if n.get("parent_id") is None}
         for n in nodes:
-            if n["id"] not in root_ids and n.get("parent_id") and n["id"] not in [
-                c for clist in children_map.values() for c in clist
-            ]:
-                # 不在 children_map 中 = 孤儿（作为子节点但找不到对应的父节点边）
-                continue  # orphan_nodes 已在 metrics 中计数
-
             if n.get("level", 0) > self.IDEAL_MAX_DEPTH:
                 reclassify.append({
                     "node": {"id": n["id"], "label": n.get("label", n.get("title", ""))},
