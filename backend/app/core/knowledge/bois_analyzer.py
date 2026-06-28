@@ -304,7 +304,7 @@ class BOISAnalyzer:
         if m.max_depth < self.IDEAL_MIN_DEPTH:
             suggestions.append(
                 f"【下找小类】当前只有 {m.max_depth} 层，建议进一步细分知识点。"
-                f"对每个一级节点追问"还可以怎样细分？"，至少展开到 "
+                f"对每个一级节点追问\u201c还可以怎样细分？\u201d，至少展开到 "
                 f"{self.IDEAL_MIN_DEPTH}-{self.IDEAL_MAX_DEPTH} 层。"
             )
 
