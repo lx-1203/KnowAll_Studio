@@ -287,11 +287,15 @@ export default function QuizPage() {
 
   // ---- Render question card ----
   const renderQuestion = (q: any, index: number) => (
-    <QuestionCard key={q.id} question={q} index={index}
-      userAnswer={userAnswers[q.id] || ''}
-      onAnswerChange={(qid, ans) => setAnswer(qid, ans)}
-      showResults={!!results}
-      result={results?.details?.find((d: any) => d.question_id === q.id)} />
+    <div id={`question-${q.id}`} key={q.id}>
+      <QuestionCard question={q} index={index}
+        userAnswer={userAnswers[q.id] || ''}
+        onAnswerChange={(qid, ans) => setAnswer(qid, ans)}
+        showResults={!!results}
+        result={results?.details?.find((d: any) => d.question_id === q.id)}
+        marked={markedQuestions.has(q.id)}
+        onToggleMark={toggleMark} />
+    </div>
   )
 
   // ===== TAB: 出题 =====
