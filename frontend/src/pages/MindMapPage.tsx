@@ -1,7 +1,6 @@
 import { useState, useEffect, useCallback, useMemo } from 'react'
 import ReactFlow, {
   Node, Edge, Controls, Background, MiniMap, useNodesState, useEdgesState,
-  ReactFlowProvider,
 } from 'reactflow'
 import 'reactflow/dist/style.css'
 import { useParams, useNavigate } from 'react-router-dom'
