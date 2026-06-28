@@ -342,3 +342,181 @@ def _dicts_to_nodes(dicts: list[dict]) -> list:
         )
         nodes.append(node)
     return nodes
+
+
+# ===== Knowledge Summary Endpoints =====
+
+class GenerateSummaryRequest(BaseModel):
+    document_id: str
+    model: str = "deepseek-chat"
+    language_type: str = "auto"
+    max_depth: int = 3
+
+
+@router.post("/summary/generate")
+async def generate_summary(
+    req: GenerateSummaryRequest,
+    db: AsyncSession = Depends(get_db),
+    current_user=Depends(get_optional_user),
+):
+    """Generate a complete Markdown knowledge point summary from a document."""
+    await load_user_api_keys(get_user_id(current_user), db)
+
+    doc_result = await db.execute(select(Document).where(Document.id == req.document_id))
+    doc = doc_result.scalar_one_or_none()
+    if not doc:
+        raise HTTPException(404, "Document not found")
+
+    # Get chunks
+    chunks_result = await db.execute(
+        select(DocumentChunk)
+        .where(DocumentChunk.doc_id == req.document_id)
+        .order_by(DocumentChunk.chunk_index)
+    )
+    chunks = chunks_result.scalars().all()
+    if not chunks:
+        raise HTTPException(404, "No chunks found for this document")
+
+    chunk_texts = [c.text_content for c in chunks]
+
+    # Get structure context from metadata
+    structure_context = ""
+    if doc.metadata_ and doc.metadata_.get("headings"):
+        from app.core.parsing.outline_extractor import outline_extractor
+        structure_context = outline_extractor.headings_to_text(doc.metadata_.get("headings", []))
+
+    # Generate summary
+    result = await knowledge_generator.generate_summary(
+        chunk_texts=chunk_texts,
+        document_id=req.document_id,
+        model=req.model,
+        max_depth=req.max_depth,
+        language_type=req.language_type,
+        structure_context=structure_context,
+    )
+
+    # Store summary in DB
+    import hashlib
+    cache_key = hashlib.sha256(
+        (req.document_id + req.model + str(req.max_depth)).encode()
+    ).hexdigest()
+
+    summary = KnowledgeSummary(
+        document_id=req.document_id,
+        content_md=result["content_md"],
+        node_count=result["node_count"],
+        level_stats=result["level_stats"],
+        model_used=req.model,
+        generation_cache_key=cache_key,
+    )
+    db.add(summary)
+    await db.flush()
+
+    # Store extracted nodes
+    for node_dict in result.get("nodes", []):
+        node = KnowledgePointNode(
+            id=node_dict["id"],
+            summary_id=summary.id,
+            document_id=req.document_id,
+            parent_id=node_dict.get("parent_id"),
+            level=node_dict["level"],
+            sequence=node_dict["sequence"],
+            title=node_dict["title"],
+            explanation=node_dict.get("explanation", ""),
+            related_concepts=node_dict.get("related_concepts", ""),
+            examples=node_dict.get("examples", ""),
+            tags=[node_dict.get("tag", "重点")],
+        )
+        db.add(node)
+
+    await db.commit()
+    await db.refresh(summary)
+
+    return {
+        "summary_id": summary.id,
+        "document_id": summary.document_id,
+        "content_md": summary.content_md,
+        "node_count": summary.node_count,
+        "level_stats": summary.level_stats,
+        "generated_at": summary.generated_at.isoformat() if summary.generated_at else None,
+        "model_used": summary.model_used,
+    }
+
+
+@router.get("/summary/{summary_id}")
+async def get_summary(
+    summary_id: str,
+    db: AsyncSession = Depends(get_db),
+):
+    """Get a knowledge summary by ID."""
+    summary = await db.get(KnowledgeSummary, summary_id)
+    if not summary:
+        raise HTTPException(404, "Summary not found")
+
+    return {
+        "summary_id": summary.id,
+        "document_id": summary.document_id,
+        "content_md": summary.content_md,
+        "node_count": summary.node_count,
+        "level_stats": summary.level_stats,
+        "generated_at": summary.generated_at.isoformat() if summary.generated_at else None,
+        "model_used": summary.model_used,
+    }
+
+
+@router.get("/summary/{summary_id}/nodes")
+async def get_summary_nodes(
+    summary_id: str,
+    level: int | None = None,
+    db: AsyncSession = Depends(get_db),
+):
+    """Get knowledge point nodes for a summary, optionally filtered by level."""
+    query = select(KnowledgePointNode).where(
+        KnowledgePointNode.summary_id == summary_id
+    ).order_by(KnowledgePointNode.level, KnowledgePointNode.sequence)
+
+    if level:
+        query = query.where(KnowledgePointNode.level == level)
+
+    result = await db.execute(query)
+    nodes = result.scalars().all()
+
+    return {
+        "total": len(nodes),
+        "nodes": [
+            {
+                "id": n.id,
+                "summary_id": n.summary_id,
+                "parent_id": n.parent_id,
+                "level": n.level,
+                "sequence": n.sequence,
+                "title": n.title,
+                "explanation": n.explanation,
+                "related_concepts": n.related_concepts,
+                "examples": n.examples,
+                "tags": n.tags,
+            }
+            for n in nodes
+        ],
+    }
+
+
+@router.get("/summary/{summary_id}/mindmap")
+async def get_summary_mindmap(
+    summary_id: str,
+    db: AsyncSession = Depends(get_db),
+):
+    """Get mind map data for a knowledge summary."""
+    summary = await db.get(KnowledgeSummary, summary_id)
+    if not summary:
+        raise HTTPException(404, "Summary not found")
+
+    # Use MindMapAgent or extract nodes
+    from app.core.agents.mindmap_agent import MindMapAgent
+    agent = MindMapAgent()
+    result = await agent.run(summary_id=summary_id, document_id=summary.document_id)
+
+    if result.status != "success" or not result.result:
+        raise HTTPException(500, result.error or "Failed to generate mind map")
+
+    return result.result
