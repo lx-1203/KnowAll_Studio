@@ -131,6 +131,27 @@ export default function DashboardPage() {
           </Row>
         </Card>
       )}
+
+      {recentSummaries.length > 0 && (
+        <Card title="最近知识总纲" size="small" style={{ marginTop: 16 }}>
+          <Table
+            dataSource={recentSummaries}
+            rowKey="summary_id"
+            size="small"
+            pagination={false}
+            columns={[
+              { title: '时间', dataIndex: 'created_at', render: (v: string) => v?.slice(0, 10) || '-' },
+              { title: '知识点数', dataIndex: 'node_count' },
+              { title: '层级分布', dataIndex: 'level_stats', render: (v: any) => (
+                <span>{v ? Object.entries(v).map(([k, n]) => `${k}:${n}`).join(' ') : '-'}</span>
+              )},
+              { title: '操作', render: (_: any, r: any) => (
+                <a onClick={() => navigate(`/summary/${r.summary_id}`)}>进入中枢 →</a>
+              )},
+            ]}
+          />
+        </Card>
+      )}
     </div>
   )
 }
