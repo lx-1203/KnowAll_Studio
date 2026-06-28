@@ -75,6 +75,7 @@ export default function App() {
     ]},
     { type: 'group', label: '深度学习', children: [
       { key: '/quiz', icon: <FormOutlined />, label: <Link to="/quiz">题库练习</Link> },
+      { key: '/review', icon: <EyeOutlined />, label: <Link to="/review">答题情况</Link> },
       { key: '/flashcards', icon: <IdcardOutlined />, label: <Link to="/flashcards">记忆闪卡</Link> },
       { key: '/study', icon: <ScheduleOutlined />, label: <Link to="/study">学习计划</Link> },
     ]},
