@@ -30,7 +30,7 @@ export default function ReviewQueuePanel() {
   const handleScan = async () => {
     try {
       setScanning(true)
-      const result = await scanFeedback(0.7)
+      const result = await scanFeedback({ threshold: 0.7 })
       message.success(`扫描完成：发现 ${result.weak_found} 个薄弱点，推送 ${result.pushed_to_queue} 项到复习队列`)
       await loadQueue()
     } catch (e: any) {
