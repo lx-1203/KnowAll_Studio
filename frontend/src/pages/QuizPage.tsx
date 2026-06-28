@@ -96,7 +96,7 @@ export default function QuizPage() {
   // ---- Exam state ----
   const [markedQuestions, setMarkedQuestions] = useState<Set<string>>(new Set())
   const [answerSheetOpen, setAnswerSheetOpen] = useState(false)
-  const autoSaveTimer = useRef<NodeJS.Timeout | null>(null)
+  const autoSaveTimer = useRef<ReturnType<typeof setInterval> | null>(null)
   const toggleMark = (qid: string) => setMarkedQuestions(prev => {
     const next = new Set(prev)
     next.has(qid) ? next.delete(qid) : next.add(qid)
