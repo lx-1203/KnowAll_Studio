@@ -120,17 +120,26 @@ function KnowledgePageInner() {
 
   useEffect(() => {
     if (selectedTree) {
-      const tree = trees.find(t => t.tree_id === selectedTree)
-      if (tree?.tree_data) {
-        const flow = treeToFlow(tree.tree_data)
-        setNodes(flow.nodes)
-        setEdges(flow.edges)
-        setTimeout(() => fitView({ padding: 0.2, duration: 300 }), 100)
-      }
-      // Load cross-reference edges
-      listEdges(selectedTree).then(setKnowledgeEdges).catch(console.error)
+      // Clear previous tree while loading new one
+      setNodes([])
+      setEdges([])
+      setKnowledgeEdges([])
+      getTree(selectedTree).then(tree => {
+        if (tree?.tree_data) {
+          const flow = treeToFlow(tree.tree_data)
+          setNodes(flow.nodes)
+          setEdges(flow.edges)
+          setTimeout(() => fitView({ padding: 0.2, duration: 300 }), 100)
+        }
+        // Load cross-reference edges
+        listEdges(selectedTree).then(setKnowledgeEdges).catch(console.error)
+      }).catch(console.error)
+    } else {
+      setNodes([])
+      setEdges([])
+      setKnowledgeEdges([])
     }
-  }, [selectedTree, trees])
+  }, [selectedTree])
 
   const handleGenerate = async () => {
     if (!selectedDoc) { message.warning('请先在"资料导入"页面选择一份文档'); return }

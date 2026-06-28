@@ -13,8 +13,9 @@ class Settings(BaseSettings):
     app_version: str = "0.1.0"
     debug: bool = True
 
-    # Database (single SQLite for MVP)
-    database_url: str = f"sqlite+aiosqlite:///{BASE_DIR}/data/app.db"
+    # Database — use MySQL (sensitive data must NOT live in local SQLite)
+    # Override in .env:  mysql+asyncmy://user:password@host:port/database
+    database_url: str = "mysql+asyncmy://knowall:knowall_dev_2026@localhost:3306/knowall?charset=utf8mb4"
 
     # ChromaDB
     chroma_persist_dir: str = str(BASE_DIR / "data" / "vector_db")

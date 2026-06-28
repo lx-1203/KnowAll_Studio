@@ -1,5 +1,12 @@
-"""SQLAlchemy database setup with async support + Alembic migrations"""
+"""SQLAlchemy database setup with async support + Alembic migrations.
+
+Supports SQLite (local dev) and MySQL (production).
+*Never* commit local SQLite data — .gitignore covers backend/data/.
+Set DATABASE_URL in your .env to switch drivers.
+"""
 import logging
+from urllib.parse import urlparse
+
 from sqlalchemy import event
 from sqlalchemy.ext.asyncio import AsyncSession, create_async_engine, async_sessionmaker
 from sqlalchemy.orm import DeclarativeBase
@@ -7,18 +14,29 @@ from app.config import settings
 
 logger = logging.getLogger("knowall.db")
 
-# Single SQLite database for MVP (simplifies deployment)
+_db_scheme = urlparse(settings.database_url).scheme
+_is_sqlite = "sqlite" in _db_scheme
+
+connect_args: dict = {}
+if _is_sqlite:
+    connect_args["timeout"] = 30
+else:
+    # MySQL / other client-server DBs
+    connect_args["connect_timeout"] = 30
+
 engine = create_async_engine(
     settings.database_url,
     echo=settings.debug,
-    connect_args={"timeout": 30},  # wait up to 30s for lock
+    connect_args=connect_args,
 )
 
-# Enable WAL mode for concurrent reads/writes
-@event.listens_for(engine.sync_engine, "connect")
-def _set_sqlite_pragma(dbapi_connection, connection_record):
-    dbapi_connection.execute("PRAGMA journal_mode=WAL;")
-    dbapi_connection.execute("PRAGMA busy_timeout=5000;")
+if _is_sqlite:
+
+    @event.listens_for(engine.sync_engine, "connect")
+    def _set_sqlite_pragma(dbapi_connection, connection_record):
+        dbapi_connection.execute("PRAGMA journal_mode=WAL;")
+        dbapi_connection.execute("PRAGMA busy_timeout=5000;")
+
 async_session = async_sessionmaker(engine, class_=AsyncSession, expire_on_commit=False)
 
 

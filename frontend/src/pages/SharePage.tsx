@@ -1,10 +1,11 @@
 import { useState, useEffect } from 'react'
-import { Card, Button, Input, Select, Table, Tag, message, Modal, Empty, Popconfirm } from 'antd'
+import { Card, Button, Input, Select, Table, Tag, App, Modal, Empty, Popconfirm } from 'antd'
 import { ShareAltOutlined, LinkOutlined, DeleteOutlined, CopyOutlined } from '@ant-design/icons'
 
 const API = '/api/v1/share'
 
 export default function SharePage() {
+  const { message } = App.useApp()
   const [links, setLinks] = useState<any[]>([])
   const [createOpen, setCreateOpen] = useState(false)
   const [viewOpen, setViewOpen] = useState(false)

@@ -240,3 +240,11 @@ export interface UserHistoryListResponse {
   total: number
   items: UserHistory[]
 }
+
+// Auth types
+export interface AuthUser {
+  id: string
+  username: string
+  email: string
+  created_at: string
+}

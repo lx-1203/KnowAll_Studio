@@ -5,6 +5,23 @@ const api = axios.create({
   timeout: 120000,
 })
 
+// 401 interceptor: clear token and redirect to login
+api.interceptors.response.use(
+  r => r,
+  error => {
+    if (error.response?.status === 401) {
+      const url = error.config?.url || ''
+      // Don't trigger on login/register requests themselves
+      if (!url.includes('/auth/login') && !url.includes('/auth/register')) {
+        setAuthToken(null)
+        localStorage.removeItem('knowall_user')
+        window.dispatchEvent(new Event('auth:logout'))
+      }
+    }
+    return Promise.reject(error)
+  },
+)
+
 // Documents
 export const uploadDocument = (file: File) => {
   const form = new FormData()

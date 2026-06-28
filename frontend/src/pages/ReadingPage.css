@@ -405,12 +405,6 @@
   padding: 60px 20px;
 }
 
-.reading-empty-icon {
-  font-size: 4em;
-  margin-bottom: 16px;
-  opacity: 0.3;
-}
-
 .reading-empty h3 {
   font-size: 1.3em;
   margin-bottom: 8px;
@@ -701,8 +695,4 @@
 .reading-app.dark .reading-text .en-word:hover,
 .reading-app.dark .reading-text .en-word.revealed {
   background: #1e1e3e;
-}
-
-.reading-app.dark .reading-empty-icon {
-  opacity: 0.2;
 }

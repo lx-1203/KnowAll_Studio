@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react'
-import { Card, Button, Modal, Input, DatePicker, Select, Progress, List, Checkbox, Tag, Empty, message, Popconfirm, Table, Space } from 'antd'
+import { Card, Button, Modal, Input, DatePicker, Select, Progress, List, Checkbox, Tag, Empty, App, Popconfirm, Table, Space } from 'antd'
 import { PlusOutlined, DeleteOutlined, ClockCircleOutlined, CheckCircleOutlined, BellOutlined, RobotOutlined } from '@ant-design/icons'
 import dayjs from 'dayjs'
 import { useAppStore } from '../stores'
@@ -7,6 +7,7 @@ import { useAppStore } from '../stores'
 const API = '/api/v1/study'
 
 export default function StudyPage() {
+  const { message } = App.useApp()
   const [plans, setPlans] = useState<any[]>([])
   const [selectedPlan, setSelectedPlan] = useState<any>(null)
   const [loading, setLoading] = useState(false)

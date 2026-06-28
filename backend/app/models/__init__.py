@@ -27,13 +27,13 @@ from app.models.user_bind import UserBind  # noqa: E402, F401
 class Document(Base):
     __tablename__ = "documents"
 
-    id = Column(String, primary_key=True, default=gen_uuid)
-    filename = Column(String, nullable=False)
-    file_type = Column(String, nullable=False)  # pdf/docx/pptx/md/image/xmind/url/text
+    id = Column(String(36), primary_key=True, default=gen_uuid)
+    filename = Column(String(500), nullable=False)
+    file_type = Column(String(50), nullable=False)  # pdf/docx/pptx/md/image/xmind/url/text
     file_size = Column(Integer)
-    sha256 = Column(String, unique=True, nullable=False)
-    local_path = Column(String)
-    status = Column(String, default="pending")  # pending/parsing/ready/error
+    sha256 = Column(String(64), unique=True, nullable=False)
+    local_path = Column(String(500))
+    status = Column(String(50), default="pending")  # pending/parsing/ready/error
     page_count = Column(Integer)
     metadata_ = Column("metadata", JSON, default=dict)
     created_at = Column(DateTime, default=now)
@@ -45,14 +45,14 @@ class Document(Base):
 class DocumentChunk(Base):
     __tablename__ = "document_chunks"
 
-    id = Column(String, primary_key=True, default=gen_uuid)
-    doc_id = Column(String, ForeignKey("documents.id", ondelete="CASCADE"), nullable=False)
+    id = Column(String(36), primary_key=True, default=gen_uuid)
+    doc_id = Column(String(36), ForeignKey("documents.id", ondelete="CASCADE"), nullable=False)
     chunk_index = Column(Integer, nullable=False)
-    content_hash = Column(String, unique=True)  # SHA256 of normalized text
+    content_hash = Column(String(64), unique=True)  # SHA256 of normalized text
     text_content = Column(Text, nullable=False)
     token_count = Column(Integer)
-    page_range = Column(String)  # "p3-p5"
-    vector_id = Column(String)  # ChromaDB reference
+    page_range = Column(String(20))  # "p3-p5"
+    vector_id = Column(String(64))  # ChromaDB reference
     created_at = Column(DateTime, default=now)
 
     document = relationship("Document", back_populates="chunks")
@@ -63,11 +63,11 @@ class DocumentChunk(Base):
 class KnowledgeTree(Base):
     __tablename__ = "knowledge_trees"
 
-    id = Column(String, primary_key=True, default=gen_uuid)
-    name = Column(String, nullable=False)
+    id = Column(String(36), primary_key=True, default=gen_uuid)
+    name = Column(String(200), nullable=False)
     doc_ids = Column(JSON, default=list)
     tree_data = Column(JSON, nullable=False, default=dict)
-    generation_cache_key = Column(String)
+    generation_cache_key = Column(String(128))
     created_at = Column(DateTime, default=now)
     updated_at = Column(DateTime, default=now, onupdate=now)
 
@@ -75,11 +75,11 @@ class KnowledgeTree(Base):
 class Outline(Base):
     __tablename__ = "outlines"
 
-    id = Column(String, primary_key=True, default=gen_uuid)
-    title = Column(String, nullable=False)
+    id = Column(String(36), primary_key=True, default=gen_uuid)
+    title = Column(String(200), nullable=False)
     content_markdown = Column(Text, nullable=False)
-    source_tree_id = Column(String, ForeignKey("knowledge_trees.id"))
-    generation_cache_key = Column(String)
+    source_tree_id = Column(String(36), ForeignKey("knowledge_trees.id"))
+    generation_cache_key = Column(String(128))
     created_at = Column(DateTime, default=now)
 
 
@@ -88,25 +88,25 @@ class Outline(Base):
 class QuestionBank(Base):
     __tablename__ = "question_bank"
 
-    id = Column(String, primary_key=True, default=gen_uuid)
-    question_type = Column(String, nullable=False)  # single_choice/multi_choice/true_false/fill_blank/cloze/short_answer/calculation/formula/coding/material_analysis
-    difficulty = Column(String, default="medium")  # easy/medium/hard
+    id = Column(String(36), primary_key=True, default=gen_uuid)
+    question_type = Column(String(50), nullable=False)  # single_choice/multi_choice/true_false/fill_blank/cloze/short_answer/calculation/formula/coding/material_analysis
+    difficulty = Column(String(20), default="medium")  # easy/medium/hard
     tags = Column(JSON, default=list)
     question_text = Column(Text, nullable=False)
     options = Column(JSON, default=list)  # [{"label":"A","text":"..."}]
     correct_answer = Column(Text, nullable=False)
     analysis = Column(Text)
-    source_chunk_id = Column(String, ForeignKey("document_chunks.id"))
-    parent_question_id = Column(String)  # variant question origin
-    generation_cache_key = Column(String)
+    source_chunk_id = Column(String(36), ForeignKey("document_chunks.id"))
+    parent_question_id = Column(String(36))  # variant question origin
+    generation_cache_key = Column(String(128))
     created_at = Column(DateTime, default=now)
 
 
 class ExamPaper(Base):
     __tablename__ = "exam_papers"
 
-    id = Column(String, primary_key=True, default=gen_uuid)
-    title = Column(String, nullable=False)
+    id = Column(String(36), primary_key=True, default=gen_uuid)
+    title = Column(String(200), nullable=False)
     description = Column(Text)
     question_ids = Column(JSON, nullable=False, default=list)
     config = Column(JSON, default=dict)  # time_limit, total_score, difficulty distribution
@@ -116,10 +116,10 @@ class ExamPaper(Base):
 class AnswerRecord(Base):
     __tablename__ = "answer_records"
 
-    id = Column(String, primary_key=True, default=gen_uuid)
-    user_id = Column(String, nullable=False, default="local_user")
-    question_id = Column(String, ForeignKey("question_bank.id"), nullable=False)
-    paper_id = Column(String, ForeignKey("exam_papers.id"))
+    id = Column(String(36), primary_key=True, default=gen_uuid)
+    user_id = Column(String(36), nullable=False, default="local_user")
+    question_id = Column(String(36), ForeignKey("question_bank.id"), nullable=False)
+    paper_id = Column(String(36), ForeignKey("exam_papers.id"))
     user_answer = Column(Text)
     is_correct = Column(Boolean)
     time_spent = Column(Integer)  # seconds
@@ -129,9 +129,9 @@ class AnswerRecord(Base):
 class ErrorLog(Base):
     __tablename__ = "error_log"
 
-    id = Column(String, primary_key=True, default=gen_uuid)
-    user_id = Column(String, nullable=False, default="local_user")
-    question_id = Column(String, ForeignKey("question_bank.id"), nullable=False)
+    id = Column(String(36), primary_key=True, default=gen_uuid)
+    user_id = Column(String(36), nullable=False, default="local_user")
+    question_id = Column(String(36), ForeignKey("question_bank.id"), nullable=False)
     error_count = Column(Integer, default=1)
     last_error_at = Column(DateTime, default=now)
     variant_generated = Column(Boolean, default=False)
@@ -142,8 +142,8 @@ class ErrorLog(Base):
 class Deck(Base):
     __tablename__ = "decks"
 
-    id = Column(String, primary_key=True, default=gen_uuid)
-    name = Column(String, nullable=False)
+    id = Column(String(36), primary_key=True, default=gen_uuid)
+    name = Column(String(200), nullable=False)
     description = Column(Text)
     card_count = Column(Integer, default=0)
     created_at = Column(DateTime, default=now)
@@ -152,38 +152,38 @@ class Deck(Base):
 class Flashcard(Base):
     __tablename__ = "flashcards"
 
-    id = Column(String, primary_key=True, default=gen_uuid)
-    card_type = Column(String, nullable=False)  # qa/cloze/definition/compare
+    id = Column(String(36), primary_key=True, default=gen_uuid)
+    card_type = Column(String(50), nullable=False)  # qa/cloze/definition/compare
     front = Column(Text, nullable=False)
     back = Column(Text, nullable=False)
     hints = Column(Text)
     tags = Column(JSON, default=list)
-    source_node_id = Column(String)  # trace back to knowledge tree node
-    source_error_id = Column(String)  # trace back to error question
-    deck_id = Column(String, ForeignKey("decks.id"))
-    generation_cache_key = Column(String)
+    source_node_id = Column(String(36))  # trace back to knowledge tree node
+    source_error_id = Column(String(36))  # trace back to error question
+    deck_id = Column(String(36), ForeignKey("decks.id"))
+    generation_cache_key = Column(String(128))
     created_at = Column(DateTime, default=now)
 
 
 class ReviewSchedule(Base):
     __tablename__ = "review_schedule"
 
-    id = Column(String, primary_key=True, default=gen_uuid)
-    card_id = Column(String, ForeignKey("flashcards.id", ondelete="CASCADE"), nullable=False)
+    id = Column(String(36), primary_key=True, default=gen_uuid)
+    card_id = Column(String(36), ForeignKey("flashcards.id", ondelete="CASCADE"), nullable=False)
     fsrs_stability = Column(Float)
     fsrs_difficulty = Column(Float)
     fsrs_retrievability = Column(Float)
     next_review_at = Column(DateTime)
     last_review_at = Column(DateTime)
     review_count = Column(Integer, default=0)
-    state = Column(String, default="new")  # new/learning/review/relearning
+    state = Column(String(50), default="new")  # new/learning/review/relearning
 
 
 class ReviewLog(Base):
     __tablename__ = "review_log"
 
-    id = Column(String, primary_key=True, default=gen_uuid)
-    card_id = Column(String, ForeignKey("flashcards.id"), nullable=False)
+    id = Column(String(36), primary_key=True, default=gen_uuid)
+    card_id = Column(String(36), ForeignKey("flashcards.id"), nullable=False)
     rating = Column(Integer)  # 1-4 FSRS self-rating
     review_at = Column(DateTime, default=now)
     time_spent_ms = Column(Integer)
@@ -194,23 +194,23 @@ class ReviewLog(Base):
 class GameLevel(Base):
     __tablename__ = "game_levels"
 
-    id = Column(String, primary_key=True, default=gen_uuid)
-    game_type = Column(String, nullable=False)  # matching/ladder/cloze/fix/coding
+    id = Column(String(36), primary_key=True, default=gen_uuid)
+    game_type = Column(String(50), nullable=False)  # matching/ladder/cloze/fix/coding
     level_index = Column(Integer, nullable=False)
-    difficulty = Column(String, default="medium")
+    difficulty = Column(String(20), default="medium")
     level_data = Column(JSON, nullable=False, default=dict)
     unlock_condition = Column(JSON)
-    generation_cache_key = Column(String)
+    generation_cache_key = Column(String(128))
 
 
 class GameProgress(Base):
     __tablename__ = "game_progress"
     __table_args__ = (UniqueConstraint("user_id", "level_id"),)
 
-    id = Column(String, primary_key=True, default=gen_uuid)
-    user_id = Column(String, nullable=False, default="local_user")
-    game_type = Column(String, nullable=False)
-    level_id = Column(String, ForeignKey("game_levels.id"), nullable=False)
+    id = Column(String(36), primary_key=True, default=gen_uuid)
+    user_id = Column(String(36), nullable=False, default="local_user")
+    game_type = Column(String(50), nullable=False)
+    level_id = Column(String(36), ForeignKey("game_levels.id"), nullable=False)
     best_score = Column(Integer)
     stars = Column(Integer, default=0)
     completed = Column(Boolean, default=False)
@@ -222,9 +222,9 @@ class GameProgress(Base):
 class Conversation(Base):
     __tablename__ = "conversations"
 
-    id = Column(String, primary_key=True, default=gen_uuid)
-    title = Column(String)
-    role_preset = Column(String, nullable=False)  # lecturer/tutor/mentor/expand
+    id = Column(String(36), primary_key=True, default=gen_uuid)
+    title = Column(String(200))
+    role_preset = Column(String(50), nullable=False)  # lecturer/tutor/mentor/expand
     created_at = Column(DateTime, default=now)
 
     messages = relationship("Message", back_populates="conversation", cascade="all, delete-orphan")
@@ -233,13 +233,13 @@ class Conversation(Base):
 class Message(Base):
     __tablename__ = "messages"
 
-    id = Column(String, primary_key=True, default=gen_uuid)
-    conversation_id = Column(String, ForeignKey("conversations.id"), nullable=False)
-    role = Column(String, nullable=False)  # user/assistant/system
+    id = Column(String(36), primary_key=True, default=gen_uuid)
+    conversation_id = Column(String(36), ForeignKey("conversations.id"), nullable=False)
+    role = Column(String(20), nullable=False)  # user/assistant/system
     content = Column(Text, nullable=False)
     tokens_input = Column(Integer)
     tokens_output = Column(Integer)
-    model_used = Column(String)
+    model_used = Column(String(100))
     created_at = Column(DateTime, default=now)
 
     conversation = relationship("Conversation", back_populates="messages")
@@ -250,10 +250,10 @@ class Message(Base):
 class APICallLog(Base):
     __tablename__ = "api_call_logs"
 
-    id = Column(String, primary_key=True, default=gen_uuid)
-    user_id = Column(String, default="local_user")
-    task_type = Column(String, nullable=False)
-    model_name = Column(String, nullable=False)
+    id = Column(String(36), primary_key=True, default=gen_uuid)
+    user_id = Column(String(36), default="local_user")
+    task_type = Column(String(50), nullable=False)
+    model_name = Column(String(100), nullable=False)
     tokens_input = Column(Integer)
     tokens_output = Column(Integer)
     cost_estimate = Column(Float)
@@ -268,8 +268,8 @@ class APICallLog(Base):
 class APIQuota(Base):
     __tablename__ = "api_quota"
 
-    id = Column(String, primary_key=True, default=gen_uuid)
-    user_id = Column(String, unique=True, nullable=False, default="local_user")
+    id = Column(String(36), primary_key=True, default=gen_uuid)
+    user_id = Column(String(36), unique=True, nullable=False, default="local_user")
     daily_limit = Column(Integer, default=1_000_000)
     used_today = Column(Integer, default=0)
     reset_at = Column(Date)
@@ -279,12 +279,12 @@ class APIQuota(Base):
 class APIKey(Base):
     __tablename__ = "api_keys"
 
-    id = Column(String, primary_key=True, default=gen_uuid)
-    user_id = Column(String, ForeignKey("users.id", ondelete="CASCADE"), nullable=True, index=True)
-    provider = Column(String, nullable=False)  # openai/deepseek/qwen/ernie/kimi/zhipu/ollama
-    key_encrypted = Column(String, nullable=False)  # AES encrypted
-    key_alias = Column(String)
-    permission_level = Column(String, default="student")
+    id = Column(String(36), primary_key=True, default=gen_uuid)
+    user_id = Column(String(36), ForeignKey("users.id", ondelete="CASCADE"), nullable=True, index=True)
+    provider = Column(String(50), nullable=False)  # openai/deepseek/qwen/ernie/kimi/zhipu/ollama
+    key_encrypted = Column(String(500), nullable=False)  # AES encrypted
+    key_alias = Column(String(100))
+    permission_level = Column(String(50), default="student")
     is_active = Column(Boolean, default=True)
     created_at = Column(DateTime, default=now)
 
@@ -296,9 +296,9 @@ class APIKey(Base):
 class APICache(Base):
     __tablename__ = "api_cache"
 
-    cache_key = Column(String, primary_key=True)  # SHA256 hash
+    cache_key = Column(String(64), primary_key=True)  # SHA256 hash
     response_content = Column(Text, nullable=False)
-    model_used = Column(String, nullable=False)
+    model_used = Column(String(100), nullable=False)
     tokens_input = Column(Integer)
     tokens_output = Column(Integer)
     created_at = Column(DateTime, default=now)
@@ -310,13 +310,13 @@ class APICache(Base):
 class StudyPlan(Base):
     __tablename__ = "study_plans"
 
-    id = Column(String, primary_key=True, default=gen_uuid)
-    user_id = Column(String, nullable=False, default="local_user")
-    name = Column(String, nullable=False)
+    id = Column(String(36), primary_key=True, default=gen_uuid)
+    user_id = Column(String(36), nullable=False, default="local_user")
+    name = Column(String(200), nullable=False)
     description = Column(Text)
     target_end_date = Column(DateTime)  # 计划截止日期
     progress = Column(Float, default=0.0)  # 0-100
-    status = Column(String, default="active")  # active/completed/paused
+    status = Column(String(50), default="active")  # active/completed/paused
     created_at = Column(DateTime, default=now)
     updated_at = Column(DateTime, default=now, onupdate=now)
 
@@ -324,11 +324,11 @@ class StudyPlan(Base):
 class StudyGoal(Base):
     __tablename__ = "study_goals"
 
-    id = Column(String, primary_key=True, default=gen_uuid)
-    plan_id = Column(String, ForeignKey("study_plans.id", ondelete="CASCADE"), nullable=False)
-    title = Column(String, nullable=False)
+    id = Column(String(36), primary_key=True, default=gen_uuid)
+    plan_id = Column(String(36), ForeignKey("study_plans.id", ondelete="CASCADE"), nullable=False)
+    title = Column(String(200), nullable=False)
     description = Column(Text)
-    priority = Column(String, default="medium")  # high/medium/low
+    priority = Column(String(20), default="medium")  # high/medium/low
     completed = Column(Boolean, default=False)
     completed_at = Column(DateTime)
     due_date = Column(DateTime)
@@ -339,10 +339,10 @@ class StudyGoal(Base):
 class StudyReminder(Base):
     __tablename__ = "study_reminders"
 
-    id = Column(String, primary_key=True, default=gen_uuid)
-    user_id = Column(String, nullable=False, default="local_user")
-    plan_id = Column(String, ForeignKey("study_plans.id", ondelete="CASCADE"))
-    goal_id = Column(String, ForeignKey("study_goals.id", ondelete="CASCADE"))
+    id = Column(String(36), primary_key=True, default=gen_uuid)
+    user_id = Column(String(36), nullable=False, default="local_user")
+    plan_id = Column(String(36), ForeignKey("study_plans.id", ondelete="CASCADE"))
+    goal_id = Column(String(36), ForeignKey("study_goals.id", ondelete="CASCADE"))
     message = Column(Text, nullable=False)
     remind_at = Column(DateTime, nullable=False)
     is_read = Column(Boolean, default=False)
@@ -355,11 +355,11 @@ class StudyReminder(Base):
 class KnowledgeEdge(Base):
     __tablename__ = "knowledge_edges"
 
-    id = Column(String, primary_key=True, default=gen_uuid)
-    tree_id = Column(String, ForeignKey("knowledge_trees.id", ondelete="CASCADE"), nullable=False)
-    source_node_id = Column(String, nullable=False)
-    target_node_id = Column(String, nullable=False)
-    relation_type = Column(String, default="related_to")  # related_to/prerequisite/extends/contradicts/example_of
+    id = Column(String(36), primary_key=True, default=gen_uuid)
+    tree_id = Column(String(36), ForeignKey("knowledge_trees.id", ondelete="CASCADE"), nullable=False)
+    source_node_id = Column(String(36), nullable=False)
+    target_node_id = Column(String(36), nullable=False)
+    relation_type = Column(String(50), default="related_to")  # related_to/prerequisite/extends/contradicts/example_of
     description = Column(Text)
     created_at = Column(DateTime, default=now)
 
@@ -369,11 +369,11 @@ class KnowledgeEdge(Base):
 class ShareLink(Base):
     __tablename__ = "share_links"
 
-    id = Column(String, primary_key=True, default=gen_uuid)
-    user_id = Column(String, nullable=False, default="local_user")
-    resource_type = Column(String, nullable=False)  # knowledge_tree/question_bank/flashcard_deck
-    resource_id = Column(String, nullable=False)
-    access_code = Column(String, nullable=False)  # 6-digit access code
+    id = Column(String(36), primary_key=True, default=gen_uuid)
+    user_id = Column(String(36), nullable=False, default="local_user")
+    resource_type = Column(String(50), nullable=False)  # knowledge_tree/question_bank/flashcard_deck
+    resource_id = Column(String(36), nullable=False)
+    access_code = Column(String(10), nullable=False)  # 6-digit access code
     expires_at = Column(DateTime)  # None = never expires
     view_count = Column(Integer, default=0)
     created_at = Column(DateTime, default=now)

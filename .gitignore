@@ -29,13 +29,23 @@ frontend/.vite/
 .DS_Store
 Thumbs.db
 
-# Data (local runtime data)
-backend/data/*.db
+# Data (local runtime data — NEVER upload)
+backend/data/*.db*
+backend/data/*.sqlite3*
 backend/data/documents/
 backend/data/exports/
 backend/data/vector_db/
 backend/data/.secret_key
 backend/data/deps_ok
+backend/data/*
+
+# Environment & Secrets — NEVER COMMIT
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+credentials.json
 
 # Electron
 out/
