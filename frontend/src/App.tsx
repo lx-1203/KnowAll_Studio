@@ -1,12 +1,13 @@
 import { Suspense, lazy, useState, useEffect } from 'react'
 import { Routes, Route, Link, useLocation } from 'react-router-dom'
 import { Layout, Menu, Button, Spin, Drawer, Grid, Space } from 'antd'
-import { FileTextOutlined, ApartmentOutlined, FormOutlined, IdcardOutlined, RobotOutlined, SettingOutlined, BulbOutlined, DashboardOutlined, PlayCircleOutlined, ScheduleOutlined, ShareAltOutlined, SearchOutlined, UserOutlined, MenuOutlined, LogoutOutlined, EyeOutlined } from '@ant-design/icons'
+import { BulbOutlined, MenuOutlined, LogoutOutlined } from '@ant-design/icons'
 import { useTheme } from './components/ThemeProvider'
 import ErrorBoundary from './components/ErrorBoundary'
 import LoginPage from './pages/LoginPage'
 import { useAuthStore } from './stores'
 import { SyncProvider } from './hooks/useSync'
+import { DashboardIcon, QuizIcon, FlashcardIcon, StudyPlanIcon, MindMapIcon, UploadIcon, SearchIcon, AIIcon, ReviewIcon, GameIcon, UserIcon, ShareIcon, SettingsIcon } from './components/MenuIcons'
 
 // Lazy-load all pages for code splitting
 const DashboardPage = lazy(() => import('./pages/DashboardPage'))
