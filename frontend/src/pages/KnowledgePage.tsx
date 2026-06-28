@@ -17,6 +17,7 @@ const nodeTypes = { knowledgeNode: KnowledgeNode }
 function treeToFlow(treeData: any): { nodes: Node[]; edges: Edge[] } {
   const nodes: Node[] = []
   const edges: Edge[] = []
+  const seenEdgeIds = new Set<string>()
 
   function traverse(nodeList: any[], parentId: string | null, x: number, y: number, level: number) {
     if (!nodeList || !Array.isArray(nodeList)) return
@@ -36,14 +37,18 @@ function treeToFlow(treeData: any): { nodes: Node[]; edges: Edge[] } {
         position: { x: nx, y: ny },
       })
       if (parentId) {
-        edges.push({
-          id: `${parentId}->${id}`,
-          source: parentId,
-          target: id,
-          type: 'smoothstep',
-          animated: false,
-          style: { stroke: '#bbb', strokeWidth: 1.5 },
-        })
+        const edgeId = `${parentId}->${id}`
+        if (!seenEdgeIds.has(edgeId)) {
+          seenEdgeIds.add(edgeId)
+          edges.push({
+            id: edgeId,
+            source: parentId,
+            target: id,
+            type: 'smoothstep',
+            animated: false,
+            style: { stroke: '#bbb', strokeWidth: 1.5 },
+          })
+        }
       }
       if (node.children?.length) {
         traverse(node.children, id, nx, ny, level + 1)
