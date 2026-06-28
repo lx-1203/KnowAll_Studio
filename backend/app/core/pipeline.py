@@ -105,6 +105,38 @@ class PipelineOrchestrator:
                 state.chunk_ids = [c.id for c in chunks]
                 state.chunk_texts = [c.text_content for c in chunks]
                 logger.info("Loaded %d chunks from document %s", len(chunks), document_id)
+
+                # Extract native structure context from document metadata
+                structure_context = ""
+                image_descriptions = None
+                if doc.metadata_:
+                    headings = doc.metadata_.get("headings", [])
+                    if headings:
+                        from app.core.parsing.docling_parser import HeadingNode
+
+                        def _dicts_to_nodes(dicts):
+                            nodes = []
+                            for d in dicts:
+                                node = HeadingNode(
+                                    id=d.get("id", ""),
+                                    label=d.get("label", ""),
+                                    level=d.get("level", 1),
+                                    page=d.get("page", 0),
+                                    children=_dicts_to_nodes(d.get("children", [])),
+                                )
+                                nodes.append(node)
+                            return nodes
+
+                        from app.core.parsing.outline_extractor import outline_extractor
+                        heading_nodes = _dicts_to_nodes(headings)
+                        structure_context = outline_extractor.inject_context(heading_nodes)
+
+                    analyses = doc.metadata_.get("image_analyses", [])
+                    if analyses:
+                        image_descriptions = [a["analysis"] for a in analyses]
+
+                state.structure_context = structure_context
+                state.image_descriptions = image_descriptions
         except Exception as e:
             yield self._error(state, PipelineStage.PARSE, str(e))
             return
