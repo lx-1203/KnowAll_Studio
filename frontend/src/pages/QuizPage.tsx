@@ -1,7 +1,11 @@
-import { useState, useEffect } from 'react'
-import { Card, Button, Select, Slider, App, Space, Progress, Tag, Spin, Table, List, Tooltip, Row, Col } from 'antd'
-import { RobotOutlined, FormOutlined, TrophyOutlined, DownloadOutlined, BugOutlined, SyncOutlined, SafetyCertificateOutlined, CheckCircleOutlined, CloseCircleOutlined } from '@ant-design/icons'
-import { generateQuestions, createExam, submitExam, listQuestions, getErrorQuestions, generateVariants } from '../api'
+import { useState, useEffect, useCallback } from 'react'
+import { Card, Button, Select, Slider, App, Space, Progress, Tag, Spin, Table, List, Tooltip, Row, Col, Checkbox, Popconfirm, Divider, Empty, Badge } from 'antd'
+import {
+  RobotOutlined, FormOutlined, TrophyOutlined, DownloadOutlined, BugOutlined,
+  SyncOutlined, SafetyCertificateOutlined, InboxOutlined, DeleteOutlined,
+  CheckSquareOutlined, BorderOutlined, SelectOutlined, PlayCircleOutlined,
+} from '@ant-design/icons'
+import { generateQuestions, saveToBank, deleteQuestionsBatch, createExam, submitExam, listQuestions, getErrorQuestions, generateVariants } from '../api'
 import { useAppStore, useQuizStore } from '../stores'
 import QuestionCard from '../components/QuestionCard'
 import { COGNITIVE_LEVEL_LABELS, COGNITIVE_LEVEL_COLORS, type CognitiveLevel } from '../types'
@@ -31,38 +35,66 @@ function diffLabel(v: number): string {
   return '困难'
 }
 
+const typeLabels: Record<string, string> = {
+  single_choice: '单选', multi_choice: '多选', true_false: '判断',
+  fill_blank: '填空', short_answer: '简答', calculation: '计算',
+  formula: '公式', coding: '编程', material_analysis: '材料分析',
+}
+
 export default function QuizPage() {
   const { selectedDoc } = useAppStore()
   const { currentExam, userAnswers, results, setCurrentExam, setAnswer, setResults, reset } = useQuizStore()
   const { message } = App.useApp()
-  const [generating, setGenerating] = useState(false)
+
+  // Generation config
   const [genConfig, setGenConfig] = useState({
     question_type: 'single_choice',
-    count: 10,
+    count: 5,
     difficulty: 'medium' as string,
     difficulty_score: 0.5,
     cognitive_level: 'L2_understand' as string,
     enable_review: true,
   })
-  const [showResults, setShowResults] = useState(false)
+  const [generating, setGenerating] = useState(false)
+
+  // Preview questions (not yet saved to bank)
+  const [previewQuestions, setPreviewQuestions] = useState<any[]>([])
+  const [selectedIds, setSelectedIds] = useState<Set<number>>(new Set())
+  const [saving, setSaving] = useState(false)
+
+  // Question bank
   const [allQuestions, setAllQuestions] = useState<any[]>([])
   const [questionsLoading, setQuestionsLoading] = useState(false)
+  const [bankSelected, setBankSelected] = useState<Set<string>>(new Set())
+  const [bankFilter, setBankFilter] = useState<{ type?: string; cognitive?: string }>({})
+
+  // Exam
+  const [showResults, setShowResults] = useState(false)
+
+  // Error panel
   const [errorQuestions, setErrorQuestions] = useState<any[]>([])
   const [errorsLoading, setErrorsLoading] = useState(false)
   const [showErrors, setShowErrors] = useState(false)
   const [variantGenerating, setVariantGenerating] = useState<string | null>(null)
-  const [variantQuestions, setVariantQuestions] = useState<any[]>([])
 
-  useEffect(() => {
+  // Load bank on mount
+  useEffect(() => { refreshBank() }, [])
+  const refreshBank = useCallback(() => {
     setQuestionsLoading(true)
-    listQuestions().then(setAllQuestions).catch(console.error).finally(() => setQuestionsLoading(false))
-  }, [])
+    const params: any = { limit: 200 }
+    if (bankFilter.type) params.question_type = bankFilter.type
+    if (bankFilter.cognitive) params.cognitive_level = bankFilter.cognitive
+    listQuestions(params).then(setAllQuestions).catch(console.error).finally(() => setQuestionsLoading(false))
+  }, [bankFilter])
 
+  // ===== Generate =====
   const handleGenerate = async () => {
     if (!selectedDoc) { message.warning('请先在"资料导入"页面选择文档'); return }
     setGenerating(true)
+    setPreviewQuestions([])
+    setSelectedIds(new Set())
     try {
-      const qResult = await generateQuestions({
+      const result = await generateQuestions({
         document_id: selectedDoc,
         question_type: genConfig.question_type,
         count: genConfig.count,
@@ -70,31 +102,124 @@ export default function QuizPage() {
         difficulty_score: genConfig.difficulty_score,
         cognitive_level: genConfig.cognitive_level,
         enable_review: genConfig.enable_review,
+        preview: true,  // preview mode: don't auto-save
       })
-      const reviewed = qResult.reviewed_count || 0
-      message.success(`已生成 ${qResult.generated_count} 道题目${reviewed > 0 ? `（其中 ${reviewed} 道已过AI审核）` : ''}`)
-
-      const questionIds = (qResult.questions || []).map((q: any) => q.id)
-      const exam = await createExam({
-        title: `测验-${new Date().toLocaleDateString()}`,
-        question_ids: questionIds,
-      })
-      setCurrentExam(exam)
+      const qs = result.questions || []
+      setPreviewQuestions(qs)
+      setSelectedIds(new Set(qs.map((_: any, i: number) => i)))
+      const reviewed = result.reviewed_count || 0
+      message.success(`已生成 ${qs.length} 道题目${reviewed > 0 ? `（${reviewed} 道通过AI审核）` : ''}，请勾选要入库的题目`)
     } catch (e: any) {
       message.error(`生成失败: ${e.response?.data?.detail || e.message}`)
     } finally {
       setGenerating(false)
-      setShowResults(false)
     }
   }
 
+  // ===== Selection Helpers =====
+  const toggleSelect = (idx: number) => {
+    setSelectedIds(prev => {
+      const next = new Set(prev)
+      if (next.has(idx)) next.delete(idx); else next.add(idx)
+      return next
+    })
+  }
+  const selectAll = () => setSelectedIds(new Set(previewQuestions.map((_, i) => i)))
+  const deselectAll = () => setSelectedIds(new Set())
+  const invertSelect = () => {
+    setSelectedIds(prev => {
+      const next = new Set<number>()
+      previewQuestions.forEach((_, i) => { if (!prev.has(i)) next.add(i) })
+      return next
+    })
+  }
+
+  // ===== Save to Bank =====
+  const handleSaveToBank = async () => {
+    const selected = previewQuestions.filter((_, i) => selectedIds.has(i))
+    if (selected.length === 0) { message.warning('请至少勾选一道题目'); return }
+    setSaving(true)
+    try {
+      const result = await saveToBank({ questions: selected })
+      message.success(`已存入题库 ${result.saved_count} 道题目`)
+      setPreviewQuestions([])
+      setSelectedIds(new Set())
+      refreshBank()
+    } catch (e: any) {
+      message.error(`入库失败: ${e.response?.data?.detail || e.message}`)
+    } finally {
+      setSaving(false)
+    }
+  }
+
+  // ===== Create Exam from Selected Preview =====
+  const handleCreateExamFromPreview = async () => {
+    const selected = previewQuestions.filter((_, i) => selectedIds.has(i))
+    if (selected.length === 0) { message.warning('请至少勾选一道题目'); return }
+    // First save to bank, then create exam
+    setSaving(true)
+    try {
+      const saveResult = await saveToBank({ questions: selected })
+      const ids = saveResult.question_ids || []
+      const exam = await createExam({
+        title: `测验-${new Date().toLocaleDateString()}`,
+        question_ids: ids,
+      })
+      setCurrentExam(exam)
+      setPreviewQuestions([])
+      setSelectedIds(new Set())
+      setShowResults(false)
+      reset()
+      refreshBank()
+      message.success(`已创建试卷: ${exam.question_count} 题`)
+    } catch (e: any) {
+      message.error(`操作失败: ${e.response?.data?.detail || e.message}`)
+    } finally {
+      setSaving(false)
+    }
+  }
+
+  // ===== Bank Management =====
+  const handleBankSelect = (qid: string) => {
+    setBankSelected(prev => {
+      const next = new Set(prev)
+      if (next.has(qid)) next.delete(qid); else next.add(qid)
+      return next
+    })
+  }
+  const handleBankDelete = async () => {
+    if (bankSelected.size === 0) { message.warning('请勾选要删除的题目'); return }
+    try {
+      await deleteQuestionsBatch(Array.from(bankSelected))
+      message.success(`已删除 ${bankSelected.size} 道题目`)
+      setBankSelected(new Set())
+      refreshBank()
+    } catch (e: any) {
+      message.error('删除失败')
+    }
+  }
+  const handleCreateExamFromBank = async () => {
+    if (bankSelected.size === 0) { message.warning('请勾选题目'); return }
+    try {
+      const exam = await createExam({
+        title: `测验-${new Date().toLocaleDateString()}`,
+        question_ids: Array.from(bankSelected),
+      })
+      setCurrentExam(exam)
+      setShowResults(false)
+      reset()
+      setBankSelected(new Set())
+      message.success(`已创建试卷: ${exam.question_count} 题`)
+    } catch (e: any) {
+      message.error('创建试卷失败')
+    }
+  }
+
+  // ===== Submit Exam =====
   const handleSubmit = async () => {
     if (!currentExam) return
     try {
-      const result = await submitExam({
-        paper_id: currentExam.paper_id,
-        answers: userAnswers,
-      })
+      const result = await submitExam({ paper_id: currentExam.paper_id, answers: userAnswers })
       setResults(result)
       setShowResults(true)
       message.success(`得分: ${result.score}/${result.total * 5} (${result.percentage}%)`)
@@ -103,307 +228,296 @@ export default function QuizPage() {
     }
   }
 
+  // ===== Error Questions =====
   const handleViewErrors = async () => {
-    setErrorsLoading(true)
-    setShowErrors(true)
-    try {
-      const data = await getErrorQuestions()
-      setErrorQuestions(data || [])
-    } catch (e: any) {
-      message.error('获取错题失败')
-    } finally {
-      setErrorsLoading(false)
-    }
+    setErrorsLoading(true); setShowErrors(true)
+    try { setErrorQuestions((await getErrorQuestions()) || []) }
+    catch (e: any) { message.error('获取错题失败') }
+    finally { setErrorsLoading(false) }
   }
-
   const handleGenerateVariants = async (errorId: string) => {
     setVariantGenerating(errorId)
     try {
       const result = await generateVariants(errorId, 3)
       const variants = result.questions || []
-      setVariantQuestions(prev => [...prev, ...variants])
       message.success(`已生成 ${variants.length} 道变式题`)
       if (variants.length > 0) {
-        const variantIds = variants.map((q: any) => q.id)
-        const exam = await createExam({
-          title: `变式练习-${new Date().toLocaleDateString()}`,
-          question_ids: variantIds,
-        })
-        setCurrentExam(exam)
-        setShowResults(false)
-        setShowErrors(false)
-        reset()
+        const exam = await createExam({ title: `变式练习-${new Date().toLocaleDateString()}`, question_ids: variants.map((q: any) => q.id) })
+        setCurrentExam(exam); setShowResults(false); setShowErrors(false); reset()
       }
-    } catch (e: any) {
-      message.error('变式题生成失败')
-    } finally {
-      setVariantGenerating(null)
-    }
+    } catch (e: any) { message.error('变式题生成失败') }
+    finally { setVariantGenerating(null) }
   }
 
-  const renderQuestion = (q: any, index: number) => {
-    const userAnswer = userAnswers[q.id] || ''
-    const result = results?.details?.find((d: any) => d.question_id === q.id)
-    return (
-      <QuestionCard
-        key={q.id}
-        question={q}
-        index={index}
-        userAnswer={userAnswer}
-        onAnswerChange={(qid, ans) => setAnswer(qid, ans)}
-        showResults={showResults}
-        result={result}
-      />
-    )
-  }
-
-  const questionTypeLabels: Record<string, string> = {
-    single_choice: '单选题', multi_choice: '多选题', true_false: '判断题',
-    fill_blank: '填空题', short_answer: '简答题', calculation: '计算题',
-    formula: '公式题', coding: '编程题', material_analysis: '材料分析题',
-  }
+  // ===== Render =====
+  const renderQuestion = (q: any, index: number) => (
+    <QuestionCard
+      key={q.id}
+      question={q}
+      index={index}
+      userAnswer={userAnswers[q.id] || ''}
+      onAnswerChange={(qid, ans) => setAnswer(qid, ans)}
+      showResults={showResults}
+      result={results?.details?.find((d: any) => d.question_id === q.id)}
+    />
+  )
 
   return (
     <div>
-      <Card title="题库测评" extra={
+      {/* ===== Generation Panel ===== */}
+      <Card title="AI 出题" extra={
         <Space wrap>
           <Select value={genConfig.question_type} onChange={v => setGenConfig(g => ({ ...g, question_type: v }))}
-            options={questionTypes} style={{ minWidth: 100 }} />
+            options={questionTypes} style={{ minWidth: 90 }} />
           <Select value={genConfig.cognitive_level} onChange={v => setGenConfig(g => ({ ...g, cognitive_level: v }))}
-            options={cognitiveLevels} style={{ minWidth: 110 }}
-            popupRender={menu => (
-              <>
-                {menu}
-                <div style={{ padding: '8px 12px', color: '#888', fontSize: 12, borderTop: '1px solid #f0f0f0' }}>
-                  Bloom认知层次：从记忆到创造
-                </div>
-              </>
-            )} />
-          <Tooltip title={`难度连续值: ${genConfig.difficulty_score.toFixed(2)} (${diffLabel(genConfig.difficulty_score)})`}>
-            <div style={{ display: 'inline-flex', alignItems: 'center', gap: 8, width: 160 }}>
-              <span style={{ fontSize: 12, color: '#888', whiteSpace: 'nowrap' }}>难度</span>
-              <Slider
-                value={genConfig.difficulty_score}
-                onChange={v => {
-                  const val = v as number
-                  setGenConfig(g => ({
-                    ...g,
-                    difficulty_score: val,
-                    difficulty: val <= 0.35 ? 'easy' : val <= 0.65 ? 'medium' : 'hard',
-                  }))
-                }}
-                min={0.05} max={1.0} step={0.05}
-                style={{ width: 100, margin: 0 }}
-                tooltip={{ formatter: v => `${(v as number).toFixed(2)} ${diffLabel(v as number)}` }}
-              />
-            </div>
+            options={cognitiveLevels} style={{ minWidth: 105 }} />
+          <Tooltip title={`难度: ${genConfig.difficulty_score.toFixed(2)} (${diffLabel(genConfig.difficulty_score)})`}>
+            <Slider value={genConfig.difficulty_score} onChange={v => {
+              const val = v as number
+              setGenConfig(g => ({ ...g, difficulty_score: val, difficulty: val <= 0.35 ? 'easy' : val <= 0.65 ? 'medium' : 'hard' }))
+            }} min={0.05} max={1.0} step={0.05} style={{ width: 80, margin: 0 }}
+              tooltip={{ formatter: v => `${(v as number).toFixed(2)}` }} />
           </Tooltip>
           <Select value={genConfig.count} onChange={v => setGenConfig(g => ({ ...g, count: v }))}
-            options={[5, 10, 15, 20].map(n => ({ value: n, label: `${n}题` }))} />
-          <Tooltip title="启用后AI会自动审核题目质量，过滤低质量题目">
-            <Button
-              type={genConfig.enable_review ? 'primary' : 'default'}
-              ghost={!genConfig.enable_review}
-              icon={<SafetyCertificateOutlined />}
-              size="small"
-              onClick={() => setGenConfig(g => ({ ...g, enable_review: !g.enable_review }))}
-            >
-              AI审核{genConfig.enable_review ? '开' : '关'}
-            </Button>
-          </Tooltip>
+            options={[3, 5, 10, 15].map(n => ({ value: n, label: `${n}题` }))} />
+          <Button size="small" icon={<SafetyCertificateOutlined />}
+            type={genConfig.enable_review ? 'primary' : 'default'}
+            ghost={!genConfig.enable_review}
+            onClick={() => setGenConfig(g => ({ ...g, enable_review: !g.enable_review }))}>
+            AI审核{genConfig.enable_review ? '开' : '关'}
+          </Button>
           <Button icon={<RobotOutlined />} type="primary" loading={generating} onClick={handleGenerate}>
-            AI 生成试卷
+            生成题目
           </Button>
         </Space>
       }>
-        {!currentExam && !generating && (
-          <div style={{ textAlign: 'center', padding: 60, color: '#999' }}>
-            <FormOutlined style={{ fontSize: 64, marginBottom: 16 }} />
-            <p>选择题型、认知层次和难度，点击「AI 生成试卷」开始测评</p>
-          </div>
-        )}
         {generating && (
-          <div style={{ textAlign: 'center', padding: 60 }}>
+          <div style={{ textAlign: 'center', padding: 40 }}>
             <Spin size="large" />
-            <p style={{ marginTop: 16 }}>AI 正在出题{genConfig.enable_review ? '并自动审核质量' : ''}...</p>
-            {genConfig.enable_review && (
-              <p style={{ color: '#888', fontSize: 13 }}>
-                正在进行 LLM-as-Judge 质量审核（事实准确性 + 干扰项质量 + 认知匹配 + 清晰度）
-              </p>
-            )}
+            <p style={{ marginTop: 12 }}>AI 正在出题{genConfig.enable_review ? '并审核质量' : ''}...</p>
           </div>
         )}
-        {showResults && results && (
-          <>
-            <Card size="small" style={{ marginBottom: 16, background: '#f0f5ff' }}>
-              <Space wrap>
-                <TrophyOutlined style={{ fontSize: 24, color: '#faad14' }} />
-                <span style={{ fontSize: 18, fontWeight: 600 }}>
-                  得分: {results.score}/{results.total * 5} ({results.percentage}%)
-                </span>
-                <Progress percent={results.percentage} style={{ width: 200 }} />
-                <Tag color="green">正确: {results.correct}</Tag>
-                <Tag color="red">错误: {results.total - results.correct}</Tag>
-              </Space>
-            </Card>
-            {/* Cognitive Level Breakdown */}
-            {results.cognitive_breakdown && (
-              <Card size="small" title="认知层次分析" style={{ marginBottom: 16, background: '#fafafa' }}>
-                <Row gutter={[12, 8]}>
-                  {Object.entries(results.cognitive_breakdown).map(([level, stats]: [string, any]) => (
-                    <Col key={level} xs={12} sm={8} md={4}>
-                      <Card size="small" style={{ textAlign: 'center' }}
-                        bodyStyle={{ padding: '10px 8px' }}>
-                        <Tag color={COGNITIVE_LEVEL_COLORS[level as CognitiveLevel] || 'default'}>
-                          {COGNITIVE_LEVEL_LABELS[level as CognitiveLevel] || level}
-                        </Tag>
-                        <div style={{ fontSize: 18, fontWeight: 600, marginTop: 4 }}>
-                          {stats.correct}/{stats.total}
-                        </div>
-                        <div style={{ fontSize: 12, color: stats.accuracy >= 70 ? '#52c41a' : '#ff4d4f' }}>
-                          正确率 {stats.accuracy}%
-                        </div>
-                      </Card>
-                    </Col>
-                  ))}
-                </Row>
-              </Card>
-            )}
-          </>
-        )}
-        {currentExam?.questions?.map((q: any, i: number) => renderQuestion(q, i))}
-        {currentExam && !showResults && (
-          <Button type="primary" size="large" block onClick={handleSubmit}
-            disabled={Object.keys(userAnswers).length < (currentExam.questions?.length || 0) / 2}>
-            提交试卷 ({Object.keys(userAnswers).length}/{currentExam.questions?.length || 0})
-          </Button>
-        )}
-        {showResults && (
-          <Space style={{ marginTop: 16 }}>
-            <Button icon={<DownloadOutlined />} onClick={() => {
-              const data = JSON.stringify({ exam: currentExam, results }, null, 2)
-              const blob = new Blob([data], { type: 'application/json' })
-              const url = URL.createObjectURL(blob)
-              const a = document.createElement('a')
-              a.href = url; a.download = `exam_result_${Date.now()}.json`; a.click()
-              URL.revokeObjectURL(url)
-              message.success('结果已导出')
-            }}>导出结果</Button>
-            <Button onClick={() => { reset(); setShowResults(false) }}>重新作答</Button>
-            <Button type="primary" icon={<BugOutlined />} onClick={handleViewErrors}>查看错题</Button>
-          </Space>
-        )}
-      </Card>
 
-      {showErrors && (
-        <Card title={<Space><BugOutlined /> 错题本 ({errorQuestions.length})</Space>}
-          extra={<Button onClick={() => setShowErrors(false)}>关闭</Button>}
-          style={{ marginTop: 16 }}>
-          {errorsLoading ? (
-            <div style={{ textAlign: 'center', padding: 40 }}><Spin size="large" /></div>
-          ) : errorQuestions.length === 0 ? (
-            <div style={{ textAlign: 'center', padding: 40, color: '#999' }}>
-              <TrophyOutlined style={{ fontSize: 48, marginBottom: 16, color: '#52c41a' }} />
-              <p>暂无错题，继续加油！</p>
+        {/* Preview Results */}
+        {!generating && previewQuestions.length > 0 && (
+          <div>
+            <div style={{ marginBottom: 12, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+              <Space>
+                <Badge count={selectedIds.size} style={{ backgroundColor: '#1677ff' }} overflowCount={99}>
+                  <Tag color="blue" style={{ fontSize: 14, padding: '2px 12px' }}>生成结果</Tag>
+                </Badge>
+                <Tag color="purple">{previewQuestions.length} 题</Tag>
+                {previewQuestions.some(q => q.reviewed) && (
+                  <Tag color="green">AI已审核</Tag>
+                )}
+              </Space>
+              <Space>
+                <Button size="small" onClick={selectAll} icon={<CheckSquareOutlined />}>全选</Button>
+                <Button size="small" onClick={deselectAll} icon={<BorderOutlined />}>取消</Button>
+                <Button size="small" onClick={invertSelect} icon={<SelectOutlined />}>反选</Button>
+                <Button size="small" type="primary" icon={<InboxOutlined />} loading={saving} onClick={handleSaveToBank}>
+                  存入题库 ({selectedIds.size})
+                </Button>
+                <Button size="small" icon={<PlayCircleOutlined />} loading={saving} onClick={handleCreateExamFromPreview}>
+                  直接组卷
+                </Button>
+              </Space>
             </div>
-          ) : (
             <List
-              dataSource={errorQuestions}
-              renderItem={(item: any) => (
+              size="small"
+              bordered
+              dataSource={previewQuestions}
+              style={{ maxHeight: 500, overflow: 'auto' }}
+              renderItem={(q: any, i: number) => (
                 <List.Item
-                  key={item.error_id}
-                  actions={[
-                    <Button
-                      key="variant"
-                      type="primary"
-                      size="small"
-                      icon={<SyncOutlined />}
-                      loading={variantGenerating === item.error_id}
-                      onClick={() => handleGenerateVariants(item.error_id)}
-                    >
-                      生成变式题
-                    </Button>,
-                  ]}
+                  key={i}
+                  style={{ cursor: 'pointer', background: selectedIds.has(i) ? '#f0f5ff' : undefined }}
+                  onClick={() => toggleSelect(i)}
                 >
-                  <List.Item.Meta
-                    avatar={
-                      <Space direction="vertical" size={2} align="center">
-                        <Tag color="red">错{item.error_count}次</Tag>
-                        {item.question?.cognitive_level && (
-                          <Tag color={COGNITIVE_LEVEL_COLORS[item.question.cognitive_level as CognitiveLevel] || 'default'}
-                            style={{ fontSize: 10 }}>
-                            {COGNITIVE_LEVEL_LABELS[item.question.cognitive_level as CognitiveLevel] || item.question.cognitive_level}
-                          </Tag>
+                  <Space align="start" style={{ width: '100%' }}>
+                    <Checkbox checked={selectedIds.has(i)} onChange={() => toggleSelect(i)} />
+                    <div style={{ flex: 1 }}>
+                      <div style={{ fontWeight: 500, marginBottom: 4 }}>{q.question_text}</div>
+                      <Space size={4} wrap>
+                        <Tag color="blue">{typeLabels[q.question_type] || q.question_type}</Tag>
+                        <Tag color={COGNITIVE_LEVEL_COLORS[q.cognitive_level as CognitiveLevel] || 'default'}>
+                          {COGNITIVE_LEVEL_LABELS[q.cognitive_level as CognitiveLevel] || q.cognitive_level}
+                        </Tag>
+                        <Tooltip title={`难度: ${(q.difficulty_score ?? 0.5).toFixed(2)}`}>
+                          <Progress percent={Math.round((q.difficulty_score ?? 0.5) * 100)} size="small"
+                            style={{ width: 60, minWidth: 60 }}
+                            strokeColor={(q.difficulty_score ?? 0.5) <= 0.35 ? '#52c41a' : (q.difficulty_score ?? 0.5) <= 0.65 ? '#faad14' : '#ff4d4f'}
+                            format={() => diffLabel(q.difficulty_score ?? 0.5)} />
+                        </Tooltip>
+                        {q.reviewed && (
+                          <Tooltip title={`AI审核: ${q.review_decision} (${q.review_total?.toFixed(1)}/4.0)`}>
+                            <Tag color={q.review_total >= 3.2 ? 'green' : q.review_total >= 2.4 ? 'orange' : 'red'}>
+                              质量{q.review_total?.toFixed(1)}
+                            </Tag>
+                          </Tooltip>
                         )}
                       </Space>
-                    }
-                    title={
-                      <div style={{ fontSize: 14, lineHeight: 1.6 }}>
-                        {item.question?.question_text || '(无题目文本)'}
-                      </div>
-                    }
-                    description={
-                      <Space direction="vertical" size={4} style={{ marginTop: 8 }}>
-                        <div>
-                          <Tag color="green">正确答案: {item.question?.answer}</Tag>
-                          {item.question?.options?.length > 0 && (
-                            <span style={{ color: '#888', fontSize: 12 }}>
-                              {item.question.options.map((o: any) => `${o.label}. ${o.text}`).join(' | ')}
-                            </span>
-                          )}
-                        </div>
-                        {item.question?.analysis && (
-                          <div style={{ color: '#666', fontSize: 13, background: '#fafafa', padding: '6px 10px', borderRadius: 6 }}>
-                            解析: {item.question.analysis}
-                          </div>
-                        )}
-                        <span style={{ color: '#999', fontSize: 11 }}>
-                          最后犯错: {item.last_error_at?.slice(0, 10)}
-                        </span>
-                      </Space>
-                    }
-                  />
+                    </div>
+                  </Space>
                 </List.Item>
               )}
             />
+          </div>
+        )}
+
+        {!generating && previewQuestions.length === 0 && !currentExam && (
+          <div style={{ textAlign: 'center', padding: 40, color: '#999' }}>
+            <FormOutlined style={{ fontSize: 48, marginBottom: 12 }} />
+            <p>配置参数后点击「生成题目」，勾选满意的题目存入题库</p>
+          </div>
+        )}
+      </Card>
+
+      {/* ===== Exam Section ===== */}
+      {currentExam && (
+        <Card title="当前试卷" style={{ marginTop: 16 }}
+          extra={!showResults ? (
+            <Button type="primary" size="large" onClick={handleSubmit}
+              disabled={Object.keys(userAnswers).length < (currentExam.questions?.length || 0) / 2}>
+              提交 ({Object.keys(userAnswers).length}/{currentExam.questions?.length || 0})
+            </Button>
+          ) : (
+            <Space>
+              <Button onClick={() => { reset(); setShowResults(false); setCurrentExam(null as any) }}>返回题库</Button>
+              <Button icon={<BugOutlined />} onClick={handleViewErrors}>错题</Button>
+            </Space>
+          )}>
+          {showResults && results && (
+            <>
+              <Card size="small" style={{ marginBottom: 16, background: '#f0f5ff' }}>
+                <Space wrap>
+                  <TrophyOutlined style={{ fontSize: 24, color: '#faad14' }} />
+                  <span style={{ fontSize: 18, fontWeight: 600 }}>
+                    {results.score}/{results.total * 5} ({results.percentage}%)
+                  </span>
+                  <Progress percent={results.percentage} style={{ width: 200 }} />
+                  <Tag color="green">正确: {results.correct}</Tag>
+                  <Tag color="red">错误: {results.total - results.correct}</Tag>
+                </Space>
+              </Card>
+              {results.cognitive_breakdown && (
+                <Card size="small" title="认知层次分析" style={{ marginBottom: 16, background: '#fafafa' }}>
+                  <Row gutter={[12, 8]}>
+                    {Object.entries(results.cognitive_breakdown).map(([level, stats]: [string, any]) => (
+                      <Col key={level} xs={12} sm={8} md={4}>
+                        <Card size="small" style={{ textAlign: 'center' }} bodyStyle={{ padding: '10px 8px' }}>
+                          <Tag color={COGNITIVE_LEVEL_COLORS[level as CognitiveLevel] || 'default'}>
+                            {COGNITIVE_LEVEL_LABELS[level as CognitiveLevel] || level}
+                          </Tag>
+                          <div style={{ fontSize: 18, fontWeight: 600, marginTop: 4 }}>{stats.correct}/{stats.total}</div>
+                          <div style={{ fontSize: 12, color: stats.accuracy >= 70 ? '#52c41a' : '#ff4d4f' }}>
+                            {stats.accuracy}%
+                          </div>
+                        </Card>
+                      </Col>
+                    ))}
+                  </Row>
+                </Card>
+              )}
+            </>
           )}
+          {currentExam?.questions?.map((q: any, i: number) => renderQuestion(q, i))}
         </Card>
       )}
 
-      <Card title="题库列表" style={{ marginTop: 16 }}>
+      {/* ===== Error Panel ===== */}
+      {showErrors && (
+        <Card title={<Space><BugOutlined /> 错题本 ({errorQuestions.length})</Space>}
+          extra={<Button onClick={() => setShowErrors(false)}>关闭</Button>} style={{ marginTop: 16 }}>
+          {errorsLoading ? <div style={{ textAlign: 'center', padding: 40 }}><Spin size="large" /></div>
+            : errorQuestions.length === 0 ? (
+              <Empty description="暂无错题，继续加油！" />
+            ) : (
+              <List dataSource={errorQuestions} renderItem={(item: any) => (
+                <List.Item key={item.error_id} actions={[
+                  <Button key="variant" type="primary" size="small" icon={<SyncOutlined />}
+                    loading={variantGenerating === item.error_id}
+                    onClick={() => handleGenerateVariants(item.error_id)}>变式题</Button>,
+                ]}>
+                  <List.Item.Meta
+                    avatar={<Space direction="vertical" size={2}><Tag color="red">错{item.error_count}次</Tag></Space>}
+                    title={item.question?.question_text || '(无文本)'}
+                    description={
+                      <Space direction="vertical" size={2}>
+                        <Tag color="green">答案: {item.question?.answer}</Tag>
+                        {item.question?.analysis && (
+                          <div style={{ color: '#666', fontSize: 12 }}>解析: {item.question.analysis.slice(0, 100)}</div>
+                        )}
+                      </Space>
+                    } />
+                </List.Item>
+              )} />
+            )}
+        </Card>
+      )}
+
+      {/* ===== Question Bank ===== */}
+      <Card title={
+        <Space>
+          <InboxOutlined /> 题库
+          <Badge count={allQuestions.length} style={{ backgroundColor: '#1677ff' }} overflowCount={999} />
+        </Space>
+      }
+        style={{ marginTop: 16 }}
+        extra={
+          <Space wrap>
+            <Select allowClear placeholder="题型筛选" style={{ width: 100 }}
+              value={bankFilter.type} onChange={v => setBankFilter(f => ({ ...f, type: v }))}
+              options={questionTypes} />
+            <Select allowClear placeholder="认知层次" style={{ width: 110 }}
+              value={bankFilter.cognitive} onChange={v => setBankFilter(f => ({ ...f, cognitive: v }))}
+              options={cognitiveLevels} />
+            <Button icon={<PlayCircleOutlined />} disabled={bankSelected.size === 0} onClick={handleCreateExamFromBank}>
+              组卷 ({bankSelected.size})
+            </Button>
+            <Popconfirm title={`确认删除 ${bankSelected.size} 道题目？`} onConfirm={handleBankDelete} disabled={bankSelected.size === 0}>
+              <Button danger icon={<DeleteOutlined />} disabled={bankSelected.size === 0}>
+                删除 ({bankSelected.size})
+              </Button>
+            </Popconfirm>
+          </Space>
+        }>
         <Table
           loading={questionsLoading}
           dataSource={allQuestions}
           rowKey="id"
-          locale={{ emptyText: '暂无题目' }}
-          columns={[
-            { title: '题目', dataIndex: 'question_text', ellipsis: true, render: (v: string) => v || '(无文本)' },
-            { title: '类型', dataIndex: 'question_type', width: 90, render: (v: string) => (
-              <Tag>{questionTypeLabels[v] || v}</Tag>
-            )},
-            { title: '认知层次', dataIndex: 'cognitive_level', width: 90, render: (v: string) => (
-              v ? <Tag color={COGNITIVE_LEVEL_COLORS[v as CognitiveLevel] || 'default'}>
-                {COGNITIVE_LEVEL_LABELS[v as CognitiveLevel] || v}
-              </Tag> : <span style={{ color: '#ccc' }}>—</span>
-            )},
-            { title: '难度', dataIndex: 'difficulty_score', width: 100, render: (v: number, record: any) => {
-              if (v != null) {
-                return (
-                  <Tooltip title={`连续难度值: ${v.toFixed(2)}`}>
-                    <Progress percent={Math.round(v * 100)} size="small"
-                      strokeColor={v <= 0.35 ? '#52c41a' : v <= 0.65 ? '#faad14' : '#ff4d4f'}
-                      format={() => diffLabel(v)} />
-                  </Tooltip>
-                )
-              }
-              const d = record.difficulty
-              return <Tag color={d === 'easy' ? 'green' : d === 'hard' ? 'red' : 'orange'}>
-                {d === 'easy' ? '简单' : d === 'hard' ? '困难' : '中等'}
-              </Tag>
-            }},
-          ]}
-          pagination={{ pageSize: 10, showSizeChanger: true, showTotal: (total) => `共 ${total} 道题目` }}
           size="middle"
+          locale={{ emptyText: '暂无题目，先生成题目并入库' }}
+          rowSelection={{
+            selectedRowKeys: Array.from(bankSelected),
+            onChange: (keys) => setBankSelected(new Set(keys as string[])),
+          }}
+          columns={[
+            { title: '题目', dataIndex: 'question_text', ellipsis: true, width: 300,
+              render: (v: string) => v || '(无文本)' },
+            { title: '题型', dataIndex: 'question_type', width: 70,
+              render: (v: string) => <Tag>{typeLabels[v] || v}</Tag> },
+            { title: '认知', dataIndex: 'cognitive_level', width: 70,
+              render: (v: string) => v ? <Tag color={COGNITIVE_LEVEL_COLORS[v as CognitiveLevel] || 'default'}>
+                {COGNITIVE_LEVEL_LABELS[v as CognitiveLevel] || v}</Tag> : <span style={{ color: '#ccc' }}>—</span> },
+            { title: '难度', dataIndex: 'difficulty_score', width: 80,
+              render: (v: number, r: any) => {
+                if (v != null) return <Progress percent={Math.round(v * 100)} size="small"
+                  strokeColor={v <= 0.35 ? '#52c41a' : v <= 0.65 ? '#faad14' : '#ff4d4f'}
+                  format={() => diffLabel(v)} />
+                const d = r.difficulty
+                return <Tag color={d === 'easy' ? 'green' : d === 'hard' ? 'red' : 'orange'}>
+                  {d === 'easy' ? '简单' : d === 'hard' ? '困难' : '中等'}</Tag>
+              } },
+            { title: '操作', width: 50, render: (_: any, r: any) => (
+              <Popconfirm title="确认删除？" onConfirm={async () => {
+                await deleteQuestionsBatch([r.id]); refreshBank(); setBankSelected(new Set())
+              }}>
+                <Button size="small" danger icon={<DeleteOutlined />} />
+              </Popconfirm>
+            )},
+          ]}
+          pagination={{ pageSize: 15, showSizeChanger: true, showTotal: (t) => `共 ${t} 道` }}
         />
       </Card>
     </div>
