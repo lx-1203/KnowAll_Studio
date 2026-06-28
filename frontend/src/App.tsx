@@ -67,19 +67,26 @@ export default function App() {
   }
 
   const menuItems = [
-    { key: '/', icon: <DashboardOutlined />, label: <Link to="/">仪表盘</Link> },
-    { key: '/upload', icon: <FileTextOutlined />, label: <Link to="/upload">资料导入</Link> },
-    { key: '/knowledge', icon: <ApartmentOutlined />, label: <Link to="/knowledge">知识树</Link> },
-    { key: '/search', icon: <SearchOutlined />, label: <Link to="/search">搜索</Link> },
-    { key: '/quiz', icon: <FormOutlined />, label: <Link to="/quiz">题库测评</Link> },
-    { key: '/flashcards', icon: <IdcardOutlined />, label: <Link to="/flashcards">记忆闪卡</Link> },
-    { key: '/game', icon: <PlayCircleOutlined />, label: <Link to="/game">互动游戏</Link> },
-    { key: '/chat', icon: <RobotOutlined />, label: <Link to="/chat">AI 对话</Link> },
-    { key: '/pipeline', icon: <ThunderboltOutlined />, label: <Link to="/pipeline">全链路</Link> },
-    { key: '/study', icon: <ScheduleOutlined />, label: <Link to="/study">学习计划</Link> },
-    { key: '/share', icon: <ShareAltOutlined />, label: <Link to="/share">分享协作</Link> },
-    { key: '/settings', icon: <SettingOutlined />, label: <Link to="/settings">设置</Link> },
-    { key: '/personal', icon: <UserOutlined />, label: <Link to="/personal">个人中心</Link> },
+    { key: '/', icon: <DashboardOutlined />, label: <Link to="/">学习仪表盘</Link> },
+    { type: 'group', label: '知识中枢', children: [
+      { key: '/upload', icon: <FileTextOutlined />, label: <Link to="/upload">资料导入</Link> },
+      { key: '/knowledge', icon: <ApartmentOutlined />, label: <Link to="/knowledge">思维导图</Link> },
+    ]},
+    { type: 'group', label: '深度学习', children: [
+      { key: '/quiz', icon: <FormOutlined />, label: <Link to="/quiz">题库练习</Link> },
+      { key: '/flashcards', icon: <IdcardOutlined />, label: <Link to="/flashcards">记忆闪卡</Link> },
+      { key: '/study', icon: <ScheduleOutlined />, label: <Link to="/study">学习计划</Link> },
+    ]},
+    { type: 'group', label: '工具', children: [
+      { key: '/search', icon: <SearchOutlined />, label: <Link to="/search">搜索</Link> },
+      { key: '/chat', icon: <RobotOutlined />, label: <Link to="/chat">AI 对话</Link> },
+      { key: '/game', icon: <PlayCircleOutlined />, label: <Link to="/game">互动游戏</Link> },
+    ]},
+    { type: 'group', label: '其他', children: [
+      { key: '/share', icon: <ShareAltOutlined />, label: <Link to="/share">分享协作</Link> },
+      { key: '/settings', icon: <SettingOutlined />, label: <Link to="/settings">设置</Link> },
+      { key: '/personal', icon: <UserOutlined />, label: <Link to="/personal">个人中心</Link> },
+    ]},
   ]
 
   const menu = (
