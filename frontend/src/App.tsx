@@ -84,7 +84,6 @@ export default function App() {
       { key: '/chat', icon: <AIIcon />, label: <Link to="/chat">AI助手</Link> },
     ]},
     { type: 'group', label: '互动评估', children: [
-      { key: '/review', icon: <ReviewIcon />, label: <Link to="/review">答题回顾</Link> },
       { key: '/game', icon: <GameIcon />, label: <Link to="/game">互动游戏</Link> },
     ]},
     { type: 'group', label: '个人设置', children: [
