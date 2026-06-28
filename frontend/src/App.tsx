@@ -7,7 +7,7 @@ import ErrorBoundary from './components/ErrorBoundary'
 import LoginPage from './pages/LoginPage'
 import { useAuthStore } from './stores'
 import { SyncProvider } from './hooks/useSync'
-import { DashboardIcon, QuizIcon, FlashcardIcon, StudyPlanIcon, MindMapIcon, UploadIcon, SearchIcon, AIIcon, ReviewIcon, GameIcon, UserIcon, ShareIcon, SettingsIcon } from './components/MenuIcons'
+import { DashboardIcon, QuizIcon, FlashcardIcon, StudyPlanIcon, MindMapIcon, UploadIcon, SearchIcon, AIIcon, GameIcon, UserIcon, ShareIcon, SettingsIcon } from './components/MenuIcons'
 
 // Lazy-load all pages for code splitting
 const DashboardPage = lazy(() => import('./pages/DashboardPage'))
