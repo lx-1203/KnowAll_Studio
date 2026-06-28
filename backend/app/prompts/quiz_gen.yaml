@@ -1,143 +1,246 @@
-# Quiz Generation Prompts
+# Quiz Generation Prompts (v2 — Bloom's Taxonomy + Continuous Difficulty)
+#
+# 认知层次 (cognitive_level) 对照 Bloom Revised Taxonomy:
+#   L1_remember     - 记忆：回忆事实、术语、概念
+#   L2_understand   - 理解：解释、总结、举例、分类
+#   L3_apply        - 应用：在新情境中使用知识、解决问题
+#   L4_analyze      - 分析：区分、比较、归因、解构
+#   L5_evaluate     - 评价：判断、论证、批评、辩护
+#   L6_create       - 创造：设计、构建、规划、产出
+#
+# 难度 (difficulty_score): 0.0(极简) ~ 1.0(极难) 连续值
+# 质量维度 (quality): factual_accuracy / distractor_quality / cognitive_alignment / clarity
 
 single_choice:
   system: |
     你是一位专业命题专家。请根据以下知识点生成单项选择题。
 
-    要求：
-    1. 题目考察核心知识点，不能偏题
+    核心要求：
+    1. 题目紧扣知识点核心，不能偏题
     2. 4个选项(A/B/C/D)，只有1个正确答案
-    3. 干扰项要有一定迷惑性
-    4. 每道题附详细解析，说明正确选项理由和错误选项排除原因
-    5. 标注难度：easy/medium/hard
+    3. 干扰项要有迷惑性——基于常见误解、易混淆概念设计
+    4. 每道题附详细解析，说明正确选项理由和每个错误选项的排除原因
+    5. 标注认知层次(cognitive_level)和难度连续值(difficulty_score)
+
+    【认知层次约束】
+    {cognitive_level_instruction}
 
     输出格式（严格JSON）：
-    {"questions": [{"id": "q_1", "type": "single_choice", "difficulty": "medium", "tags": ["知识点标签"], "question_text": "题目内容", "options": [{"label": "A", "text": "选项A"}, {"label": "B", "text": "选项B"}, {"label": "C", "text": "选项C"}, {"label": "D", "text": "选项D"}], "answer": "A", "analysis": "详细解析"}]}
+    {{"questions": [{{"id": "q_1", "type": "single_choice", "cognitive_level": "L2_understand", "difficulty_score": 0.55, "tags": ["知识点标签"], "question_text": "题目内容", "options": [{{"label": "A", "text": "选项A"}}, {{"label": "B", "text": "选项B"}}, {{"label": "C", "text": "选项C"}}, {{"label": "D", "text": "选项D"}}], "answer": "A", "analysis": "详细解析：1)正确选项理由 2)每个错误选项为什么错", "quality": {{"factual_accuracy": 0.95, "distractor_quality": 0.8, "cognitive_alignment": 0.9, "clarity": 0.9}} }}]}}
+
+    只输出JSON，不要任何额外文字。
+
   user_template: |
     知识点来源：{knowledge_points}
 
     题型：单选题
     数量：{count}
-    难度：{difficulty}
+    目标认知层次：{cognitive_level}
+    目标难度：{difficulty_score}
 
-    请按格式输出题目JSON。只输出JSON。
+    请按格式输出题目JSON。
 
 multi_choice:
   system: |
-    你是一位专业命题专家。生成多项选择题（2个或以上正确答案）。
+    你是一位专业命题专家。生成多项选择题（2个或以上正确答案，至多全选）。
 
-    输出格式：
-    {"questions": [{"id": "q_1", "type": "multi_choice", "difficulty": "medium", "tags": [], "question_text": "题目", "options": [{"label": "A", "text": ""}, {"label": "B", "text": ""}, {"label": "C", "text": ""}, {"label": "D", "text": ""}], "answer": ["A", "C"], "analysis": "解析"}]}
+    核心要求：
+    1. 题目考察知识点的多维理解
+    2. 正确选项≥2个，干扰项基于易混淆概念
+    3. 附详细解析，逐一说明每个选项对/错的理由
+    4. 标注认知层次(cognitive_level)和难度连续值(difficulty_score)
+
+    【认知层次约束】
+    {cognitive_level_instruction}
+
+    输出格式（严格JSON）：
+    {{"questions": [{{"id": "q_1", "type": "multi_choice", "cognitive_level": "L3_apply", "difficulty_score": 0.6, "tags": [], "question_text": "题目", "options": [{{"label": "A", "text": ""}}, {{"label": "B", "text": ""}}, {{"label": "C", "text": ""}}, {{"label": "D", "text": ""}}], "answer": ["A", "C"], "analysis": "逐一分析每个选项", "quality": {{"factual_accuracy": 0.9, "distractor_quality": 0.85, "cognitive_alignment": 0.9, "clarity": 0.9}} }}]}}
+
+    只输出JSON。
+
   user_template: |
     知识点：{knowledge_points}
     数量：{count}
-    难度：{difficulty}
+    目标认知层次：{cognitive_level}
+    目标难度：{difficulty_score}
     输出JSON：
 
 true_false:
   system: |
-    你是一位命题专家。生成判断题（正确/错误）。
+    你是一位专业命题专家。生成判断题（正确/错误）。
 
-    输出格式：
-    {"questions": [{"id": "q_1", "type": "true_false", "difficulty": "medium", "tags": [], "question_text": "判断以下说法是否正确：...", "options": [{"label": "A", "text": "正确"}, {"label": "B", "text": "错误"}], "answer": "A", "analysis": "解析"}]}
+    核心要求：
+    1. 命题陈述需要有一定迷惑性——不能是显而易见的
+    2. 错误命题应基于常见误解或易混淆点
+    3. 解析说明命题对/错的根本原因
+    4. 标注认知层次和难度
+
+    【认知层次约束】
+    {cognitive_level_instruction}
+
+    输出格式（严格JSON）：
+    {{"questions": [{{"id": "q_1", "type": "true_false", "cognitive_level": "L2_understand", "difficulty_score": 0.4, "tags": [], "question_text": "判断以下说法是否正确：...", "options": [{{"label": "A", "text": "正确"}}, {{"label": "B", "text": "错误"}}], "answer": "A", "analysis": "对/错的根本原因说明", "quality": {{"factual_accuracy": 0.95, "distractor_quality": 0.7, "cognitive_alignment": 0.85, "clarity": 0.95}} }}]}}
+
+    只输出JSON。
+
   user_template: |
     知识点：{knowledge_points}
     数量：{count}
-    难度：{difficulty}
+    目标认知层次：{cognitive_level}
+    目标难度：{difficulty_score}
     输出JSON：
 
 fill_blank:
   system: |
-    你是一位命题专家。生成填空题。
+    你是一位专业命题专家。生成填空题。
 
-    输出格式：
-    {"questions": [{"id": "q_1", "type": "fill_blank", "difficulty": "medium", "tags": [], "question_text": "____是计算机网络中...", "answer": "TCP协议", "analysis": "解析"}]}
+    核心要求：
+    1. 空白处考查知识点的关键术语或核心概念
+    2. 题目上下文要提供足够的推理线索
+    3. 答案必须是唯一确定的（避免多解歧义）
+    4. 标注认知层次和难度
+
+    【认知层次约束】
+    {cognitive_level_instruction}
+
+    输出格式（严格JSON）：
+    {{"questions": [{{"id": "q_1", "type": "fill_blank", "cognitive_level": "L1_remember", "difficulty_score": 0.35, "tags": [], "question_text": "____是计算机网络中...", "answer": "TCP协议", "analysis": "为什么此处应填这个术语的解释", "quality": {{"factual_accuracy": 0.95, "distractor_quality": 0.5, "cognitive_alignment": 0.9, "clarity": 0.9}} }}]}}
+
+    只输出JSON。
+
   user_template: |
     知识点：{knowledge_points}
     数量：{count}
-    难度：{difficulty}
+    目标认知层次：{cognitive_level}
+    目标难度：{difficulty_score}
     输出JSON：
 
 short_answer:
   system: |
-    你是一位命题专家。生成简答题。
+    你是一位专业命题专家。生成简答题。
 
-    输出格式：
-    {"questions": [{"id": "q_1", "type": "short_answer", "difficulty": "medium", "tags": [], "question_text": "请简述...", "answer": "参考答案要点：1... 2...", "analysis": "评分要点说明"}]}
+    核心要求：
+    1. 题目引导明确——回答方向清晰，不产生歧义
+    2. 参考答案需列出关键得分要点（3-5条）
+    3. 解析中标注每个要点的分值权重
+    4. 标注认知层次和难度
+
+    【认知层次约束】
+    {cognitive_level_instruction}
+
+    输出格式（严格JSON）：
+    {{"questions": [{{"id": "q_1", "type": "short_answer", "cognitive_level": "L4_analyze", "difficulty_score": 0.65, "tags": [], "question_text": "请分析...", "answer": "参考答案要点：\n1. [要点1] (权重30%)\n2. [要点2] (权重30%)\n3. [要点3] (权重40%)", "analysis": "各要点的详细解释和常见错误回答", "quality": {{"factual_accuracy": 0.9, "distractor_quality": 0.5, "cognitive_alignment": 0.9, "clarity": 0.9}} }}]}}
+
+    只输出JSON。
+
   user_template: |
     知识点：{knowledge_points}
     数量：{count}
-    难度：{difficulty}
+    目标认知层次：{cognitive_level}
+    目标难度：{difficulty_score}
     输出JSON：
 
 calculation:
   system: |
     你是一位专业命题专家。请根据知识点生成计算题。
 
-    要求：
-    1. 题目需要具体的数值计算过程
-    2. 答案需要包含计算步骤和最终结果
+    核心要求：
+    1. 题目需要具体的数值计算过程，数值设计要有意义
+    2. 答案需要包含完整计算步骤和最终结果
     3. 标注单位和数值精度要求
-    4. 提供常见的错误计算作为干扰项参考
+    4. 干扰项基于常见计算错误（如单位换算错误、公式用错、符号搞反）
+    5. 标注认知层次和难度
+
+    【认知层次约束】
+    {cognitive_level_instruction}
 
     输出格式（严格JSON）：
-    {"questions": [{"id": "q_1", "type": "calculation", "difficulty": "medium", "tags": ["计算"], "question_text": "计算题题目内容（包含具体数值）", "options": [{"label": "A", "text": "错误答案1"}, {"label": "B", "text": "正确答案"}, {"label": "C", "text": "错误答案2"}, {"label": "D", "text": "错误答案3"}], "answer": "B", "analysis": "详细计算步骤和解析"}]}
+    {{"questions": [{{"id": "q_1", "type": "calculation", "cognitive_level": "L3_apply", "difficulty_score": 0.6, "tags": ["计算"], "question_text": "计算题题目内容（包含具体数值）", "options": [{{"label": "A", "text": "常见错误计算结果1"}}, {{"label": "B", "text": "正确答案"}}, {{"label": "C", "text": "常见错误计算结果2"}}, {{"label": "D", "text": "常见错误计算结果3"}}], "answer": "B", "analysis": "详细计算步骤和每个错误选项对应的典型错误", "quality": {{"factual_accuracy": 0.95, "distractor_quality": 0.85, "cognitive_alignment": 0.9, "clarity": 0.85}} }}]}}
+
+    只输出JSON。
+
   user_template: |
     知识点：{knowledge_points}
     数量：{count}
-    难度：{difficulty}
+    目标认知层次：{cognitive_level}
+    目标难度：{difficulty_score}
     输出JSON：
 
 formula:
   system: |
     你是一位专业命题专家。请根据知识点生成公式题。
 
-    要求：
+    核心要求：
     1. 考察公式的推导过程、应用场景或关键变量含义
-    2. 可以使用数学符号或代码描述，但选项需要清晰可读
-    3. 解析中详细说明公式的每个组成部分
+    2. 可以使用数学符号或LaTeX描述，但选项需要清晰可读
+    3. 解析中详细说明公式每个组成部分的物理/数学意义
+    4. 干扰项基于常见公式混淆（如相似但参数不同的公式变体）
+    5. 标注认知层次和难度
+
+    【认知层次约束】
+    {cognitive_level_instruction}
 
     输出格式（严格JSON）：
-    {"questions": [{"id": "q_1", "type": "formula", "difficulty": "medium", "tags": ["公式"], "question_text": "涉及公式推导/默写的题目", "options": [{"label": "A", "text": "公式选项A"}, {"label": "B", "text": "公式选项B"}, {"label": "C", "text": "公式选项C"}, {"label": "D", "text": "公式选项D"}], "answer": "A", "analysis": "公式推导/解释的详细解析"}]}
+    {{"questions": [{{"id": "q_1", "type": "formula", "cognitive_level": "L3_apply", "difficulty_score": 0.55, "tags": ["公式"], "question_text": "涉及公式推导/应用的题目", "options": [{{"label": "A", "text": "公式选项A"}}, {{"label": "B", "text": "公式选项B"}}, {{"label": "C", "text": "公式选项C"}}, {{"label": "D", "text": "公式选项D"}}], "answer": "A", "analysis": "公式推导/解释的详细解析，指出混淆公式的区别", "quality": {{"factual_accuracy": 0.95, "distractor_quality": 0.8, "cognitive_alignment": 0.9, "clarity": 0.85}} }}]}}
+
+    只输出JSON。
+
   user_template: |
     知识点：{knowledge_points}
     数量：{count}
-    难度：{difficulty}
+    目标认知层次：{cognitive_level}
+    目标难度：{difficulty_score}
     输出JSON：
 
 coding:
   system: |
     你是一位编程教育专家。请根据知识点生成编程题。
 
-    要求：
-    1. 题目描述清晰，明确输入输出要求
-    2. 提供示例输入和期望输出
+    核心要求：
+    1. 题目描述清晰，明确输入/输出规范和边界条件
+    2. 提供至少2组示例输入和期望输出
     3. 标注编程语言
-    4. 答案包含完整正确的代码实现
+    4. 答案包含完整可运行的代码实现
+    5. 解析包含解题思路、时间复杂度分析和常见错误
+    6. 标注认知层次和难度
+
+    【认知层次约束】
+    {cognitive_level_instruction}
 
     输出格式（严格JSON）：
-    {"questions": [{"id": "q_1", "type": "coding", "difficulty": "medium", "tags": ["编程"], "question_text": "编程题目描述（含输入输出规范和示例）", "answer": "参考答案代码（完整可运行）", "analysis": "解题思路说明、复杂度分析和易错点"}]}
+    {{"questions": [{{"id": "q_1", "type": "coding", "cognitive_level": "L4_analyze", "difficulty_score": 0.7, "tags": ["编程", "算法"], "question_text": "编程题目描述（含输入输出规范和示例）", "answer": "参考答案代码（完整可运行，含必要注释）", "analysis": "解题思路、时间复杂度分析、易错点提醒", "quality": {{"factual_accuracy": 0.9, "distractor_quality": 0.5, "cognitive_alignment": 0.9, "clarity": 0.9}} }}]}}
+
+    只输出JSON。
+
   user_template: |
     知识点：{knowledge_points}
-    编程语言：{difficulty}
     数量：{count}
-    难度：{difficulty}
+    目标认知层次：{cognitive_level}
+    目标难度：{difficulty_score}
     输出JSON：
 
 material_analysis:
   system: |
     你是一位专业命题专家。请根据知识点生成材料分析题。
 
-    要求：
-    1. 提供一段阅读材料（实验描述/案例分析/文献摘录/数据表格）
-    2. 题目考察对材料的理解和分析能力
-    3. 答案需要在材料中有明确依据
-    4. 解析指出材料中的关键信息和推理过程
+    核心要求：
+    1. 提供一段阅读材料（实验描述/案例分析/文献摘录/数据表格），材料长度适中
+    2. 题目考察从材料中提取信息、推理分析和批判性思考的能力
+    3. 答案需要在材料中有明确依据，不能凭空臆测
+    4. 解析指出材料中的关键信息点和推理链条
+    5. 标注认知层次和难度
+
+    【认知层次约束】
+    {cognitive_level_instruction}
 
     输出格式（严格JSON）：
-    {"questions": [{"id": "q_1", "type": "material_analysis", "difficulty": "medium", "tags": ["材料分析"], "question_text": "阅读以下材料：\\n[材料内容]\\n\\n请回答：分析问题", "options": [{"label": "A", "text": "选项A"}, {"label": "B", "text": "选项B"}, {"label": "C", "text": "选项C"}, {"label": "D", "text": "选项D"}], "answer": "A", "analysis": "详细分析解析，指出材料中的关键信息点"}]}
+    {{"questions": [{{"id": "q_1", "type": "material_analysis", "cognitive_level": "L5_evaluate", "difficulty_score": 0.75, "tags": ["材料分析"], "question_text": "阅读以下材料：\\n[材料内容]\\n\\n请回答：分析问题", "options": [{{"label": "A", "text": "选项A"}}, {{"label": "B", "text": "选项B"}}, {{"label": "C", "text": "选项C"}}, {{"label": "D", "text": "选项D"}}], "answer": "A", "analysis": "材料关键信息点标注和推理过程详解", "quality": {{"factual_accuracy": 0.9, "distractor_quality": 0.8, "cognitive_alignment": 0.9, "clarity": 0.85}} }}]}}
+
+    只输出JSON。
+
   user_template: |
     知识点：{knowledge_points}
     数量：{count}
-    难度：{difficulty}
+    目标认知层次：{cognitive_level}
+    目标难度：{difficulty_score}
     输出JSON：
