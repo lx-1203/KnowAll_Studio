@@ -162,6 +162,7 @@ class QuizGenerator:
         "formula": ("quiz_gen", "formula"),
         "coding": ("quiz_gen", "coding"),
         "material_analysis": ("quiz_gen", "material_analysis"),
+        "term_definition": ("quiz_gen", "term_definition"),
     }
 
     async def generate_questions(
