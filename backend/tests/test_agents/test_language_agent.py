@@ -298,6 +298,8 @@ class TestLanguageAgentRun:
         """run() filters out items with blank words."""
         from app.core.agents.language_agent import LanguageAgent
 
+        agent = LanguageAgent()
+
         vocab_json = '[{"word":"valid","phonetic":"","part_of_speech":"","definition":"ok","example_sentence":""},{"word":"","phonetic":"","part_of_speech":"","definition":"","example_sentence":""}]'
 
         mock_summary = MagicMock()
