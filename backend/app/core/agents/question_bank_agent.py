@@ -19,9 +19,9 @@ DEFAULT_COGNITIVE_DISTRIBUTION = {
 # Default question types per cognitive level
 COGNITIVE_LEVEL_QUESTION_TYPES = {
     "L1_remember": ["single_choice", "true_false", "fill_blank"],
-    "L2_understand": ["single_choice", "multi_choice", "true_false", "fill_blank", "short_answer"],
+    "L2_understand": ["single_choice", "multi_choice", "true_false", "fill_blank", "short_answer", "term_definition"],
     "L3_apply": ["single_choice", "calculation", "formula", "coding", "short_answer"],
-    "L4_analyze": ["short_answer", "material_analysis", "multi_choice", "coding"],
+    "L4_analyze": ["short_answer", "material_analysis", "multi_choice", "coding", "term_definition"],
     "L5_evaluate": ["material_analysis", "short_answer", "multi_choice"],
     "L6_create": ["coding", "short_answer", "material_analysis"],
 }
