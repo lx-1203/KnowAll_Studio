@@ -221,8 +221,8 @@ async def sync_websocket(
                     await ws.send_text(json.dumps({
                         "type": "ack", "data": {"new_version": server_version},
                     }))
-                elif server_version - local_version <= 50 and doc_id in _room_op_log:
-                    diff_ops = _room_op_log[doc_id][local_version:]
+                elif server_version - local_version <= 50:
+                    diff_ops = await sync_store.get_ops_since(doc_id, local_version)
                     await ws.send_text(json.dumps({
                         "type": "sync_diff",
                         "data": {"ops": diff_ops, "version": server_version},
