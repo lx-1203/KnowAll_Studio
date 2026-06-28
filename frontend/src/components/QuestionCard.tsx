@@ -415,13 +415,13 @@ function SemanticPanel({ result }: { result: NonNullable<QuestionCardProps['resu
           {fb.suggestion && <div style={{ color: '#666', fontStyle: 'italic' }}>建议: {fb.suggestion}</div>}
         </div>
       )}
-      {result.key_points_matched?.length > 0 && (
+      {result.key_points_matched && result.key_points_matched.length > 0 && (
         <div style={{ marginTop: 6, fontSize: 12 }}>
           <span style={{ color: '#52c41a' }}>匹配: </span>
           {result.key_points_matched.map((kp, i) => <Tag key={i} color="green" style={{ fontSize: 11 }}>{kp}</Tag>)}
         </div>
       )}
-      {result.key_points_missed?.length > 0 && (
+      {result.key_points_missed && result.key_points_missed.length > 0 && (
         <div style={{ marginTop: 4, fontSize: 12 }}>
           <span style={{ color: '#ff4d4f' }}>遗漏: </span>
           {result.key_points_missed.map((kp, i) => <Tag key={i} color="red" style={{ fontSize: 11 }}>{kp}</Tag>)}
