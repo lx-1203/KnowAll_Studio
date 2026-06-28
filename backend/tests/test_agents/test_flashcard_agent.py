@@ -454,7 +454,7 @@ class TestFlashcardAgentRun:
                     mock_fsrs.init_card.return_value = {
                         "stability": 0, "difficulty": 0, "retrievability": 0, "state": "new"
                     }
-                    with patch("app.core.agents.flashcard_agent.prompt_engine") as mock_pe:
+                    with patch("app.prompts.prompt_engine") as mock_pe:
                         mock_pe.render.return_value = [{"role": "system", "content": "test"}]
                         with patch("app.core.agents.flashcard_agent.api_client") as mock_api:
                             mock_api.generate = AsyncMock(return_value=mock_review_result)
@@ -539,7 +539,7 @@ class TestFlashcardAgentRun:
                     mock_fsrs.init_card.return_value = {
                         "stability": 0, "difficulty": 0, "retrievability": 0, "state": "new"
                     }
-                    with patch("app.core.agents.flashcard_agent.prompt_engine") as mock_pe:
+                    with patch("app.prompts.prompt_engine") as mock_pe:
                         mock_pe.render.return_value = [{"role": "system", "content": "test"}]
                         with patch("app.core.agents.flashcard_agent.api_client") as mock_api:
                             mock_api.generate = AsyncMock(return_value=mock_review_result)
