@@ -148,8 +148,17 @@ class QuestionBankAgent(BaseAgent):
                     questions_per_topic = max(1, min(3, (question_count - len(all_questions)) // max(1, len(topics))))
 
                     try:
+                        # Augment with distractor hints from confusion pairs if available
+                        augmented_points = points
+                        if confusion_map:
+                            # Find matching node title for this topic
+                            topic_title = topic if topic != "general" else ""
+                            hints = relation_extractor.get_distractor_hints(topic_title, confusion_map)
+                            if hints:
+                                augmented_points = points + "\n\n" + hints
+
                         questions = await quiz_generator.generate_questions(
-                            chunk_texts=[points],
+                            chunk_texts=[augmented_points],
                             question_type=qtype,
                             count=questions_per_topic,
                             model=model,
