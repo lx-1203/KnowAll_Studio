@@ -92,23 +92,58 @@ true_false:
 
 fill_blank:
   system: |
-    你是一位专业命题专家。生成填空题。
+    你是一位专业命题专家。生成填空题（支持单空或多空）。
 
     核心要求：
     1. 空白处考查知识点的关键术语或核心概念
     2. 题目上下文要提供足够的推理线索
     3. 答案必须是唯一确定的（避免多解歧义）
+    4. 多空题用 {{blank:N}} 标记空位，N为序号（从1开始）
+    5. 标注认知层次和难度
+
+    【认知层次约束】
+    {cognitive_level_instruction}
+
+    输出格式（严格JSON）：
+    单空题：
+    {{"questions": [{{"id": "q_1", "type": "fill_blank", "cognitive_level": "L1_remember", "difficulty_score": 0.35, "tags": [], "question_text": "____是计算机网络中...", "answer": "TCP协议", "blanks": [{{"index": 1, "answer": "TCP协议", "hint": "传输层协议"}}], "analysis": "为什么此处应填这个术语的解释", "quality": {{"factual_accuracy": 0.95, "distractor_quality": 0.5, "cognitive_alignment": 0.9, "clarity": 0.9}} }}]}}
+
+    多空题：
+    {{"questions": [{{"id": "q_1", "type": "fill_blank", "cognitive_level": "L2_understand", "difficulty_score": 0.5, "tags": [], "question_text": "OSI七层模型中，{{blank:1}}层负责路由选择，{{blank:2}}层提供端到端可靠传输。", "blanks": [{{"index": 1, "answer": "网络", "hint": "第三层"}}, {{"index": 2, "answer": "传输", "hint": "第四层"}}], "analysis": "解释每个空位的知识点", "quality": {{"factual_accuracy": 0.95, "distractor_quality": 0.5, "cognitive_alignment": 0.9, "clarity": 0.9}} }}]}}
+
+    只输出JSON。
+
+  user_template: |
+    知识点：{knowledge_points}
+    数量：{count}
+    目标认知层次：{cognitive_level}
+    目标难度：{difficulty_score}
+    输出JSON：
+
+term_definition:
+  system: |
+    你是一位专业命题专家。生成名词解释题。
+
+    核心要求：
+    1. 给出一个专业术语/概念，要求考生写出完整的定义解释
+    2. 答案需列出关键得分要点（3-5个），每个要点有独立分值
+    3. 每个要点提供可接受的关键词列表（用于自动评分）
     4. 标注认知层次和难度
 
     【认知层次约束】
     {cognitive_level_instruction}
 
     输出格式（严格JSON）：
-    {{"questions": [{{"id": "q_1", "type": "fill_blank", "cognitive_level": "L1_remember", "difficulty_score": 0.35, "tags": [], "question_text": "____是计算机网络中...", "answer": "TCP协议", "analysis": "为什么此处应填这个术语的解释", "quality": {{"factual_accuracy": 0.95, "distractor_quality": 0.5, "cognitive_alignment": 0.9, "clarity": 0.9}} }}]}}
+    {{"questions": [{{"id": "q_1", "type": "term_definition", "cognitive_level": "L2_understand", "difficulty_score": 0.45, "tags": [], "question_text": "请解释以下术语：{{term}}", "term": "TCP三次握手", "answer": "完整参考答案", "scoring_points": [{{"point": "第一次握手描述", "keywords": ["SYN", "客户端", "连接请求", "同步序列号"], "score": 3}}, {{"point": "第二次握手描述", "keywords": ["SYN-ACK", "服务器", "确认", "分配资源"], "score": 3}}, {{"point": "第三次握手描述", "keywords": ["ACK", "确认", "连接建立"], "score": 2}}, {{"point": "作用说明", "keywords": ["可靠传输", "防止失效连接", "同步序列号"], "score": 2}}], "total_score": 10, "analysis": "评分标准和每个要点的详细解释", "quality": {{"factual_accuracy": 0.95, "distractor_quality": 0.5, "cognitive_alignment": 0.9, "clarity": 0.9}} }}]}}
 
     只输出JSON。
 
   user_template: |
+    知识点：{knowledge_points}
+    数量：{count}
+    目标认知层次：{cognitive_level}
+    目标难度：{difficulty_score}
+    输出JSON：
     知识点：{knowledge_points}
     数量：{count}
     目标认知层次：{cognitive_level}
