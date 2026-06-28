@@ -179,7 +179,7 @@ async def main():
             if result.get('key_points_missed'):
                 print(f"遗漏要点: {', '.join(result['key_points_missed'])}")
 
-    print("\n✅ 测试完成")
+    print("\nAll tests completed.")
 
 if __name__ == "__main__":
     asyncio.run(main())
