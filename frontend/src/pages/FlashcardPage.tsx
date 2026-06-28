@@ -22,7 +22,7 @@ export default function FlashcardPage() {
   const loadDueCards = async () => {
     setLoading(true)
     try {
-      const result = await getDueCards(20)
+      const result = await getDueCards(reviewLimit)
       setDueCards(result.cards || [])
     } catch (e: any) {
       message.error('加载失败')
