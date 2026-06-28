@@ -815,12 +815,27 @@ async def convert_stream(
 
         result_text = ""
         vocab = []
-        async for event in stream_deepseek(text, all_known, target_words):
-            yield event
-            data_obj = json.loads(event[6:])
-            if data_obj.get("done"):
-                result_text = data_obj["result"]
-                vocab = data_obj.get("vocabulary", [])
+        success = False
+        try:
+            async for event in stream_deepseek(text, all_known, target_words):
+                yield event
+                data_obj = json.loads(event[6:])
+                if data_obj.get("done"):
+                    result_text = data_obj["result"]
+                    vocab = data_obj.get("vocabulary", [])
+                    success = True
+                elif data_obj.get("error"):
+                    logger.warning("Streaming DeepSeek error, falling back to offline dictionary")
+                    break
+        except Exception as e:
+            logger.warning(f"Streaming DeepSeek failed, falling back to offline dictionary: {e}")
+
+        if not success:
+            # Fallback to offline dictionary
+            ratio = {1: 20, 2: 40, 3: 65}.get(req.level if hasattr(req, 'level') else 1, 20)
+            result_text, vocab, _actual_ratio = convert_with_dict(text, ratio)
+            yield f"data: {json.dumps({'done': True, 'result': result_text, 'vocabulary': vocab, 'source': 'dictionary'})}\n\n"
+
         if result_text:
             await cache_set(key, result_text, vocab, db)
 
