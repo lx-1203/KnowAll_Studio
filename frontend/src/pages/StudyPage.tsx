@@ -43,6 +43,12 @@ export default function StudyPage() {
   const fetchPlanDetail = async (planId: string) => {
     try {
       const res = await fetch(API + `/plans/${planId}`)
+      if (res.status === 404) {
+        message.warning('该计划已不存在，正在刷新列表')
+        setSelectedPlan(null)
+        fetchPlans()
+        return
+      }
       if (!res.ok) { message.error('Failed to load plan detail'); return }
       const data = await res.json()
       setSelectedPlan(data)
