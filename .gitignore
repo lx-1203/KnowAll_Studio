@@ -37,6 +37,15 @@ backend/data/exports/
 backend/data/vector_db/
 backend/data/.secret_key
 backend/data/deps_ok
+backend/data/*
+
+# Environment & Secrets — NEVER COMMIT
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+credentials.json
 
 # Electron
 out/

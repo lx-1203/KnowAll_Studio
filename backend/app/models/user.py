@@ -17,7 +17,7 @@ def now():
 class User(Base):
     __tablename__ = "users"
 
-    id = Column(String, primary_key=True, default=gen_uuid)
+    id = Column(String(36), primary_key=True, default=gen_uuid)
     username = Column(String(50), unique=True, nullable=False, index=True)
     email = Column(String(255), unique=True, nullable=False, index=True)
     password_hash = Column(String(255), nullable=False)
@@ -37,9 +37,9 @@ class User(Base):
 class KnowledgePoint(Base):
     __tablename__ = "knowledge_points"
 
-    id = Column(String, primary_key=True, default=gen_uuid)
+    id = Column(String(36), primary_key=True, default=gen_uuid)
     user_id = Column(
-        String, ForeignKey("users.id", ondelete="CASCADE"),
+        String(36), ForeignKey("users.id", ondelete="CASCADE"),
         nullable=False, index=True,
     )
     title = Column(String(500), nullable=False)
