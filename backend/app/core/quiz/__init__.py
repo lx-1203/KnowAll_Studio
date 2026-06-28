@@ -1,4 +1,4 @@
-"""Quiz generation and exam system (M3 — v2 with Bloom's Taxonomy + LLM-as-Judge)"""
+"""Quiz generation and exam system (M3 — v2 with Bloom's Taxonomy + LLM-as-Judge + KG Relations)"""
 import json
 import random
 import logging
