@@ -90,12 +90,16 @@ class QuestionBank(Base):
 
     id = Column(String(36), primary_key=True, default=gen_uuid)
     question_type = Column(String(50), nullable=False)  # single_choice/multi_choice/true_false/fill_blank/cloze/short_answer/calculation/formula/coding/material_analysis
-    difficulty = Column(String(20), default="medium")  # easy/medium/hard
+    difficulty = Column(String(20), default="medium")  # legacy: easy/medium/hard
+    difficulty_score = Column(Float, default=0.5)  # NEW: continuous 0.0-1.0
+    cognitive_level = Column(String(20), default="L2_understand")  # NEW: Bloom level (L1-L6)
     tags = Column(JSON, default=list)
     question_text = Column(Text, nullable=False)
     options = Column(JSON, default=list)  # [{"label":"A","text":"..."}]
     correct_answer = Column(Text, nullable=False)
     analysis = Column(Text)
+    review_scores = Column(JSON, default=dict)  # NEW: LLM-as-Judge quality scores
+    review_total = Column(Float)  # NEW: total review score
     source_chunk_id = Column(String(36), ForeignKey("document_chunks.id"))
     parent_question_id = Column(String(36))  # variant question origin
     generation_cache_key = Column(String(128))
