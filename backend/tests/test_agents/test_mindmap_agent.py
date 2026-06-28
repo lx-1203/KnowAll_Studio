@@ -213,7 +213,7 @@ class TestMindMapRun:
         mock_session = AsyncMock()
         mock_session.get = AsyncMock(return_value=None)
 
-        with patch("app.core.agents.mindmap_agent.async_session") as mock_session_ctx:
+        with patch("app.database.async_session") as mock_session_ctx:
             mock_session_ctx.return_value.__aenter__ = AsyncMock(return_value=mock_session)
             mock_session_ctx.return_value.__aexit__ = AsyncMock(return_value=None)
 
@@ -242,7 +242,7 @@ class TestMindMapRun:
         mock_result.scalars.return_value = mock_scalars
         mock_session.execute = AsyncMock(return_value=mock_result)
 
-        with patch("app.core.agents.mindmap_agent.async_session") as mock_session_ctx:
+        with patch("app.database.async_session") as mock_session_ctx:
             mock_session_ctx.return_value.__aenter__ = AsyncMock(return_value=mock_session)
             mock_session_ctx.return_value.__aexit__ = AsyncMock(return_value=None)
 
@@ -282,7 +282,7 @@ class TestMindMapRun:
 
         # Mock _load_cross_edges inner execute
         # The _load_cross_edges does two selections internally
-        with patch("app.core.agents.mindmap_agent.async_session") as mock_session_ctx:
+        with patch("app.database.async_session") as mock_session_ctx:
             mock_session_ctx.return_value.__aenter__ = AsyncMock(return_value=mock_session)
             mock_session_ctx.return_value.__aexit__ = AsyncMock(return_value=None)
 
@@ -336,7 +336,7 @@ class TestMindMapRun:
         mock_node_result.scalars.return_value = mock_scalars
         mock_session.execute = AsyncMock(return_value=mock_node_result)
 
-        with patch("app.core.agents.mindmap_agent.async_session") as mock_session_ctx:
+        with patch("app.database.async_session") as mock_session_ctx:
             mock_session_ctx.return_value.__aenter__ = AsyncMock(return_value=mock_session)
             mock_session_ctx.return_value.__aexit__ = AsyncMock(return_value=None)
 
@@ -390,7 +390,7 @@ class TestMindMapRun:
         mock_node_result.scalars.return_value = mock_scalars
         mock_session.execute = AsyncMock(return_value=mock_node_result)
 
-        with patch("app.core.agents.mindmap_agent.async_session") as mock_session_ctx:
+        with patch("app.database.async_session") as mock_session_ctx:
             mock_session_ctx.return_value.__aenter__ = AsyncMock(return_value=mock_session)
             mock_session_ctx.return_value.__aexit__ = AsyncMock(return_value=None)
 
@@ -441,7 +441,7 @@ class TestMindMapRun:
         mock_node_result.scalars.return_value = mock_scalars
         mock_session.execute = AsyncMock(return_value=mock_node_result)
 
-        with patch("app.core.agents.mindmap_agent.async_session") as mock_session_ctx:
+        with patch("app.database.async_session") as mock_session_ctx:
             mock_session_ctx.return_value.__aenter__ = AsyncMock(return_value=mock_session)
             mock_session_ctx.return_value.__aexit__ = AsyncMock(return_value=None)
 
@@ -496,7 +496,7 @@ class TestMindMapRun:
         mock_node_result.scalars.return_value = mock_scalars
         mock_session.execute = AsyncMock(return_value=mock_node_result)
 
-        with patch("app.core.agents.mindmap_agent.async_session") as mock_session_ctx:
+        with patch("app.database.async_session") as mock_session_ctx:
             mock_session_ctx.return_value.__aenter__ = AsyncMock(return_value=mock_session)
             mock_session_ctx.return_value.__aexit__ = AsyncMock(return_value=None)
 
@@ -558,7 +558,7 @@ class TestMindMapRun:
         mock_node_result.scalars.return_value = mock_scalars
         mock_session.execute = AsyncMock(return_value=mock_node_result)
 
-        with patch("app.core.agents.mindmap_agent.async_session") as mock_session_ctx:
+        with patch("app.database.async_session") as mock_session_ctx:
             mock_session_ctx.return_value.__aenter__ = AsyncMock(return_value=mock_session)
             mock_session_ctx.return_value.__aexit__ = AsyncMock(return_value=None)
 
@@ -619,7 +619,7 @@ class TestMindMapRun:
 
         agent = MindMapAgent()
 
-        with patch("app.core.agents.mindmap_agent.async_session") as mock_session_ctx:
+        with patch("app.database.async_session") as mock_session_ctx:
             mock_session_ctx.side_effect = RuntimeError("DB not available")
 
             result = await agent.run(summary_id="sum_1", document_id="doc_1")
