@@ -738,7 +738,7 @@ export default function QuizPage() {
                                 onOk: async () => {
                                   try {
                                     const exam = await createExam({ title: `错题重练-${new Date().toLocaleDateString()}`, question_ids: wrongIds })
-                                    setCurrentExam(exam); setResults(null as any); reset()
+                                    setCurrentExam(exam)
                                     setMarkedQuestions(new Set()); setReviewMode('all'); setReviewFilter('all')
                                     message.success(`错题重练已就绪: ${exam.question_count} 题`)
                                   } catch (e: any) { message.error('创建失败') }
