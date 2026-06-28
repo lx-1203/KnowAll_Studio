@@ -135,7 +135,6 @@ export default function UploadPage() {
     try {
       const filePath = await win.electronAPI.selectFile()
       if (!filePath) return
-      // Fetch the file and create a File object
       const resp = await fetch(`file://${filePath}`)
       const blob = await resp.blob()
       const fileName = filePath.split(/[/\\]/).pop() || 'unknown'
@@ -144,6 +143,31 @@ export default function UploadPage() {
     } catch (e: any) {
       message.error(`Electron 文件选择失败: ${e.message}`)
     }
+  }
+
+  const handleGenerateSummary = async () => {
+    if (selectedDocIds.length === 0) {
+      message.warning('请先勾选要汇总的资料')
+      return
+    }
+    setGeneratingSummary(true)
+    try {
+      const result = await generateSummary({ document_ids: selectedDocIds })
+      message.success(`知识总纲生成成功！共 ${result.node_count} 个知识点`)
+      navigate(`/summary/${result.summary_id}`)
+    } catch (e: any) {
+      message.error(`生成失败: ${e.response?.data?.detail || e.message}`)
+    } finally {
+      setGeneratingSummary(false)
+    }
+  }
+
+  const toggleSelectDoc = (docId: string) => {
+    setSelectedDocIds(prev =>
+      prev.includes(docId) ? prev.filter(id => id !== docId) : [...prev, docId]
+    )
+    // Also update legacy single select for backward compatibility
+    setSelectedDoc(docId)
   }
 
   const isElectron = !!(window as any).electronAPI?.isElectron
