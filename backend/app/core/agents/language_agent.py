@@ -38,7 +38,7 @@ class LanguageAgent(BaseAgent):
     def _auto_detect_language_material(self, document_id: str) -> bool:
         """Auto-detect if document is language learning material by checking content."""
         try:
-            from app.database import get_session_ctx
+            from app.database import async_session_ctx
             from app.models import Document, DocumentChunk
             from sqlalchemy import select
 
@@ -82,7 +82,7 @@ class LanguageAgent(BaseAgent):
             return False
 
     async def run(self, summary_id: str, document_id: str, **kwargs) -> AgentResult:
-        from app.database import get_session
+        from app.database import async_session
         from app.models import KnowledgeSummary, KnowledgePointNode, LanguageVocabulary
         from app.prompts import prompt_engine
         from app.core.api_scheduler import api_client, TaskType, GenerationConfig
