@@ -119,7 +119,9 @@ export const useFlashcardStore = create<{
   setDueCards: (cards: Flashcard[]) => void;
   flip: () => void;
   next: () => void;
+  prev: () => void;
   setCurrentIndex: (i: number) => void;
+  progress: () => { current: number; total: number; percent: number };
 }>(set => ({
   dueCards: [], currentIndex: 0, isFlipped: false,
   setDueCards: (cards) => set({ dueCards: cards, currentIndex: 0, isFlipped: false }),
@@ -128,5 +130,17 @@ export const useFlashcardStore = create<{
     currentIndex: Math.min(s.currentIndex + 1, s.dueCards.length - 1),
     isFlipped: false,
   })),
+  prev: () => set(s => ({
+    currentIndex: Math.max(s.currentIndex - 1, 0),
+    isFlipped: false,
+  })),
   setCurrentIndex: (i) => set({ currentIndex: i, isFlipped: false }),
+  progress: () => {
+    const state = useFlashcardStore.getState()
+    return {
+      current: state.currentIndex + 1,
+      total: state.dueCards.length,
+      percent: state.dueCards.length > 0 ? Math.round(((state.currentIndex + 1) / state.dueCards.length) * 100) : 0,
+    }
+  },
 }))
