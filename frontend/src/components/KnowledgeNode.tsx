@@ -1,6 +1,5 @@
 import { memo } from 'react'
 import { Handle, Position } from 'reactflow'
-import { Tag } from 'antd'
 import { BookOutlined, StarOutlined, WarningOutlined, BulbOutlined } from '@ant-design/icons'
 
 const tagConfig: Record<string, { color: string; icon: React.ReactNode; bg: string }> = {
