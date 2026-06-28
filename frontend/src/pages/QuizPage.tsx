@@ -1093,6 +1093,7 @@ export default function QuizPage() {
         { key: 'exam', label: <span><FormOutlined /> 答题{currentExam ? <Badge dot style={{ marginLeft: 4 }} /> : ''}</span>, children: examTab },
         { key: 'bank', label: <span><InboxOutlined /> 题库<Badge count={allQuestions.length} style={{ backgroundColor: '#1677ff', marginLeft: 4 }} overflowCount={999} /></span>, children: bankTab },
         { key: 'errors', label: <span><BugOutlined /> 错题{errorQuestions.length > 0 ? <Badge count={errorQuestions.length} style={{ backgroundColor: '#ff4d4f', marginLeft: 4 }} /> : ''}</span>, children: errorsTab },
+        { key: 'review', label: <span><EyeOutlined /> 回顾分析</span>, children: reviewAnalysisTab },
       ]}
       style={{ minHeight: 'calc(100vh - 200px)' }}
     />
