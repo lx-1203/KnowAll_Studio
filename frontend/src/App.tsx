@@ -80,7 +80,6 @@ export default function App() {
     { key: '/share', icon: <ShareAltOutlined />, label: <Link to="/share">分享协作</Link> },
     { key: '/settings', icon: <SettingOutlined />, label: <Link to="/settings">设置</Link> },
     { key: '/personal', icon: <UserOutlined />, label: <Link to="/personal">个人中心</Link> },
-    { key: '/reading', icon: <ReadOutlined />, label: <Link to="/reading">外语学习</Link> },
   ]
 
   const menu = (
