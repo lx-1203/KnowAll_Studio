@@ -32,6 +32,8 @@ class CreateExamRequest(BaseModel):
 class SubmitExamRequest(BaseModel):
     paper_id: str
     answers: dict[str, str]
+    enable_semantic: bool = True  # NEW: use LLM semantic grading for open-ended questions
+    model: str = "deepseek-chat"  # model for semantic grading
 
 
 @router.post("/generate")
