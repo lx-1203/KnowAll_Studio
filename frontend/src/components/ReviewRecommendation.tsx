@@ -4,7 +4,7 @@ import {
 } from 'antd'
 import {
   RobotOutlined, ThunderboltOutlined, ClockCircleOutlined,
-  BookOutlined, CaretRightOutlined, ReloadOutlined,
+  BookOutlined,
 } from '@ant-design/icons'
 import { TrophyOutlined } from '@ant-design/icons'
 import { generateReviewRecommendations } from '../api'
