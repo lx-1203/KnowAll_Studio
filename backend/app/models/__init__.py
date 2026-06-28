@@ -89,7 +89,7 @@ class QuestionBank(Base):
     __tablename__ = "question_bank"
 
     id = Column(String(36), primary_key=True, default=gen_uuid)
-    question_type = Column(String(50), nullable=False)  # single_choice/multi_choice/true_false/fill_blank/cloze/short_answer/calculation/formula/coding/material_analysis
+    question_type = Column(String(50), nullable=False)  # single_choice/multi_choice/true_false/fill_blank/cloze/short_answer/calculation/formula/coding/material_analysis/term_definition
     difficulty = Column(String(20), default="medium")  # legacy: easy/medium/hard
     difficulty_score = Column(Float, default=0.5)  # NEW: continuous 0.0-1.0
     cognitive_level = Column(String(20), default="L2_understand")  # NEW: Bloom level (L1-L6)
