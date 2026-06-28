@@ -86,9 +86,18 @@ export class RealtimeSyncClient {
       }
     };
 
-    this.ws.onclose = () => {
-      console.log('[SyncClient] 连接断开');
+    this.ws.onclose = (event) => {
+      console.log('[SyncClient] 连接断开, code=%s', event.code);
       this.stopHeartbeat();
+      // 不可恢复的错误：不重连
+      if (event.code === 4001) {
+        console.error('[SyncClient] 认证失败，停止重连');
+        this.options.onError({ code: 'AUTH_FAILED', msg: '认证失败，请重新登录' });
+        return;
+      }
+      if (event.code === 4002) {
+        console.warn('[SyncClient] 心跳超时被服务器断开，准备重连...');
+      }
       this.scheduleReconnect();
     };
 
