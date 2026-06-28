@@ -18,7 +18,6 @@ interface Props {
 
 export default function ReviewRecommendation({ onRefresh }: Props) {
   const [data, setData] = useState<ReviewRecommendations | null>(null)
-  const [loading, setLoading] = useState(false)
   const [generating, setGenerating] = useState(false)
 
   const handleGenerate = async () => {
