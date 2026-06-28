@@ -69,7 +69,12 @@ export class RealtimeSyncClient {
       console.log('[SyncClient] 已连接, doc=%s', this.options.docId);
       this.reconnectDelay = 3000; // 重置重连间隔
       this.startHeartbeat();
-      this.flushOfflineQueue();
+      // 按规范 6.2 节：发送 reconnect 让服务器决定增量/全量同步
+      this.send({
+        type: 'reconnect',
+        local_version: this.localVersion,
+        data: {},
+      } as SyncMessage);
     };
 
     this.ws.onmessage = (event) => {
