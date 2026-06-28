@@ -185,7 +185,18 @@ export default function FlashcardPage() {
           />
           <Select
             value={reviewLimit}
-            onChange={(v) => { setReviewLimit(v); setTimeout(loadDueCards, 0) }}
+            onChange={async (v) => {
+              setReviewLimit(v)
+              setLoading(true)
+              try {
+                const result = await getDueCards(v)
+                setDueCards(result.cards || [])
+              } catch (e: any) {
+                message.error('加载失败')
+              } finally {
+                setLoading(false)
+              }
+            }}
             style={{ width: 100 }}
             options={[10, 20, 30, 50, 100].map(n => ({ value: n, label: `每次${n}张` }))}
           />
