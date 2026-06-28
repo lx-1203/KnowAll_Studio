@@ -113,8 +113,10 @@ export default function App() {
             <Button type="text" icon={<MenuOutlined />} onClick={() => setDrawerOpen(true)}
               style={{ color: '#fff', fontSize: 18 }} aria-label="打开菜单" />
           )}
+          <img src="/logo.png" alt="全息坚果 Logo"
+            style={{ height: 36, width: 36, borderRadius: 8, objectFit: 'cover' }} />
           <h1 style={{ color: '#fff', margin: 0, fontSize: 20, fontWeight: 700, whiteSpace: 'nowrap' }}>
-            KnowAll Studio
+            全息坚果
           </h1>
         </div>
         <Space size="middle">
