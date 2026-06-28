@@ -20,7 +20,8 @@ class PromptTemplate:
         """Render the prompt into chat messages format."""
         messages = []
         if self.system:
-            messages.append({"role": "system", "content": self.system.strip()})
+            formatted_system = self.system.format(**kwargs)
+            messages.append({"role": "system", "content": formatted_system.strip()})
         user_content = self.user_template.format(**kwargs)
         messages.append({"role": "user", "content": user_content.strip()})
         return messages
