@@ -182,7 +182,7 @@ class TestQuestionBankRun:
                 ) as mock_rel_extract:
                     mock_rel_extract.return_value = ([], [])
                     with patch(
-                        "app.core.agents.question_bank_agent.quiz_generator.generate_questions",
+                        "app.core.quiz.quiz_generator.generate_questions",
                         new_callable=AsyncMock,
                     ) as mock_gen:
                         mock_gen.return_value = [
@@ -234,7 +234,7 @@ class TestQuestionBankRun:
             ) as mock_rel:
                 mock_rel.return_value = ([], [])
                 with patch(
-                    "app.core.agents.question_bank_agent.quiz_generator.generate_questions",
+                    "app.core.quiz.quiz_generator.generate_questions",
                     new_callable=AsyncMock,
                 ) as mock_gen:
                     mock_gen.return_value = [
@@ -287,7 +287,7 @@ class TestQuestionBankRun:
                 side_effect=RuntimeError("KG extraction failed"),
             ):
                 with patch(
-                    "app.core.agents.question_bank_agent.quiz_generator.generate_questions",
+                    "app.core.quiz.quiz_generator.generate_questions",
                     new_callable=AsyncMock,
                 ) as mock_gen:
                     mock_gen.return_value = [
@@ -338,7 +338,7 @@ class TestQuestionBankRun:
                 new_callable=AsyncMock,
             ) as mock_rel_extract:
                 with patch(
-                    "app.core.agents.question_bank_agent.quiz_generator.generate_questions",
+                    "app.core.quiz.quiz_generator.generate_questions",
                     new_callable=AsyncMock,
                 ) as mock_gen:
                     mock_gen.return_value = [
