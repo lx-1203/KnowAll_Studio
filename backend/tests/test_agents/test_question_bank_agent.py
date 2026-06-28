@@ -173,7 +173,7 @@ class TestQuestionBankRun:
             mock_session_ctx.return_value.__aexit__ = AsyncMock(return_value=None)
 
             with patch(
-                "app.core.agents.question_bank_agent.summary_generator.extract_nodes_from_markdown",
+                "app.core.knowledge.summary_generator.summary_generator.extract_nodes_from_markdown",
                 return_value=extracted_nodes,
             ):
                 with patch(
