@@ -124,6 +124,17 @@ export default function QuizPage() {
 
   // ---- Load bank ----
   useEffect(() => { refreshBank() }, [bankFilter])
+
+  // ---- Lazy load review data when tab is opened ----
+  useEffect(() => {
+    if (activeTab === 'review') {
+      if (!mastery) loadMastery()
+      if (!reviewStats) loadReviewStats()
+      if (kpList.length === 0) loadKpList()
+      if (answerHistory.length === 0) loadHistory(1)
+    }
+  }, [activeTab])
+
   const refreshBank = useCallback(() => {
     setQuestionsLoading(true)
     const params: any = { limit: 200 }
