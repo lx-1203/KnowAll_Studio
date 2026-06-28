@@ -1,7 +1,6 @@
 import { useState, useEffect, useCallback, useRef } from 'react'
-import { App, Modal, Input, Upload, message as antMsg } from 'antd'
-import { UploadOutlined } from '@ant-design/icons'
-import { getReadingArticles, getReadingArticle, convertReadingText, convertReadingStream, uploadReadingArticle, deleteReadingArticle } from '../api'
+import { App, Modal, Input } from 'antd'
+import { getReadingArticles, getReadingArticle, convertReadingText, uploadReadingArticle, deleteReadingArticle } from '../api'
 import { useTheme } from '../components/ThemeProvider'
 import './ReadingPage.css'
 
