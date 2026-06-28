@@ -123,7 +123,7 @@ class TestQuestionBankRun:
         mock_session = AsyncMock()
         mock_session.get = AsyncMock(return_value=None)
 
-        with patch("app.core.agents.question_bank_agent.async_session") as mock_session_ctx:
+        with patch("app.database.async_session") as mock_session_ctx:
             mock_session_ctx.return_value.__aenter__ = AsyncMock(return_value=mock_session)
             mock_session_ctx.return_value.__aexit__ = AsyncMock(return_value=None)
 
@@ -168,7 +168,7 @@ class TestQuestionBankRun:
             }
         ]
 
-        with patch("app.core.agents.question_bank_agent.async_session") as mock_session_ctx:
+        with patch("app.database.async_session") as mock_session_ctx:
             mock_session_ctx.return_value.__aenter__ = AsyncMock(return_value=mock_session)
             mock_session_ctx.return_value.__aexit__ = AsyncMock(return_value=None)
 
@@ -224,7 +224,7 @@ class TestQuestionBankRun:
         mock_session.add = MagicMock()
         mock_session.commit = AsyncMock()
 
-        with patch("app.core.agents.question_bank_agent.async_session") as mock_session_ctx:
+        with patch("app.database.async_session") as mock_session_ctx:
             mock_session_ctx.return_value.__aenter__ = AsyncMock(return_value=mock_session)
             mock_session_ctx.return_value.__aexit__ = AsyncMock(return_value=None)
 
@@ -277,7 +277,7 @@ class TestQuestionBankRun:
         mock_session.add = MagicMock()
         mock_session.commit = AsyncMock()
 
-        with patch("app.core.agents.question_bank_agent.async_session") as mock_session_ctx:
+        with patch("app.database.async_session") as mock_session_ctx:
             mock_session_ctx.return_value.__aenter__ = AsyncMock(return_value=mock_session)
             mock_session_ctx.return_value.__aexit__ = AsyncMock(return_value=None)
 
@@ -329,7 +329,7 @@ class TestQuestionBankRun:
         mock_session.add = MagicMock()
         mock_session.commit = AsyncMock()
 
-        with patch("app.core.agents.question_bank_agent.async_session") as mock_session_ctx:
+        with patch("app.database.async_session") as mock_session_ctx:
             mock_session_ctx.return_value.__aenter__ = AsyncMock(return_value=mock_session)
             mock_session_ctx.return_value.__aexit__ = AsyncMock(return_value=None)
 
@@ -361,7 +361,7 @@ class TestQuestionBankRun:
 
         agent = QuestionBankAgent()
 
-        with patch("app.core.agents.question_bank_agent.async_session") as mock_session_ctx:
+        with patch("app.database.async_session") as mock_session_ctx:
             mock_session_ctx.side_effect = RuntimeError("DB crash")
 
             result = await agent.run(summary_id="sum_1", document_id="doc_1")
