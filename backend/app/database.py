@@ -53,12 +53,18 @@ async def get_db() -> AsyncSession:
 
 
 async def init_db():
-    """Run Alembic migrations to bring DB up to date."""
+    """Run Alembic migrations to bring DB up to date.
+
+    If migrations fail (e.g., broken chain from empty initial migration),
+    falls back to dropping all tables and recreating from models.
+    This is safe for development but DESTROYS DATA on schema mismatch.
+    """
     import subprocess
     import sys
     from pathlib import Path
 
     alembic_cfg_path = Path(__file__).resolve().parent.parent / "alembic.ini"
+    migration_failed = False
 
     if alembic_cfg_path.exists():
         logger.info("Running Alembic migrations...")
@@ -70,11 +76,29 @@ async def init_db():
             timeout=30,
         )
         if result.returncode != 0:
+            migration_failed = True
             stderr = result.stderr.strip()
             if stderr:
-                logger.warning("Alembic stderr: %s", stderr[:500])
-        logger.info("Alembic migrations complete. stdout: %s", result.stdout.strip()[:200] or "(no output)")
+                logger.warning("Alembic migration failed (will recreate tables): %s", stderr[:500])
+        else:
+            logger.info("Alembic migrations complete. stdout: %s", result.stdout.strip()[:200] or "(no output)")
 
-    # Always create any tables not yet covered by migrations (idempotent)
-    async with engine.begin() as conn:
-        await conn.run_sync(Base.metadata.create_all)
+    if migration_failed:
+        # Drop all tables and recreate from current models
+        logger.warning("Dropping all tables and recreating from models (dev mode)...")
+        async with engine.begin() as conn:
+            await conn.run_sync(Base.metadata.drop_all)
+            await conn.run_sync(Base.metadata.create_all)
+        # Stamp alembic head so future migrations work
+        subprocess.run(
+            [sys.executable, "-m", "alembic", "-c", str(alembic_cfg_path), "stamp", "head"],
+            cwd=str(alembic_cfg_path.parent),
+            capture_output=True,
+            text=True,
+            timeout=30,
+        )
+        logger.info("Database recreated from models and alembic head stamped.")
+    else:
+        # Ensure any tables not covered by migrations exist (idempotent)
+        async with engine.begin() as conn:
+            await conn.run_sync(Base.metadata.create_all)
