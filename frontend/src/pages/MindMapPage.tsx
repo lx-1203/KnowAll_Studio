@@ -10,7 +10,6 @@ import {
   ArrowLeftOutlined, ExpandOutlined, TrophyOutlined,
   ApartmentOutlined, BranchesOutlined, DashboardOutlined,
   CheckCircleOutlined, WarningOutlined, BulbOutlined,
-  NodeIndexOutlined,
 } from '@ant-design/icons'
 import { getSummaryMindmap } from '../api'
 import type { MindMapData, BOISMetrics, RestructurePlan, CategoryFramework } from '../types'

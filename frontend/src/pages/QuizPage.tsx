@@ -363,6 +363,43 @@ export default function QuizPage() {
     finally { setVariantGenerating(null) }
   }
 
+  // ---- Review analysis loaders ----
+  const loadMastery = async () => {
+    setMasteryLoading(true)
+    try { setMastery(await getMasteryAnalysis()) }
+    catch { message.error('加载掌握度分析失败') }
+    finally { setMasteryLoading(false) }
+  }
+  const loadReviewStats = async () => {
+    setReviewStatsLoading(true)
+    try { setReviewStats(await getReviewStats()) }
+    catch { message.error('加载统计数据失败') }
+    finally { setReviewStatsLoading(false) }
+  }
+  const loadKpList = async () => {
+    try { const data = await getReviewKnowledgePoints(); setKpList(data.items || []) }
+    catch { /* silent */ }
+  }
+  const loadHistory = useCallback(async (page?: number, correct?: boolean, kpId?: string) => {
+    setHistoryLoading(true)
+    try {
+      const p = page || historyPage
+      const data = await getAnswerHistory({
+        page: p, page_size: 20,
+        is_correct: correct !== undefined ? correct : filterCorrect,
+        kp_id: kpId || filterKpId,
+      })
+      setAnswerHistory(data.items || [])
+      setHistoryTotal(data.total || 0)
+      setHistoryPage(p)
+    } catch { message.error('加载答题历史失败') }
+    finally { setHistoryLoading(false) }
+  }, [historyPage, filterCorrect, filterKpId])
+  const handleHistoryFilter = (type: 'correct' | 'kp', value: any) => {
+    if (type === 'correct') { setFilterCorrect(value); loadHistory(1, value, undefined) }
+    else { setFilterKpId(value); loadHistory(1, undefined, value) }
+  }
+
   // ---- Review view component ----
   const ReviewView = ({ questions, results, filter }: { questions: any[]; results: any; filter: 'all' | 'wrong' }) => {
     const filteredDetails = results.details.filter((d: any) => filter === 'all' || !d.is_correct)
