@@ -106,6 +106,7 @@ export interface ExamResult {
   score: number
   percentage: number
   details: ResultDetail[]
+  cognitive_breakdown?: Record<string, { total: number; correct: number; accuracy: number }>
 }
 
 export interface ResultDetail {
