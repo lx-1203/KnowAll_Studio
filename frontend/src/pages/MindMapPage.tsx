@@ -214,11 +214,24 @@ export default function MindMapPage() {
   const [edges, setEdges, onEdgesChange] = useEdgesState([])
   const [showPanel, setShowPanel] = useState(true)
 
-  /** 树形布局：子节点紧跟在父节点周围，同级从左到右递进 */
+  /** 估算节点渲染高度（含标题/标签/摘要） */
+  const estNodeHeight = useCallback((n: any): number => {
+    const hasSummary = n.summary && n.summary.length > 0
+    const labelLen = (n.label || '').length
+    let h = 48  // 基础：padding + 标题行
+    if (n.tag) h += 20          // 标签行
+    if (hasSummary) h += 36     // 摘要行
+    if (labelLen > 12) h += 16  // 标题换行
+    return h
+  }, [])
+
+  /** 树形布局：先算子树高度(后序)，再分配位置(前序)。确保零重叠 */
   const computeTreeLayout = useCallback((
     rawNodes: any[], rawEdges: any[]
   ): { nodes: Node[]; edges: Edge[] } => {
-    // 构建父子关系
+    if (rawNodes.length === 0) return { nodes: [], edges: [] }
+
+    // ── 1. 构建父子关系 ──
     const childrenMap = new Map<string, string[]>()
     const parentMap = new Map<string, string>()
 
@@ -230,129 +243,154 @@ export default function MindMapPage() {
       }
     }
 
-    // 找到根节点（无父节点的为一级）
-    const rootIds = new Set<string>()
+    // ── 2. 找到根节点 ──
+    const rootIds: string[] = []
     for (const n of rawNodes) {
-      if (!parentMap.has(n.id)) rootIds.add(n.id)
+      if (!parentMap.has(n.id)) rootIds.push(n.id)
     }
-    // 如果所有节点都有父节点，回退到 level=1 的节点作为根
-    if (rootIds.size === 0) {
+    if (rootIds.length === 0) {
       for (const n of rawNodes) {
-        if ((n.level || 1) === 1) rootIds.add(n.id)
+        if ((n.level || 1) === 1) rootIds.push(n.id)
       }
     }
-    if (rootIds.size === 0 && rawNodes.length > 0) {
-      rootIds.add(rawNodes[0].id)
+    if (rootIds.length === 0 && rawNodes.length > 0) {
+      rootIds.push(rawNodes[0].id)
     }
-
-    // 递归计算每个子树的高度（叶子节点数量）
-    const subtreeLeafCount = new Map<string, number>()
-    function calcLeaves(id: string): number {
-      if (subtreeLeafCount.has(id)) return subtreeLeafCount.get(id)!
-      const children = childrenMap.get(id) || []
-      if (children.length === 0) {
-        subtreeLeafCount.set(id, 1)
-        return 1
-      }
-      const total = children.reduce((sum, c) => sum + calcLeaves(c), 0)
-      subtreeLeafCount.set(id, Math.max(total, 1))
-      return Math.max(total, 1)
-    }
-    for (const n of rawNodes) calcLeaves(n.id)
-
-    // 布局常量
-    const H_GAP = 220          // 层级之间水平间距
-    const V_GAP = 90           // 兄弟节点之间垂直间距
-    const START_Y = 40
-
-    // 为每个节点分配 y 位置：从上到下按子树排列
-    const yPos = new Map<string, number>()
-    const visited = new Set<string>()
-
-    function layoutY(id: string, startY: number): number {
-      if (visited.has(id)) return startY
-      visited.add(id)
-      const children = childrenMap.get(id) || []
-      if (children.length === 0) {
-        yPos.set(id, startY)
-        return startY + V_GAP
-      }
-      let currentY = startY
-      // 先布局所有子节点
-      const childYValues: number[] = []
-      for (const childId of children) {
-        const nextY = layoutY(childId, currentY)
-        childYValues.push((currentY + nextY - V_GAP) / 2) // 子节点中心
-        currentY = nextY
-      }
-      // 父节点居中于子节点
-      const parentY = (childYValues[0] + childYValues[childYValues.length - 1]) / 2
-      yPos.set(id, parentY)
-      return currentY
-    }
-
-    // 对根节点按标签排序后布局
-    const sortedRoots = [...rootIds].sort((a, b) => {
+    // 根节点按标签排序
+    rootIds.sort((a, b) => {
       const na = rawNodes.find(n => n.id === a)
       const nb = rawNodes.find(n => n.id === b)
       return (na?.label || '').localeCompare(nb?.label || '')
     })
 
-    let globalY = START_Y
-    for (const rootId of sortedRoots) {
-      globalY = layoutY(rootId, globalY) + 20 // 根之间额外间距
+    // ── 3. 布局常量 ──
+    const H_GAP = 250          // 层级间水平间距
+    const SIBLING_GAP = 30     // 相邻兄弟子树之间的垂直间距
+    const ROOT_GAP = 50        // 不同根节点之间的额外间距
+    const START_X = 30
+    const START_Y = 30
+    const nodeH = new Map<string, number>()
+    for (const n of rawNodes) nodeH.set(n.id, estNodeHeight(n))
+
+    // ── 4. 后序遍历：计算每个子树的垂直高度 ──
+    const subtreeH = new Map<string, number>()
+
+    function calcSubtreeH(id: string): number {
+      if (subtreeH.has(id)) return subtreeH.get(id)!
+      const children = childrenMap.get(id) || []
+      if (children.length === 0) {
+        const h = nodeH.get(id) || 80
+        subtreeH.set(id, h)
+        return h
+      }
+      let total = 0
+      for (const c of children) total += calcSubtreeH(c)
+      total += (children.length - 1) * SIBLING_GAP
+      // 父节点高度也计入（它位于子节点上方）
+      total = Math.max(total, nodeH.get(id) || 80)
+      subtreeH.set(id, total)
+      return total
     }
 
-    // 处理未被访问的节点（孤立节点或 cross_reference 边涉及的节点）
+    for (const n of rawNodes) calcSubtreeH(n.id)
+
+    // ── 5. 前序遍历：分配具体坐标 ──
+    const xPos = new Map<string, number>()
+    const yPos = new Map<string, number>()
+    const depthMap = new Map<string, number>()
+
+    function setDepth(id: string, d: number) {
+      depthMap.set(id, d)
+      for (const c of childrenMap.get(id) || []) setDepth(c, d + 1)
+    }
+    for (const rid of rootIds) setDepth(rid, 0)
+
+    /** 在给定 y 偏移处布局一个子树，返回子树结束后的 y */
+    function layoutSubtree(id: string, yOffset: number): number {
+      const children = childrenMap.get(id) || []
+      const myH = nodeH.get(id) || 80
+
+      if (children.length === 0) {
+        // 叶节点：放在 yOffset
+        yPos.set(id, yOffset)
+        return yOffset + myH
+      }
+
+      // 先布局所有子节点（递归）
+      const childCenters: number[] = []
+      let cy = yOffset
+      for (const childId of children) {
+        const childEnd = layoutSubtree(childId, cy)
+        const childH = subtreeH.get(childId) || myH
+        childCenters.push(cy + childH / 2)
+        cy = childEnd + SIBLING_GAP
+      }
+      // 去掉最后一个孩子后的多余间隙
+      const subtreeEnd = cy - SIBLING_GAP
+
+      // 父节点居中于第一个和最后一个子节点的中心
+      const firstCenter = childCenters[0]
+      const lastCenter = childCenters[childCenters.length - 1]
+      const parentCenter = (firstCenter + lastCenter) / 2
+      const parentY = parentCenter - myH / 2
+
+      // 确保父节点不低于 yOffset（不侵入上方区域）
+      const clampedParentY = Math.max(yOffset, parentY)
+
+      yPos.set(id, clampedParentY)
+
+      // 如果父节点被 clamp 到了更下方，子树结束位置要相应调整
+      const actualParentBottom = clampedParentY + myH
+      return Math.max(subtreeEnd, actualParentBottom)
+    }
+
+    let globalY = START_Y
+    for (const rid of rootIds) {
+      globalY = layoutSubtree(rid, globalY) + ROOT_GAP
+    }
+
+    // 处理未被访问的孤立节点
+    const placed = new Set(yPos.keys())
     for (const n of rawNodes) {
-      if (!visited.has(n.id)) {
+      if (!placed.has(n.id)) {
         yPos.set(n.id, globalY)
-        globalY += V_GAP
+        globalY += (nodeH.get(n.id) || 80) + SIBLING_GAP
       }
     }
 
-    // 计算 x 位置（需要先确定每个节点的深度）
-    const depthMap = new Map<string, number>()
-    function calcDepth(id: string): number {
-      if (depthMap.has(id)) return depthMap.get(id)!
-      const parent = parentMap.get(id)
-      if (!parent) { depthMap.set(id, 0); return 0 }
-      const d = calcDepth(parent) + 1
-      depthMap.set(id, d)
-      return d
+    for (const n of rawNodes) {
+      xPos.set(n.id, START_X + (depthMap.get(n.id) || 0) * H_GAP)
     }
-    for (const n of rawNodes) calcDepth(n.id)
 
-    // 构建 ReactFlow 节点
+    // ── 6. 构建 ReactFlow 数据 ──
     const flowNodes: Node[] = rawNodes.map((n: any) => ({
       id: n.id,
       type: 'knowledgeNode',
       position: {
-        x: (depthMap.get(n.id) || 0) * H_GAP + 30,
+        x: xPos.get(n.id) || START_X,
         y: yPos.get(n.id) || START_Y,
       },
       data: { label: n.label, level: n.level, tag: n.tag, summary: n.summary },
     }))
 
-    // 构建带类型的边
     const flowEdges: Edge[] = rawEdges.map((e: any, i: number) => {
-      const isParentChild = e.relation === 'parent_child'
+      const isPC = e.relation === 'parent_child'
       const isCross = e.relation === 'cross_reference'
       return {
         id: `${e.source}-${e.target}-${i}`,
         source: e.source,
         target: e.target,
-        type: isParentChild ? 'smoothstep' : 'default',
-        animated: !isParentChild,
+        type: isPC ? 'smoothstep' : 'default',
+        animated: !isPC,
         style: {
-          stroke: isParentChild ? '#6366f1' : isCross ? '#f59e0b' : '#94a3b8',
-          strokeWidth: isParentChild ? 2 : 1.5,
+          stroke: isPC ? '#6366f1' : isCross ? '#f59e0b' : '#94a3b8',
+          strokeWidth: isPC ? 2 : 1.5,
         },
       }
     })
 
     return { nodes: flowNodes, edges: flowEdges }
-  }, [])
+  }, [estNodeHeight])
 
   useEffect(() => {
     if (!summaryId) return
