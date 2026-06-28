@@ -435,6 +435,7 @@ async def generate_summary(
         raise HTTPException(500, f"摘要生成失败: {str(e)}")
 
     # Store summary
+    summary = KnowledgeSummary(
         document_id=primary_doc_id,
         document_ids=req.document_ids,
         content_md=result["content_md"],
