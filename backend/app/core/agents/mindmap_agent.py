@@ -456,7 +456,7 @@ class MindMapAgent(BaseAgent):
         flat_edges = []
 
         for node in tree_nodes:
-            children = node.pop("children", [])
+            children = node.get("children", [])
             node_id = node["id"]
             flat_node = {
                 "id": node_id,
