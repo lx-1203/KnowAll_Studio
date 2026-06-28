@@ -275,7 +275,17 @@ export default function UploadPage() {
         </Dragger>
       </Card>
 
-      <Card title="已上传资料">
+      <Card title="已上传资料" extra={
+        <Button
+          icon={<RocketOutlined />}
+          type="primary"
+          disabled={selectedDocIds.length === 0}
+          loading={generatingSummary}
+          onClick={handleGenerateSummary}
+        >
+          生成知识总纲 ({selectedDocIds.length})
+        </Button>
+      }>
         <Table
           loading={loading}
           dataSource={documents}
