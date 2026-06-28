@@ -310,11 +310,15 @@ class QuizGenerator:
         config: QuizGenerationConfig,
         model: str,
     ) -> list[dict]:
-        """Run LLM-as-Judge review on generated questions, revise or reject low-quality ones."""
+        """Run LLM-as-Judge review on generated questions, revise or reject low-quality ones.
+
+        Pipeline: Batch Review → Classify (pass/revise/reject) → Revise individually
+        """
         from app.prompts import prompt_engine
 
         try:
-            # Step 1: Review all questions in one batch
+            # Step 1: Batch review all questions
+            t0 = time.time()
             questions_json = json.dumps(questions, ensure_ascii=False, indent=2)
             review_messages = prompt_engine.render(
                 "quiz_review", "review_single",
@@ -334,10 +338,13 @@ class QuizGenerator:
             review_data = self._parse_review(review_result.content)
             reviews = review_data.get("reviews", [])
             summary = review_data.get("summary", {})
+            review_time = round(time.time() - t0, 3)
 
             logger.info(
-                f"LLM-as-Judge review complete: passed={summary.get('passed', 0)}, "
-                f"revise={summary.get('revise', 0)}, rejected={summary.get('rejected', 0)}, "
+                f"[Review] Batch review complete in {review_time}s: "
+                f"passed={summary.get('passed', 0)}, "
+                f"revise={summary.get('revise', 0)}, "
+                f"rejected={summary.get('rejected', 0)}, "
                 f"avg_total={summary.get('average_total', 0)}"
             )
 
@@ -346,11 +353,14 @@ class QuizGenerator:
 
             # Step 3: Process each question
             final_questions = []
+            revise_count = 0
+            reject_count = 0
+            t_revise = 0.0
+
             for q in questions:
                 qid = q.get("id", "")
                 review = review_map.get(qid)
                 if not review:
-                    # No review → keep as-is
                     q["reviewed"] = False
                     final_questions.append(q)
                     continue
@@ -365,9 +375,11 @@ class QuizGenerator:
                     final_questions.append(q)
 
                 elif decision == "revise":
-                    # Try to auto-revise
                     try:
+                        t1 = time.time()
                         revised = await self._revise_question(q, review, config, model)
+                        t_revise += time.time() - t1
+                        revise_count += 1
                         if revised:
                             revised["reviewed"] = True
                             revised["review_decision"] = "revised"
@@ -383,19 +395,26 @@ class QuizGenerator:
                         final_questions.append(q)
 
                 else:  # reject
-                    logger.info(f"Question {qid} rejected by LLM-as-Judge (score={q.get('review_total', 0)})")
-                    # Don't include rejected questions
-                    continue
+                    reject_count += 1
+                    logger.debug(f"Question {qid} rejected (score={q.get('review_total', 0)})")
 
-            rejected_count = len(questions) - len(final_questions)
-            if rejected_count > 0:
-                logger.info(f"Rejected {rejected_count} low-quality questions")
+            if revise_count > 0:
+                logger.info(
+                    f"[Review] Revised {revise_count} questions in {round(t_revise, 3)}s "
+                    f"(avg {round(t_revise/max(1,revise_count), 3)}s each)"
+                )
+            if reject_count > 0:
+                logger.info(f"[Review] Rejected {reject_count} low-quality questions")
+
+            # Step 4: Re-number question IDs to be sequential
+            for i, q in enumerate(final_questions):
+                if not q.get("id", "").startswith("cross_"):
+                    q["id"] = f"q_{i+1}"
 
             return final_questions
 
         except Exception as e:
-            logger.error(f"LLM-as-Judge review failed: {e}", exc_info=True)
-            # Fall back to returning original questions without review
+            logger.error(f"[Review] LLM-as-Judge review failed: {e}", exc_info=True)
             for q in questions:
                 q["reviewed"] = False
                 q["review_error"] = str(e)
