@@ -120,6 +120,11 @@ app.include_router(kp_router)
 app.include_router(user_router)
 app.include_router(notifications_router)
 app.include_router(reading_router)
+app.include_router(agents_router)
+app.include_router(language_router)
+app.include_router(memory_router)
+app.include_router(coverage_router)
+app.include_router(interactive_quiz_router)
 
 
 @app.get("/")
