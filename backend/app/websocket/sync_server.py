@@ -6,27 +6,33 @@ import logging
 import time
 from typing import Any
 
-from fastapi import APIRouter, WebSocket, WebSocketDisconnect, Query
+from fastapi import APIRouter, WebSocket, WebSocketDisconnect, Query, HTTPException
+from jose import jwt, JWTError
+
+from app.config import settings
+from app.core.sync import sync_store
 
 logger = logging.getLogger("knowall.sync")
 
 router = APIRouter(prefix="/ws", tags=["sync"])
 
-# ── 房间管理（生产环境应使用 Redis Pub/Sub） ──────────────────────────
-# room_id → set of (websocket, user_id, user_name)
+# ── 房间管理（进程内，通过 sync_store 持久化消息和日志） ──────────
 _rooms: dict[str, set[tuple[WebSocket, str, str]]] = {}
-
-# 每个房间的版本号计数器 room_id → version
 _room_versions: dict[str, int] = {}
-
-# 每个房间的操作日志（用于增量同步）room_id → list[op_dict]（最多保留 100 条）
-_room_op_log: dict[str, list[dict]] = {}
-
-# 离线消息队列 user_id → list[msg_dict]（最多 200 条）
-_offline_msgs: dict[str, list[dict]] = {}
 
 MAX_OP_LOG = 100
 MAX_OFFLINE_MSGS = 200
+
+
+def _verify_token(token: str) -> dict | None:
+    """Verify JWT token and return payload or None."""
+    if not token or not settings.jwt_secret:
+        return None
+    try:
+        payload = jwt.decode(token, settings.jwt_secret, algorithms=["HS256"])
+        return payload
+    except JWTError:
+        return None
 
 
 def _room_op_log_append(room_id: str, op: dict) -> None:
