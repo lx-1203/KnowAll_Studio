@@ -67,7 +67,7 @@ export default function LoginPage() {
               color: token.colorTextHeading,
             }}
           >
-            全息坚果
+            KnowAll Studio
           </Title>
           <Text style={{ fontSize: 15, color: token.colorTextSecondary }}>
             大学生学习系统
