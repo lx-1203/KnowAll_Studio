@@ -273,12 +273,18 @@ class PipelineOrchestrator:
                 )
                 state.agent_results = agent_result
                 state.result = state.result or {}
-                state.result["agent_results"] = agent_result.get("results", {})
+                # Convert AgentResult objects to JSON-serializable dicts
+                raw_results = agent_result.get("results", {})
+                state.result["agent_results"] = {
+                    k: v.to_dict() if hasattr(v, 'to_dict') else v
+                    for k, v in raw_results.items()
+                }
                 state.result["coverage_report"] = agent_result.get("coverage_report")
 
-                total_agents = len(agent_result.get("results", {}))
-                succeeded = sum(1 for r in agent_result.get("results", {}).values()
-                               if isinstance(r, dict) and r.get("status") == "success")
+                total_agents = len(raw_results)
+                succeeded = sum(1 for r in raw_results.values()
+                               if (hasattr(r, 'status') and r.status == "success") or
+                               (isinstance(r, dict) and r.get("status") == "success"))
                 yield self._progress(state, PipelineStage.AGENTS, 85,
                                      f"Agent调度完成 ({succeeded}/{total_agents} 成功)")
             except Exception as e:
