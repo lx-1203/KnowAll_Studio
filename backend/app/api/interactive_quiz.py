@@ -42,12 +42,8 @@ async def start_interactive_quiz(
 
     # Find questions linked to this summary's knowledge points
     from app.models import KnowledgePointNode
-    stmt = select(KnowledgePointNode).where(KnowledgePointNode.summary_id == summary_id)
-    result = await session.execute(stmt) if False else None
 
     # Get coverage entries for this summary
-    from sqlalchemy import text
-    # Find questions through knowledge_coverage
     kp_stmt = select(KnowledgePointNode.id).where(KnowledgePointNode.summary_id == summary_id)
     kp_result = await db.execute(kp_stmt)
     kp_ids = [row[0] for row in kp_result.fetchall()]
