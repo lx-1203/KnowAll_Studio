@@ -223,10 +223,11 @@ export default function UploadPage() {
           >预览</Button>
           <Button
             size="small"
-            type={selectedDoc === doc.id ? 'primary' : 'default'}
-            onClick={() => setSelectedDoc(selectedDoc === doc.id ? null : doc.id)}
+            type={selectedDocIds.includes(doc.id) ? 'primary' : 'default'}
+            icon={selectedDocIds.includes(doc.id) ? <CheckSquareOutlined /> : undefined}
+            onClick={() => toggleSelectDoc(doc.id)}
           >
-            {selectedDoc === doc.id ? '已选择' : '选择'}
+            {selectedDocIds.includes(doc.id) ? '已勾选' : '勾选'}
           </Button>
           <Button
             size="small"
