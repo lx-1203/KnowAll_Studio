@@ -27,6 +27,26 @@ class QuizGenerator:
         "material_analysis": ("quiz_gen", "material_analysis"),
     }
 
+    async def generate_questions(
+        self,
+        chunk_texts: list[str],
+        question_type: str = "single_choice",
+        count: int = 10,
+        model: str = "deepseek-chat",
+        difficulty: str = "medium",
+    ) -> list[dict]:
+        """Generate questions from chunk texts with simplified interface.
+
+        Used by QuestionBankAgent for batch generation.
+        """
+        knowledge_text = "\n\n".join(chunk_texts)
+        config = QuizGenerationConfig(
+            question_type=question_type,
+            count=count,
+            difficulty=difficulty,
+        )
+        return await self.generate(knowledge_text, config, model)
+
     async def generate(
         self,
         knowledge_text: str,
