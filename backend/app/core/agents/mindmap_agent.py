@@ -13,7 +13,7 @@ class MindMapAgent(BaseAgent):
     description = "将知识点总结转化为层级思维导图结构"
 
     async def run(self, summary_id: str, document_id: str, **kwargs) -> AgentResult:
-        from app.database import get_session
+        from app.database import async_session
         from app.models import KnowledgeSummary, KnowledgePointNode
         from sqlalchemy import select
 
