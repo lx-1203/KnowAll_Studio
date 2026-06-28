@@ -326,7 +326,7 @@ class TestReviewQueue:
 
         mock_session = AsyncMock()
         mock_scalars = MagicMock()
-        mock_scalars.all.return_value = items
+        mock_scalars.all.return_value = items[:3]  # limit=3: only return first 3
         mock_result = MagicMock()
         mock_result.scalars.return_value = mock_scalars
         mock_session.execute = AsyncMock(return_value=mock_result)
