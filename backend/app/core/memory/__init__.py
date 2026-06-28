@@ -131,22 +131,22 @@ class FSRS:
 
     def _first_review(self, state: dict, rating: int, now: datetime) -> dict:
         """Handle the first review of a new card."""
-        state["difficulty"] = 0.3
+        state["difficulty"] = self.w[2]
 
         if rating == self.AGAIN:
-            state["stability"] = 0.1
+            state["stability"] = self.w[0]
             state["next_review_at"] = now + timedelta(minutes=1)
             state["state"] = "learning"
         elif rating == self.HARD:
-            state["stability"] = 0.5
+            state["stability"] = self.w[0] * 1.5
             state["next_review_at"] = now + timedelta(minutes=10)
             state["state"] = "learning"
         elif rating == self.GOOD:
-            state["stability"] = 1.0
+            state["stability"] = self.w[1]
             state["next_review_at"] = now + timedelta(days=1)
             state["state"] = "review"
         else:  # EASY
-            state["stability"] = 3.0
+            state["stability"] = self.w[1] * self.w[6]
             state["next_review_at"] = now + timedelta(days=4)
             state["state"] = "review"
 
@@ -157,20 +157,20 @@ class FSRS:
     def _difficulty_delta(self, rating: int) -> float:
         """How much to adjust difficulty based on rating."""
         return {
-            self.AGAIN: 0.15,   # Make harder
-            self.HARD: 0.05,    # Slightly harder
-            self.GOOD: -0.05,   # Slightly easier
-            self.EASY: -0.15,   # Make easier
+            self.AGAIN: self.w[4],
+            self.HARD: self.w[5],
+            self.GOOD: -self.w[4],
+            self.EASY: -self.w[5],
         }[rating]
 
     def _stability_increase(self, difficulty: float, rating: int) -> float:
         """Calculate stability multiplier."""
         base = {
-            self.HARD: 1.2,
-            self.GOOD: 2.0,
-            self.EASY: 3.0,
+            self.HARD: self.w[6],
+            self.GOOD: self.w[7],
+            self.EASY: self.w[8],
         }[rating]
-        return base * (1.0 - difficulty * 0.5)
+        return base * (1.0 - difficulty * self.w[3])
 
     def get_due_cards(self, cards: list[dict]) -> list[dict]:
         """Filter cards that are due for review."""

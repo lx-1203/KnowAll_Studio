@@ -198,8 +198,23 @@ class ExamEngine:
             return user_set == correct_set
 
         if qtype in ("short_answer", "fill_blank", "material_analysis"):
-            # Case-insensitive substring match for text answers
-            return user.lower() in correct.lower() or correct.lower() in user.lower()
+            # Strict checking: reject empty/single-char, use keyword coverage
+            user_clean = user.strip().lower()
+            correct_clean = correct.strip().lower()
+            if not user_clean or len(user_clean) <= 1:
+                return False
+            if user_clean == correct_clean:
+                return True
+            # Extract keywords from correct answer (Chinese chars or 2+ char words)
+            import re
+            correct_words = set(re.findall(r'[\u4e00-\u9fff]|[a-z0-9]{2,}', correct_clean))
+            if not correct_words:
+                return user_clean in correct_clean
+            user_words = set(re.findall(r'[\u4e00-\u9fff]|[a-z0-9]{2,}', user_clean))
+            if not user_words:
+                return False
+            overlap = len(user_words & correct_words) / len(correct_words)
+            return overlap >= 0.5
 
         if qtype == "calculation":
             # Try numeric comparison with tolerance

@@ -20,6 +20,7 @@ class RAGAssistant:
         history: list[dict] | None = None,
         model: str = "deepseek-chat",
         top_k: int = 3,
+        user_id: str | None = None,
     ) -> str:
         """Answer a question using RAG: retrieve context → augment prompt → generate."""
         # Search for relevant context
@@ -28,7 +29,7 @@ class RAGAssistant:
         if not context:
             # No relevant documents found, fall back to regular chat
             logger.info("No RAG context found for query, using base assistant")
-            return await base_assistant.chat(user_message, role_preset, history, model)
+            return await base_assistant.chat(user_message, role_preset, history, model, user_id=user_id)
 
         logger.info("RAG context retrieved: %d chars", len(context))
 
@@ -45,7 +46,7 @@ class RAGAssistant:
 请基于上述文档内容给出准确回答，并标注信息来源（如果有）。"""
 
         # Use the base assistant with the augmented message
-        return await base_assistant.chat(augmented_message, role_preset, history, model)
+        return await base_assistant.chat(augmented_message, role_preset, history, model, user_id=user_id)
 
     async def chat_stream_with_rag(
         self,
@@ -54,12 +55,13 @@ class RAGAssistant:
         history: list[dict] | None = None,
         model: str = "deepseek-chat",
         top_k: int = 3,
+        user_id: str | None = None,
     ):
         """Streaming version of RAG chat."""
         context = rag_query(user_message, top_k=top_k)
 
         if not context:
-            async for chunk in base_assistant.chat_stream(user_message, role_preset, history, model):
+            async for chunk in base_assistant.chat_stream(user_message, role_preset, history, model, user_id=user_id):
                 yield chunk
             return
 
@@ -74,7 +76,7 @@ class RAGAssistant:
 
 请基于上述文档内容给出准确回答。"""
 
-        async for chunk in base_assistant.chat_stream(augmented_message, role_preset, history, model):
+        async for chunk in base_assistant.chat_stream(augmented_message, role_preset, history, model, user_id=user_id):
             yield chunk
 
     async def search_only(self, query: str, top_k: int = 5) -> list[dict]:

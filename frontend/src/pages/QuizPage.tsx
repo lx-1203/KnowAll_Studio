@@ -1,7 +1,7 @@
-import { useState } from 'react'
-import { Card, Button, Select, App, Space, Progress, Tag, Spin } from 'antd'
-import { RobotOutlined, FormOutlined, TrophyOutlined, DownloadOutlined } from '@ant-design/icons'
-import { generateQuestions, createExam, submitExam } from '../api'
+import { useState, useEffect } from 'react'
+import { Card, Button, Select, App, Space, Progress, Tag, Spin, Table, Modal, List, Divider } from 'antd'
+import { RobotOutlined, FormOutlined, TrophyOutlined, DownloadOutlined, BugOutlined, SyncOutlined } from '@ant-design/icons'
+import { generateQuestions, createExam, submitExam, listQuestions, getErrorQuestions, generateVariants } from '../api'
 import { useAppStore, useQuizStore } from '../stores'
 import QuestionCard from '../components/QuestionCard'
 import { QuizSkeleton } from '../components/SkeletonLoader'
@@ -21,6 +21,19 @@ export default function QuizPage() {
   const [generating, setGenerating] = useState(false)
   const [genConfig, setGenConfig] = useState({ question_type: 'single_choice', count: 10, difficulty: 'medium' })
   const [showResults, setShowResults] = useState(false)
+  const [allQuestions, setAllQuestions] = useState<any[]>([])
+  const [questionsLoading, setQuestionsLoading] = useState(false)
+  // Error questions panel
+  const [errorQuestions, setErrorQuestions] = useState<any[]>([])
+  const [errorsLoading, setErrorsLoading] = useState(false)
+  const [showErrors, setShowErrors] = useState(false)
+  const [variantGenerating, setVariantGenerating] = useState<string | null>(null)
+  const [variantQuestions, setVariantQuestions] = useState<any[]>([])
+
+  useEffect(() => {
+    setQuestionsLoading(true)
+    listQuestions().then(setAllQuestions).catch(console.error).finally(() => setQuestionsLoading(false))
+  }, [])
 
   const handleGenerate = async () => {
     if (!selectedDoc) { message.warning('请先在"资料导入"页面选择文档'); return }
@@ -62,6 +75,45 @@ export default function QuizPage() {
       message.success(`得分: ${result.score}/${result.total * 5} (${result.percentage}%)`)
     } catch (e: any) {
       message.error('提交失败')
+    }
+  }
+
+  const handleViewErrors = async () => {
+    setErrorsLoading(true)
+    setShowErrors(true)
+    try {
+      const data = await getErrorQuestions()
+      setErrorQuestions(data || [])
+    } catch (e: any) {
+      message.error('获取错题失败')
+    } finally {
+      setErrorsLoading(false)
+    }
+  }
+
+  const handleGenerateVariants = async (errorId: string) => {
+    setVariantGenerating(errorId)
+    try {
+      const result = await generateVariants(errorId, 3)
+      const variants = result.questions || []
+      setVariantQuestions(prev => [...prev, ...variants])
+      message.success(`已生成 ${variants.length} 道变式题`)
+      // Create a new exam with variant questions
+      if (variants.length > 0) {
+        const variantIds = variants.map((q: any) => q.id)
+        const exam = await createExam({
+          title: `变式练习-${new Date().toLocaleDateString()}`,
+          question_ids: variantIds,
+        })
+        setCurrentExam(exam)
+        setShowResults(false)
+        setShowErrors(false)
+        reset()
+      }
+    } catch (e: any) {
+      message.error('变式题生成失败')
+    } finally {
+      setVariantGenerating(null)
     }
   }
 
@@ -139,9 +191,96 @@ export default function QuizPage() {
               message.success('结果已导出')
             }}>导出结果</Button>
             <Button onClick={() => { reset(); setShowResults(false) }}>重新作答</Button>
-            <Button type="primary" onClick={() => { setShowResults(false) }}>查看错题</Button>
+            <Button type="primary" icon={<BugOutlined />} onClick={handleViewErrors}>查看错题</Button>
           </Space>
         )}
+      </Card>
+
+      {showErrors && (
+        <Card title={<Space><BugOutlined /> 错题本 ({errorQuestions.length})</Space>}
+          extra={<Button onClick={() => setShowErrors(false)}>关闭</Button>}
+          style={{ marginTop: 16 }}>
+          {errorsLoading ? (
+            <div style={{ textAlign: 'center', padding: 40 }}><Spin size="large" /></div>
+          ) : errorQuestions.length === 0 ? (
+            <div style={{ textAlign: 'center', padding: 40, color: '#999' }}>
+              <TrophyOutlined style={{ fontSize: 48, marginBottom: 16, color: '#52c41a' }} />
+              <p>暂无错题，继续加油！</p>
+            </div>
+          ) : (
+            <List
+              dataSource={errorQuestions}
+              renderItem={(item: any) => (
+                <List.Item
+                  key={item.error_id}
+                  actions={[
+                    <Button
+                      key="variant"
+                      type="primary"
+                      size="small"
+                      icon={<SyncOutlined />}
+                      loading={variantGenerating === item.error_id}
+                      onClick={() => handleGenerateVariants(item.error_id)}
+                    >
+                      生成变式题
+                    </Button>,
+                  ]}
+                >
+                  <List.Item.Meta
+                    avatar={<Tag color="red">错{item.error_count}次</Tag>}
+                    title={
+                      <div style={{ fontSize: 14, lineHeight: 1.6 }}>
+                        {item.question?.question_text || '(无题目文本)'}
+                      </div>
+                    }
+                    description={
+                      <Space direction="vertical" size={4} style={{ marginTop: 8 }}>
+                        <div>
+                          <Tag color="green">正确答案: {item.question?.answer}</Tag>
+                          {item.question?.options?.length > 0 && (
+                            <span style={{ color: '#888', fontSize: 12 }}>
+                              {item.question.options.map((o: any) => `${o.label}. ${o.text}`).join(' | ')}
+                            </span>
+                          )}
+                        </div>
+                        {item.question?.analysis && (
+                          <div style={{ color: '#666', fontSize: 13, background: '#fafafa', padding: '6px 10px', borderRadius: 6 }}>
+                            解析: {item.question.analysis}
+                          </div>
+                        )}
+                        <span style={{ color: '#999', fontSize: 11 }}>
+                          最后犯错: {item.last_error_at?.slice(0, 10)}
+                        </span>
+                      </Space>
+                    }
+                  />
+                </List.Item>
+              )}
+            />
+          )}
+        </Card>
+      )}
+
+      <Card title="题库列表" style={{ marginTop: 16 }}>
+        <Table
+          loading={questionsLoading}
+          dataSource={allQuestions}
+          rowKey="id"
+          locale={{ emptyText: '暂无题目' }}
+          columns={[
+            { title: '题目', dataIndex: 'question_text', ellipsis: true, render: (v: string) => v || '(无文本)' },
+            { title: '类型', dataIndex: 'question_type', width: 100, render: (v: string) => {
+              const labels: Record<string, string> = { single_choice: '单选题', multi_choice: '多选题', true_false: '判断题', fill_blank: '填空题', short_answer: '简答题' }
+              return <Tag>{labels[v] || v}</Tag>
+            }},
+            { title: '难度', dataIndex: 'difficulty', width: 80, render: (v: string) => {
+              const labels: Record<string, string> = { easy: '简单', medium: '中等', hard: '困难' }
+              return <Tag color={v === 'easy' ? 'green' : v === 'hard' ? 'red' : 'orange'}>{labels[v] || v}</Tag>
+            }},
+          ]}
+          pagination={{ pageSize: 10, showSizeChanger: true, showTotal: (total) => `共 ${total} 道题目` }}
+          size="middle"
+        />
       </Card>
     </div>
   )

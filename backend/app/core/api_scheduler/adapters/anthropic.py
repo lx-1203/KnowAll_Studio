@@ -1,24 +1,9 @@
 """Anthropic Messages API adapter"""
 import json
 import asyncio
-from urllib.request import Request, urlopen
-from urllib.error import HTTPError, URLError
+import tiktoken
 from .base import BaseModelAdapter, AdapterConfig, AdapterResponse
-
-
-def _sync_post(url: str, headers: dict, payload: dict, timeout: int) -> dict:
-    """Synchronous HTTP POST using urllib."""
-    data = json.dumps(payload).encode("utf-8")
-    req = Request(url, data=data, headers=headers, method="POST")
-    try:
-        with urlopen(req, timeout=timeout) as resp:
-            body = resp.read().decode("utf-8")
-            return json.loads(body)
-    except HTTPError as e:
-        body = e.read().decode("utf-8", errors="replace")
-        raise RuntimeError(f"HTTP {e.code}: {body[:500]}")
-    except URLError as e:
-        raise RuntimeError(f"Connection failed: {e.reason}")
+from .http_utils import sync_post
 
 
 class AnthropicAdapter(BaseModelAdapter):
@@ -30,6 +15,10 @@ class AnthropicAdapter(BaseModelAdapter):
         super().__init__(api_key, base_url)
         self.model_name = model_name
         self._api_version = "2023-06-01"
+        try:
+            self._encoder = tiktoken.encoding_for_model("gpt-4o")
+        except Exception:
+            self._encoder = tiktoken.get_encoding("cl100k_base")
 
     async def chat_completion(
         self, messages: list[dict[str, str]], config: AdapterConfig
@@ -48,9 +37,15 @@ class AnthropicAdapter(BaseModelAdapter):
             if msg["role"] == "system":
                 system_prompt = msg["content"]
             else:
+                content = msg["content"]
+                # Handle multimodal content (list of content blocks)
+                if isinstance(content, list):
+                    anthropic_content = self._convert_multimodal_content(content)
+                else:
+                    anthropic_content = content
                 anthropic_messages.append({
                     "role": msg["role"],
-                    "content": msg["content"],
+                    "content": anthropic_content,
                 })
 
         payload = {
@@ -64,11 +59,44 @@ class AnthropicAdapter(BaseModelAdapter):
             payload["system"] = system_prompt
         payload.update(config.extra)
 
-        data = await asyncio.to_thread(_sync_post, url, headers, payload, config.timeout)
+        data = await asyncio.to_thread(sync_post, url, headers, payload, config.timeout)
         return self._parse_response(data)
 
+    def _convert_multimodal_content(self, content_blocks: list[dict]) -> list[dict]:
+        """Convert OpenAI-format multimodal content blocks to Anthropic format."""
+        anthropic_blocks = []
+        for block in content_blocks:
+            if block.get("type") == "text":
+                anthropic_blocks.append({"type": "text", "text": block["text"]})
+            elif block.get("type") == "image_url":
+                image_url = block.get("image_url", {})
+                url = image_url.get("url", "")
+                # Parse data URL: data:image/png;base64,<data>
+                if url.startswith("data:"):
+                    import re
+                    import base64
+                    match = re.match(r"data:(image/\w+);base64,(.+)", url)
+                    if match:
+                        media_type = match.group(1)
+                        img_data = match.group(2)
+                        # Validate base64
+                        try:
+                            base64.b64decode(img_data)
+                        except Exception:
+                            continue
+                        anthropic_blocks.append({
+                            "type": "image",
+                            "source": {
+                                "type": "base64",
+                                "media_type": media_type,
+                                "data": img_data,
+                            },
+                        })
+            # Skip unknown block types
+        return anthropic_blocks
+
     def count_tokens(self, text: str) -> int:
-        return len(text) // 2
+        return len(self._encoder.encode(text))
 
     def _parse_response(self, data: dict) -> AdapterResponse:
         content_blocks = data.get("content", [])

@@ -1,7 +1,7 @@
-import { Suspense, lazy } from 'react'
+import { Suspense, lazy, useState, useEffect } from 'react'
 import { Routes, Route, Link, useLocation } from 'react-router-dom'
-import { Layout, Menu, Button, Spin } from 'antd'
-import { FileTextOutlined, ApartmentOutlined, FormOutlined, IdcardOutlined, RobotOutlined, SettingOutlined, BulbOutlined, ThunderboltOutlined, DashboardOutlined, PlayCircleOutlined, ScheduleOutlined, ShareAltOutlined } from '@ant-design/icons'
+import { Layout, Menu, Button, Spin, Drawer, Grid } from 'antd'
+import { FileTextOutlined, ApartmentOutlined, FormOutlined, IdcardOutlined, RobotOutlined, SettingOutlined, BulbOutlined, ThunderboltOutlined, DashboardOutlined, PlayCircleOutlined, ScheduleOutlined, ShareAltOutlined, SearchOutlined, UserOutlined, ReadOutlined, MenuOutlined } from '@ant-design/icons'
 import { useTheme } from './components/ThemeProvider'
 import ErrorBoundary from './components/ErrorBoundary'
 
@@ -17,8 +17,12 @@ const PipelinePage = lazy(() => import('./pages/PipelinePage'))
 const SettingsPage = lazy(() => import('./pages/SettingsPage'))
 const StudyPage = lazy(() => import('./pages/StudyPage'))
 const SharePage = lazy(() => import('./pages/SharePage'))
+const SearchPage = lazy(() => import('./pages/SearchPage'))
+const PersonalCenterPage = lazy(() => import('./pages/PersonalCenterPage'))
+const ReadingPage = lazy(() => import('./pages/ReadingPage'))
 
 const { Header, Sider, Content } = Layout
+const { useBreakpoint } = Grid
 
 function PageLoader() {
   return (
@@ -31,12 +35,19 @@ function PageLoader() {
 export default function App() {
   const location = useLocation()
   const { isDark, toggle } = useTheme()
+  const screens = useBreakpoint()
+  const isMobile = !screens.lg
+  const [drawerOpen, setDrawerOpen] = useState(false)
   const selectedKey = '/' + location.pathname.split('/')[1] || '/'
+
+  // Close the mobile drawer whenever the route changes
+  useEffect(() => { setDrawerOpen(false) }, [location.pathname])
 
   const menuItems = [
     { key: '/', icon: <DashboardOutlined />, label: <Link to="/">仪表盘</Link> },
     { key: '/upload', icon: <FileTextOutlined />, label: <Link to="/upload">资料导入</Link> },
     { key: '/knowledge', icon: <ApartmentOutlined />, label: <Link to="/knowledge">知识树</Link> },
+    { key: '/search', icon: <SearchOutlined />, label: <Link to="/search">搜索</Link> },
     { key: '/quiz', icon: <FormOutlined />, label: <Link to="/quiz">题库测评</Link> },
     { key: '/flashcards', icon: <IdcardOutlined />, label: <Link to="/flashcards">记忆闪卡</Link> },
     { key: '/game', icon: <PlayCircleOutlined />, label: <Link to="/game">互动游戏</Link> },
@@ -45,45 +56,74 @@ export default function App() {
     { key: '/study', icon: <ScheduleOutlined />, label: <Link to="/study">学习计划</Link> },
     { key: '/share', icon: <ShareAltOutlined />, label: <Link to="/share">分享协作</Link> },
     { key: '/settings', icon: <SettingOutlined />, label: <Link to="/settings">设置</Link> },
+    { key: '/personal', icon: <UserOutlined />, label: <Link to="/personal">个人中心</Link> },
+    { key: '/reading', icon: <ReadOutlined />, label: <Link to="/reading">外语学习</Link> },
   ]
+
+  const menu = (
+    <Menu
+      mode="inline"
+      selectedKeys={[selectedKey]}
+      items={menuItems}
+      style={{ height: '100%', borderRight: 0, paddingTop: 8 }}
+      theme={isDark ? 'dark' : 'light'}
+    />
+  )
 
   return (
     <Layout style={{ minHeight: '100vh' }}>
-      <Header style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '0 24px', background: '#4f46e5' }}>
-        <h1 style={{ color: '#fff', margin: 0, fontSize: 20, fontWeight: 700 }}>
-          KnowAll Studio
-        </h1>
+      <Header style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: isMobile ? '0 16px' : '0 24px', background: 'linear-gradient(90deg, #4f46e5 0%, #6366f1 100%)' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+          {isMobile && (
+            <Button type="text" icon={<MenuOutlined />} onClick={() => setDrawerOpen(true)}
+              style={{ color: '#fff', fontSize: 18 }} aria-label="打开菜单" />
+          )}
+          <h1 style={{ color: '#fff', margin: 0, fontSize: 20, fontWeight: 700, whiteSpace: 'nowrap' }}>
+            KnowAll Studio
+          </h1>
+        </div>
         <Button type="text" icon={<BulbOutlined />} onClick={toggle}
           style={{ color: '#fff', fontSize: 18 }}
           title={isDark ? '浅色模式' : '深色模式'} />
       </Header>
       <Layout>
-        <Sider width={200} style={{ background: isDark ? '#141414' : '#fff' }}
-          breakpoint="lg" collapsedWidth={0}>
-          <Menu
-            mode="inline"
-            selectedKeys={[selectedKey]}
-            items={menuItems}
-            style={{ height: '100%', borderRight: 0, paddingTop: 8 }}
-            theme={isDark ? 'dark' : 'light'}
-          />
-        </Sider>
-        <Content style={{ padding: 24, background: isDark ? '#1a1a1a' : '#f5f5f5', overflow: 'auto' }}>
+        {isMobile ? (
+          <Drawer
+            placement="left"
+            open={drawerOpen}
+            onClose={() => setDrawerOpen(false)}
+            width={220}
+            styles={{ body: { padding: 0 }, header: { display: 'none' } }}
+            className={isDark ? 'app-drawer-dark' : undefined}
+          >
+            {menu}
+          </Drawer>
+        ) : (
+          <Sider width={200} theme={isDark ? 'dark' : 'light'}>
+            {menu}
+          </Sider>
+        )}
+        <Content style={{ padding: isMobile ? 12 : 24, overflow: 'auto' }}>
           <ErrorBoundary>
             <Suspense fallback={<PageLoader />}>
-              <Routes>
-                <Route path="/" element={<DashboardPage />} />
-                <Route path="/upload" element={<UploadPage />} />
-                <Route path="/knowledge" element={<KnowledgePage />} />
-                <Route path="/quiz" element={<QuizPage />} />
-                <Route path="/flashcards" element={<FlashcardPage />} />
-                <Route path="/game" element={<GamePage />} />
-                <Route path="/chat" element={<ChatPage />} />
-                <Route path="/pipeline" element={<PipelinePage />} />
-                <Route path="/study" element={<StudyPage />} />
-                <Route path="/share" element={<SharePage />} />
-                <Route path="/settings" element={<SettingsPage />} />
-              </Routes>
+              <div className="page-fade" key={location.pathname}>
+                <Routes>
+                  <Route path="/" element={<DashboardPage />} />
+                  <Route path="/upload" element={<UploadPage />} />
+                  <Route path="/knowledge" element={<KnowledgePage />} />
+                  <Route path="/search" element={<SearchPage />} />
+                  <Route path="/quiz" element={<QuizPage />} />
+                  <Route path="/flashcards" element={<FlashcardPage />} />
+                  <Route path="/game" element={<GamePage />} />
+                  <Route path="/chat" element={<ChatPage />} />
+                  <Route path="/pipeline" element={<PipelinePage />} />
+                  <Route path="/study" element={<StudyPage />} />
+                  <Route path="/share" element={<SharePage />} />
+                  <Route path="/settings" element={<SettingsPage />} />
+                  <Route path="/personal" element={<PersonalCenterPage />} />
+                  <Route path="/reading" element={<ReadingPage />} />
+                </Routes>
+              </div>
             </Suspense>
           </ErrorBoundary>
         </Content>

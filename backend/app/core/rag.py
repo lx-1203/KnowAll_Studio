@@ -97,6 +97,20 @@ def rag_query(query: str, top_k: int = 3) -> str:
     return "\n\n---\n\n".join(r["text"] for r in results)
 
 
+def delete_vectors_by_doc_id(doc_id: str) -> int:
+    """Delete all vectors associated with a document from ChromaDB."""
+    try:
+        collection = get_or_create_collection()
+        if collection is None:
+            return 0
+        collection.delete(where={"doc_id": doc_id})
+        logger.info("Deleted vectors for doc %s", doc_id)
+        return 0
+    except Exception as e:
+        logger.warning("Failed to delete vectors for doc %s: %s", doc_id, e)
+        return 0
+
+
 def delete_collection(name: str = "document_knowledge"):
     """Delete a collection."""
     try:

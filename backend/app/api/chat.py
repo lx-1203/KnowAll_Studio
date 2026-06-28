@@ -9,6 +9,7 @@ from app.database import get_db
 from app.models import Conversation, Message
 from app.core.assistant import assistant as ai_assistant
 from app.core.rag_assistant import rag_assistant
+from app.core.auth import get_optional_user, get_user_id, load_user_api_keys
 
 router = APIRouter(prefix="/api/v1/chat", tags=["chat"])
 
@@ -22,8 +23,15 @@ class ChatRequest(BaseModel):
 
 
 @router.post("/assistant")
-async def chat(req: ChatRequest, db: AsyncSession = Depends(get_db)):
+async def chat(
+    req: ChatRequest,
+    db: AsyncSession = Depends(get_db),
+    current_user = Depends(get_optional_user),
+):
     """Non-streaming chat: send message, get full response."""
+    user_id = get_user_id(current_user)
+    await load_user_api_keys(user_id, db)
+
     conv = await _get_or_create_conversation(db, req)
 
     # Save user message
@@ -37,11 +45,11 @@ async def chat(req: ChatRequest, db: AsyncSession = Depends(get_db)):
     try:
         if req.knowledge_context:
             response_text = await ai_assistant.chat_with_context(
-                req.message, req.knowledge_context, req.role_preset, history, req.model
+                req.message, req.knowledge_context, req.role_preset, history, req.model, user_id=user_id
             )
         else:
             response_text = await ai_assistant.chat(
-                req.message, req.role_preset, history, req.model
+                req.message, req.role_preset, history, req.model, user_id=user_id
             )
     except Exception as e:
         raise HTTPException(500, f"Chat failed: {str(e)}")
@@ -60,8 +68,15 @@ async def chat(req: ChatRequest, db: AsyncSession = Depends(get_db)):
 
 
 @router.post("/assistant/stream")
-async def chat_stream(req: ChatRequest, db: AsyncSession = Depends(get_db)):
+async def chat_stream(
+    req: ChatRequest,
+    db: AsyncSession = Depends(get_db),
+    current_user = Depends(get_optional_user),
+):
     """SSE streaming chat: events stream real-time tokens."""
+    user_id = get_user_id(current_user)
+    await load_user_api_keys(user_id, db)
+
     conv = await _get_or_create_conversation(db, req)
 
     # Save user message
@@ -74,19 +89,21 @@ async def chat_stream(req: ChatRequest, db: AsyncSession = Depends(get_db)):
     history = await _get_history(db, conv.id)
 
     async def event_generator():
+        from app.database import async_session
         full_response = ""
         try:
             async for chunk in ai_assistant.chat_stream(
-                req.message, req.role_preset, history, req.model
+                req.message, req.role_preset, history, req.model, user_id=user_id
             ):
                 full_response += chunk
                 yield f"data: {json.dumps({'token': chunk, 'done': False})}\n\n"
-            # Save full response after streaming completes
-            async with db.begin():
+            # Save full response with independent session
+            async with async_session() as save_db:
                 assistant_msg = Message(
                     conversation_id=conv.id, role="assistant", content=full_response
                 )
-                db.add(assistant_msg)
+                save_db.add(assistant_msg)
+                await save_db.commit()
             yield f"data: {json.dumps({'token': '', 'done': True, 'conversation_id': conv.id})}\n\n"
         except Exception as e:
             yield f"data: {json.dumps({'error': str(e), 'done': True})}\n\n"
@@ -146,8 +163,15 @@ class RAGChatRequest(BaseModel):
 
 
 @router.post("/assistant/rag")
-async def chat_with_rag(req: RAGChatRequest, db: AsyncSession = Depends(get_db)):
+async def chat_with_rag(
+    req: RAGChatRequest,
+    db: AsyncSession = Depends(get_db),
+    current_user = Depends(get_optional_user),
+):
     """Chat with RAG: searches local documents and grounds answers in retrieved context."""
+    user_id = get_user_id(current_user)
+    await load_user_api_keys(user_id, db)
+
     conv = await _get_or_create_conversation(db, ChatRequest(
         message=req.message, conversation_id=req.conversation_id,
         role_preset=req.role_preset, model=req.model,
@@ -159,7 +183,7 @@ async def chat_with_rag(req: RAGChatRequest, db: AsyncSession = Depends(get_db))
 
     try:
         response_text = await rag_assistant.chat_with_rag(
-            req.message, req.role_preset, history, req.model, req.top_k,
+            req.message, req.role_preset, history, req.model, req.top_k, user_id=user_id,
         )
     except Exception as e:
         raise HTTPException(500, f"RAG chat failed: {str(e)}")
@@ -171,8 +195,15 @@ async def chat_with_rag(req: RAGChatRequest, db: AsyncSession = Depends(get_db))
 
 
 @router.post("/assistant/rag/stream")
-async def chat_rag_stream(req: RAGChatRequest, db: AsyncSession = Depends(get_db)):
+async def chat_rag_stream(
+    req: RAGChatRequest,
+    db: AsyncSession = Depends(get_db),
+    current_user = Depends(get_optional_user),
+):
     """SSE streaming version of RAG chat."""
+    user_id = get_user_id(current_user)
+    await load_user_api_keys(user_id, db)
+
     conv = await _get_or_create_conversation(db, ChatRequest(
         message=req.message, conversation_id=req.conversation_id,
         role_preset=req.role_preset, model=req.model,
@@ -184,15 +215,18 @@ async def chat_rag_stream(req: RAGChatRequest, db: AsyncSession = Depends(get_db
     history = await _get_history(db, conv.id)
 
     async def event_generator():
+        from app.database import async_session
         full = ""
         try:
             async for chunk in rag_assistant.chat_stream_with_rag(
-                req.message, req.role_preset, history, req.model, req.top_k,
+                req.message, req.role_preset, history, req.model, req.top_k, user_id=user_id,
             ):
                 full += chunk
                 yield f"data: {json.dumps({'token': chunk, 'done': False})}\n\n"
-            async with db.begin():
-                db.add(Message(conversation_id=conv.id, role="assistant", content=full))
+            # Save full response with independent session
+            async with async_session() as save_db:
+                save_db.add(Message(conversation_id=conv.id, role="assistant", content=full))
+                await save_db.commit()
             yield f"data: {json.dumps({'token': '', 'done': True, 'conversation_id': conv.id})}\n\n"
         except Exception as e:
             yield f"data: {json.dumps({'error': str(e), 'done': True})}\n\n"

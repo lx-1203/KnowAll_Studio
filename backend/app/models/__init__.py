@@ -15,6 +15,13 @@ def now():
     return datetime.now(timezone.utc).replace(tzinfo=None)
 
 
+# ---- Auth & Knowledge Base ----
+from app.models.user import User, KnowledgePoint  # noqa: E402, F401
+from app.models.notification import Notification  # noqa: E402, F401
+from app.models.user_history import UserHistory  # noqa: E402, F401
+from app.models.user_bind import UserBind  # noqa: E402, F401
+
+
 # ==================== Document Models ====================
 
 class Document(Base):
@@ -273,12 +280,15 @@ class APIKey(Base):
     __tablename__ = "api_keys"
 
     id = Column(String, primary_key=True, default=gen_uuid)
+    user_id = Column(String, ForeignKey("users.id", ondelete="CASCADE"), nullable=True, index=True)
     provider = Column(String, nullable=False)  # openai/deepseek/qwen/ernie/kimi/zhipu/ollama
     key_encrypted = Column(String, nullable=False)  # AES encrypted
     key_alias = Column(String)
     permission_level = Column(String, default="student")
     is_active = Column(Boolean, default=True)
     created_at = Column(DateTime, default=now)
+
+    user = relationship("User", backref="api_keys")
 
 
 # ==================== Cache Table (for SQLite-based caching) ====================

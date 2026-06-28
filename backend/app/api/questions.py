@@ -6,6 +6,7 @@ from pydantic import BaseModel
 from app.database import get_db
 from app.models import DocumentChunk, QuestionBank, ExamPaper, AnswerRecord, ErrorLog
 from app.core.quiz import quiz_generator, exam_engine, QuizGenerationConfig
+from app.core.auth import get_optional_user, get_user_id, load_user_api_keys
 
 router = APIRouter(prefix="/api/v1/quiz", tags=["quiz"])
 
@@ -31,8 +32,13 @@ class SubmitExamRequest(BaseModel):
 
 
 @router.post("/generate")
-async def generate_questions(req: GenerateQuestionsRequest, db: AsyncSession = Depends(get_db)):
+async def generate_questions(
+    req: GenerateQuestionsRequest,
+    db: AsyncSession = Depends(get_db),
+    current_user = Depends(get_optional_user),
+):
     """Generate quiz questions from document chunks."""
+    await load_user_api_keys(get_user_id(current_user), db)
     from sqlalchemy import select
 
     # Get chunks
@@ -50,8 +56,11 @@ async def generate_questions(req: GenerateQuestionsRequest, db: AsyncSession = D
     if not chunks:
         raise HTTPException(404, "No chunks found")
 
-    # Combine chunk texts for generation
-    knowledge_text = "\n\n".join(c.text_content for c in chunks[:5])  # limit to 5 chunks per batch
+    # Combine chunk texts for generation (cap at token limit)
+    MAX_CHARS = 8000
+    knowledge_text = "\n\n".join(c.text_content for c in chunks)
+    if len(knowledge_text) > MAX_CHARS:
+        knowledge_text = knowledge_text[:MAX_CHARS] + "\n\n...(content truncated)"
 
     config = QuizGenerationConfig(
         question_type=req.question_type,
@@ -75,7 +84,7 @@ async def generate_questions(req: GenerateQuestionsRequest, db: AsyncSession = D
             options=q.get("options", []),
             correct_answer=str(q.get("answer", q.get("correct_answer", ""))),
             analysis=q.get("analysis", ""),
-            source_chunk_id=chunks[0].id if chunks else None,
+            source_chunk_id=chunks[0].id if len(chunks) == 1 else None,
         )
         db.add(db_q)
         saved_questions.append(db_q)
@@ -163,9 +172,15 @@ async def create_exam(req: CreateExamRequest, db: AsyncSession = Depends(get_db)
 
 
 @router.post("/exam/submit")
-async def submit_exam(req: SubmitExamRequest, db: AsyncSession = Depends(get_db)):
+async def submit_exam(
+    req: SubmitExamRequest,
+    db: AsyncSession = Depends(get_db),
+    current_user = Depends(get_optional_user),
+):
     """Submit exam answers, get graded results."""
     from sqlalchemy import select
+
+    user_id = get_user_id(current_user)
 
     # Get paper
     result = await db.execute(select(ExamPaper).where(ExamPaper.id == req.paper_id))
@@ -198,7 +213,7 @@ async def submit_exam(req: SubmitExamRequest, db: AsyncSession = Depends(get_db)
     # Save answer records
     for detail in results["details"]:
         record = AnswerRecord(
-            user_id="local_user",
+            user_id=user_id,
             question_id=detail["question_id"],
             paper_id=req.paper_id,
             user_answer=detail["user_answer"],
@@ -212,7 +227,7 @@ async def submit_exam(req: SubmitExamRequest, db: AsyncSession = Depends(get_db)
             existing = await db.execute(
                 sel(ErrorLog).where(
                     ErrorLog.question_id == detail["question_id"],
-                    ErrorLog.user_id == "local_user",
+                    ErrorLog.user_id == user_id,
                 )
             )
             error = existing.scalar_one_or_none()
@@ -221,7 +236,7 @@ async def submit_exam(req: SubmitExamRequest, db: AsyncSession = Depends(get_db)
                 error.last_error_at = datetime.now(timezone.utc).replace(tzinfo=None)
             else:
                 db.add(ErrorLog(
-                    user_id="local_user",
+                    user_id=user_id,
                     question_id=detail["question_id"],
                 ))
 
@@ -231,13 +246,18 @@ async def submit_exam(req: SubmitExamRequest, db: AsyncSession = Depends(get_db)
 
 
 @router.get("/errors")
-async def get_error_questions(db: AsyncSession = Depends(get_db)):
+async def get_error_questions(
+    db: AsyncSession = Depends(get_db),
+    current_user = Depends(get_optional_user),
+):
     """Get all error questions for the current user."""
     from sqlalchemy import select
+
+    user_id = get_user_id(current_user)
     result = await db.execute(
         select(ErrorLog, QuestionBank)
         .join(QuestionBank, ErrorLog.question_id == QuestionBank.id)
-        .where(ErrorLog.user_id == "local_user")
+        .where(ErrorLog.user_id == user_id)
         .order_by(ErrorLog.last_error_at.desc())
     )
     rows = result.all()
@@ -260,8 +280,13 @@ async def get_error_questions(db: AsyncSession = Depends(get_db)):
 
 
 @router.post("/errors/{error_id}/variants")
-async def generate_error_variants(error_id: str, count: int = 3, db: AsyncSession = Depends(get_db)):
+async def generate_error_variants(
+    error_id: str, count: int = 3,
+    db: AsyncSession = Depends(get_db),
+    current_user = Depends(get_optional_user),
+):
     """Generate variant questions for a specific error question."""
+    await load_user_api_keys(get_user_id(current_user), db)
     from sqlalchemy import select
 
     result = await db.execute(
@@ -328,6 +353,7 @@ async def list_questions(
     question_type: str | None = None,
     difficulty: str | None = None,
     limit: int = 50,
+    offset: int = 0,
     db: AsyncSession = Depends(get_db),
 ):
     """List questions with optional filters."""
@@ -338,7 +364,7 @@ async def list_questions(
         query = query.where(QuestionBank.question_type == question_type)
     if difficulty:
         query = query.where(QuestionBank.difficulty == difficulty)
-    query = query.limit(limit)
+    query = query.offset(offset).limit(limit)
 
     result = await db.execute(query)
     questions = result.scalars().all()

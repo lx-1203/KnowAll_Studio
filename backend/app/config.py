@@ -40,6 +40,26 @@ class Settings(BaseSettings):
     # CORS
     cors_origins: list[str] = ["http://localhost:5173", "http://localhost:3000", "app://."]
 
+    # JWT Authentication
+    jwt_secret: str = "knowall-jwt-secret-change-in-production"
+    jwt_algorithm: str = "HS256"
+    jwt_expire_minutes: int = 1440  # 24 hours
+
+    # Docling document parsing
+    use_docling: bool = True
+    docling_ocr: bool = False
+    docling_ocr_lang: str = "chi_sim+eng"
+
+    # Native outline
+    native_outline_enabled: bool = True
+    native_outline_max_depth: int = 4
+
+    # Vision analysis (image → text via vision-capable LLM)
+    vision_analysis_enabled: bool = False
+    vision_model: str = "gpt-4o"
+    vision_max_images: int = 8
+    vision_min_image_dimension: int = 100
+
 
 settings = Settings()
 

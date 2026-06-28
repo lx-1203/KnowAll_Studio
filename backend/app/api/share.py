@@ -8,6 +8,7 @@ from sqlalchemy import select
 from pydantic import BaseModel
 from app.database import get_db
 from app.models import ShareLink, KnowledgeTree, QuestionBank, Deck, Flashcard
+from app.core.auth import get_optional_user, get_user_id
 
 router = APIRouter(prefix="/api/v1/share", tags=["share"])
 
@@ -24,7 +25,11 @@ def _generate_access_code() -> str:
 
 
 @router.post("/create")
-async def create_share_link(req: CreateShareRequest, db: AsyncSession = Depends(get_db)):
+async def create_share_link(
+    req: CreateShareRequest,
+    db: AsyncSession = Depends(get_db),
+    current_user = Depends(get_optional_user),
+):
     """Create a share link for a resource."""
     if req.resource_type not in ("knowledge_tree", "question_bank", "flashcard_deck"):
         raise HTTPException(400, f"Unsupported resource type: {req.resource_type}")
@@ -42,8 +47,8 @@ async def create_share_link(req: CreateShareRequest, db: AsyncSession = Depends(
         result = await db.execute(
             select(QuestionBank).where(QuestionBank.id == req.resource_id)
         )
-        # Question bank can share individual or all questions; at minimum verify id format
-        # For simplicity, accept any question id string
+        if not result.scalar_one_or_none():
+            raise HTTPException(404, "Question not found")
 
     access_code = _generate_access_code()
 
@@ -53,6 +58,7 @@ async def create_share_link(req: CreateShareRequest, db: AsyncSession = Depends(
         expires_at = datetime.now(timezone.utc).replace(tzinfo=None) + timedelta(days=req.expires_in_days)
 
     share = ShareLink(
+        user_id=get_user_id(current_user),
         resource_type=req.resource_type,
         resource_id=req.resource_id,
         access_code=access_code,
@@ -136,31 +142,40 @@ async def view_shared_resource(share_id: str, access_code: str = "", db: AsyncSe
         result = await db.execute(
             select(QuestionBank).where(QuestionBank.id == share.resource_id)
         )
-        questions = result.scalars().all()
+        question = result.scalar_one_or_none()
+        if not question:
+            raise HTTPException(404, "Shared question no longer exists")
         return {
             "type": "question_bank",
             "data": {
                 "questions": [
                     {
-                        "id": q.id,
-                        "question_type": q.question_type,
-                        "question_text": q.question_text,
-                        "options": q.options,
-                        "analysis": q.analysis,
+                        "id": question.id,
+                        "question_type": question.question_type,
+                        "question_text": question.question_text,
+                        "options": question.options,
+                        "analysis": question.analysis,
                     }
-                    for q in questions
                 ],
             },
         }
 
 
 @router.get("/my-links")
-async def list_my_links(db: AsyncSession = Depends(get_db)):
+async def list_my_links(
+    limit: int = 1000,
+    offset: int = 0,
+    db: AsyncSession = Depends(get_db),
+    current_user = Depends(get_optional_user),
+):
     """List all share links created by the current user."""
+    user_id = get_user_id(current_user)
     result = await db.execute(
         select(ShareLink)
-        .where(ShareLink.user_id == "local_user")
+        .where(ShareLink.user_id == user_id)
         .order_by(ShareLink.created_at.desc())
+        .offset(offset)
+        .limit(limit)
     )
     links = result.scalars().all()
     return [

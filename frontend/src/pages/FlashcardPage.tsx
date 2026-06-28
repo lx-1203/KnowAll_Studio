@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react'
-import { Card, Button, Space, App, Spin, Tag, Select, Input, Modal, Dropdown } from 'antd'
+import { Card, Button, Space, App, Spin, Tag, Select, Input, Modal, Dropdown, Table } from 'antd'
 import { RobotOutlined, SwapOutlined, RightOutlined, IdcardOutlined, DownloadOutlined, ReloadOutlined } from '@ant-design/icons'
 import { getDueCards, reviewCard, generateCards, listDecks } from '../api'
 import { useAppStore, useFlashcardStore } from '../stores'
@@ -160,6 +160,24 @@ export default function FlashcardPage() {
             )}
           </div>
         )}
+      </Card>
+
+      <Card title="牌组列表" style={{ marginTop: 16 }}>
+        <Table
+          dataSource={decks}
+          rowKey="id"
+          locale={{ emptyText: '暂无牌组' }}
+          columns={[
+            { title: '名称', dataIndex: 'name', ellipsis: true },
+            { title: '卡片数', dataIndex: 'card_count', width: 100 },
+            { title: '创建时间', dataIndex: 'created_at', width: 140, render: (v: string) => v?.slice(0, 10) },
+            { title: '操作', width: 120, render: (_: any, record: any) => (
+              <Button size="small" icon={<DownloadOutlined />} onClick={() => handleExportAnki(record.id)}>导出Anki</Button>
+            )},
+          ]}
+          pagination={{ pageSize: 10, showSizeChanger: true, showTotal: (total) => `共 ${total} 个牌组` }}
+          size="middle"
+        />
       </Card>
 
       <Modal title="AI 生成闪卡" open={genModalVisible} onCancel={() => setGenModalVisible(false)}

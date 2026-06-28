@@ -76,7 +76,7 @@ export default function SharePage() {
       <Card title="My Share Links" extra={<Button type="primary" icon={<ShareAltOutlined />} onClick={() => setCreateOpen(true)}>Create Share</Button>}
         style={{ flex: '2 1 500px' }} loading={loading}>
         {links.length === 0 && <Empty description="No share links created yet" />}
-        <Table dataSource={links} rowKey="share_id" pagination={false}
+        <Table dataSource={links} rowKey="share_id" pagination={{ pageSize: 10, showSizeChanger: true, showTotal: (total) => `共 ${total} 条` }}
           columns={[
             { title: 'Resource Type', dataIndex: 'resource_type', render: (v: string) => <Tag color={typeColors[v] || 'default'}>{typeLabels[v] || v}</Tag> },
             { title: 'Resource ID', dataIndex: 'resource_id', ellipsis: true },

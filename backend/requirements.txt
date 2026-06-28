@@ -23,10 +23,15 @@ Pillow>=10.3.0        # Image processing
 pytesseract>=0.3.10   # OCR (optional, requires Tesseract installed)
 PaddleOCR>=2.8.0      # Chinese OCR (optional)
 xmindparser>=1.0.0    # Xmind parsing
+docling>=2.0          # Structured document parsing with heading/image/table extraction
+hierarchical-pdf      # Fix PDF heading hierarchy flattening in Docling
 
 # API / HTTP
 httpx>=0.27.0
 tiktoken>=0.7.0
+
+# Reading Language (optional, for offline dictionary fallback)
+jieba>=0.42.0
 
 # Prompt Templates
 pyyaml>=6.0
@@ -37,6 +42,7 @@ pydantic-settings>=2.2.0
 # Auth / Crypto
 python-jose[cryptography]>=3.3.0
 cryptography>=42.0.0
+bcrypt>=4.0.0
 
 # Database migrations
 alembic>=1.18.0

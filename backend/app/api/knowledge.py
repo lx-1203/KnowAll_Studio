@@ -1,10 +1,13 @@
 """Knowledge tree, outline, and mind map API routes"""
 from fastapi import APIRouter, HTTPException, Depends
 from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy import select
 from pydantic import BaseModel
 from app.database import get_db
-from app.models import DocumentChunk, KnowledgeTree, Outline, KnowledgeEdge
+from app.models import Document, DocumentChunk, KnowledgeTree, Outline, KnowledgeEdge
 from app.core.knowledge import knowledge_generator
+from app.core.parsing.outline_extractor import outline_extractor
+from app.core.auth import get_optional_user, get_user_id, load_user_api_keys
 
 router = APIRouter(prefix="/api/v1/knowledge", tags=["knowledge"])
 
@@ -23,9 +26,16 @@ class GenerateOutlineRequest(BaseModel):
 
 
 @router.post("/tree/generate")
-async def generate_knowledge_tree(req: GenerateTreeRequest, db: AsyncSession = Depends(get_db)):
+async def generate_knowledge_tree(
+    req: GenerateTreeRequest,
+    db: AsyncSession = Depends(get_db),
+    current_user = Depends(get_optional_user),
+):
     """Generate a knowledge tree from document chunks."""
-    from sqlalchemy import select
+    await load_user_api_keys(get_user_id(current_user), db)
+    # Get document to check for native outline and image analyses
+    doc_result = await db.execute(select(Document).where(Document.id == req.document_id))
+    doc = doc_result.scalar_one_or_none()
 
     # Get chunks
     if req.chunk_ids:
@@ -45,9 +55,29 @@ async def generate_knowledge_tree(req: GenerateTreeRequest, db: AsyncSession = D
 
     chunk_texts = [c.text_content for c in chunks]
 
+    # Extract structure context from document metadata if available
+    structure_context = ""
+    image_descriptions = None
+    if doc and doc.metadata_:
+        headings = doc.metadata_.get("headings", [])
+        if headings:
+            # Reconstruct heading nodes for context injection
+            from app.core.parsing.docling_parser import HeadingNode
+            heading_nodes = _dicts_to_nodes(headings)
+            structure_context = outline_extractor.inject_context(heading_nodes)
+
+        # Check for image analysis results
+        analyses = doc.metadata_.get("image_analyses", [])
+        if analyses:
+            image_descriptions = [a["analysis"] for a in analyses]
+
     # Generate via API
     try:
-        tree_data = await knowledge_generator.generate_tree(chunk_texts, req.model)
+        tree_data = await knowledge_generator.generate_tree(
+            chunk_texts, req.model,
+            structure_context=structure_context,
+            image_descriptions=image_descriptions,
+        )
     except Exception as e:
         raise HTTPException(500, f"Generation failed: {str(e)}")
 
@@ -157,10 +187,16 @@ async def merge_trees(req: MergeTreesRequest, db: AsyncSession = Depends(get_db)
 
 
 @router.get("/trees")
-async def list_trees(db: AsyncSession = Depends(get_db)):
+async def list_trees(
+    limit: int = 1000,
+    offset: int = 0,
+    db: AsyncSession = Depends(get_db),
+):
     """List all knowledge trees."""
     from sqlalchemy import select
-    result = await db.execute(select(KnowledgeTree).order_by(KnowledgeTree.updated_at.desc()))
+    result = await db.execute(
+        select(KnowledgeTree).order_by(KnowledgeTree.updated_at.desc()).offset(offset).limit(limit)
+    )
     trees = result.scalars().all()
     return [
         {
@@ -174,9 +210,16 @@ async def list_trees(db: AsyncSession = Depends(get_db)):
 
 
 @router.post("/outline/generate")
-async def generate_outline(req: GenerateOutlineRequest, db: AsyncSession = Depends(get_db)):
+async def generate_outline(
+    req: GenerateOutlineRequest,
+    db: AsyncSession = Depends(get_db),
+    current_user = Depends(get_optional_user),
+):
     """Generate a markdown outline from document chunks."""
-    from sqlalchemy import select
+    await load_user_api_keys(get_user_id(current_user), db)
+    # Get document for structure context
+    doc_result = await db.execute(select(Document).where(Document.id == req.document_id))
+    doc = doc_result.scalar_one_or_none()
 
     if req.chunk_ids:
         result = await db.execute(
@@ -194,8 +237,17 @@ async def generate_outline(req: GenerateOutlineRequest, db: AsyncSession = Depen
 
     chunk_texts = [c.text_content for c in chunks]
 
+    # Extract structure context
+    structure_context = ""
+    if doc and doc.metadata_:
+        headings = doc.metadata_.get("headings", [])
+        if headings:
+            heading_nodes = _dicts_to_nodes(headings)
+            structure_context = outline_extractor.inject_context(heading_nodes)
+
     try:
-        markdown_content = await knowledge_generator.generate_outline(chunk_texts, req.model)
+        markdown_content = await knowledge_generator.generate_outline(
+            chunk_texts, req.model, structure_context=structure_context)
     except Exception as e:
         raise HTTPException(500, f"Generation failed: {str(e)}")
 
@@ -273,3 +325,19 @@ async def delete_edge(edge_id: str, db: AsyncSession = Depends(get_db)):
     await db.delete(edge)
     await db.commit()
     return {"status": "deleted"}
+
+
+def _dicts_to_nodes(dicts: list[dict]) -> list:
+    """Convert heading dicts from metadata back to HeadingNode-like objects."""
+    from app.core.parsing.docling_parser import HeadingNode
+    nodes = []
+    for d in dicts:
+        node = HeadingNode(
+            id=d.get("id", ""),
+            label=d.get("label", ""),
+            level=d.get("level", 1),
+            page=d.get("page", 0),
+            children=_dicts_to_nodes(d.get("children", [])),
+        )
+        nodes.append(node)
+    return nodes

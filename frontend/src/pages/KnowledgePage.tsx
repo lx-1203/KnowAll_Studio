@@ -1,13 +1,15 @@
-import { useState, useEffect } from 'react'
-import { Card, Button, Select, App, Space, Spin, Modal, Input, Tag, Dropdown } from 'antd'
-import { RobotOutlined, ApartmentOutlined, BranchesOutlined, DownloadOutlined, ExpandOutlined, MergeCellsOutlined } from '@ant-design/icons'
+import { useState, useEffect, useCallback } from 'react'
+import { Card, Button, Select, App, Space, Spin, Modal, Input, Tag, Dropdown, Table, Switch, List, Divider, Popconfirm, Tabs } from 'antd'
+import { RobotOutlined, ApartmentOutlined, BranchesOutlined, DownloadOutlined, ExpandOutlined, MergeCellsOutlined, LinkOutlined, DeleteOutlined, FileTextOutlined, PictureOutlined } from '@ant-design/icons'
 import ReactFlow, {
   Node, Edge, Background, Controls, MiniMap,
   useNodesState, useEdgesState, Panel, useReactFlow, ReactFlowProvider,
+  Connection, addEdge,
 } from 'reactflow'
 import 'reactflow/dist/style.css'
+import ReactMarkdown from 'react-markdown'
 import KnowledgeNode from '../components/KnowledgeNode'
-import { generateTree, listTrees, getTree, updateTree, generateOutline } from '../api'
+import { generateTree, listTrees, getTree, updateTree, generateOutline, listEdges, createEdge, deleteEdge, getNativeOutline, analyzeDocumentImages } from '../api'
 import { useAppStore } from '../stores'
 
 const nodeTypes = { knowledgeNode: KnowledgeNode }
@@ -81,8 +83,40 @@ function KnowledgePageInner() {
   const [outlineContent, setOutlineContent] = useState('')
   const [treeName, setTreeName] = useState('知识树')
   const { fitView } = useReactFlow()
+  // Knowledge edge (cross-reference) state
+  const [edgeMode, setEdgeMode] = useState(false)
+  const [knowledgeEdges, setKnowledgeEdges] = useState<any[]>([])
+  const [edgeModalOpen, setEdgeModalOpen] = useState(false)
+  const [pendingConnection, setPendingConnection] = useState<Connection | null>(null)
+  const [edgeRelationType, setEdgeRelationType] = useState('related_to')
+  const [edgeDescription, setEdgeDescription] = useState('')
+  // Native outline state
+  const [activeTab, setActiveTab] = useState('knowledge')
+  const [nativeOutline, setNativeOutline] = useState('')
+  const [nativeHeadings, setNativeHeadings] = useState<any[]>([])
+  const [imageCount, setImageCount] = useState(0)
+  const [analyzingImages, setAnalyzingImages] = useState(false)
 
   useEffect(() => { listTrees().then(setTrees).catch(console.error) }, [])
+
+  // Fetch native outline when document changes
+  useEffect(() => {
+    if (selectedDoc) {
+      getNativeOutline(selectedDoc).then(data => {
+        setNativeOutline(data.outline_markdown || '')
+        setNativeHeadings(data.headings || [])
+        setImageCount(data.image_count || 0)
+      }).catch(() => {
+        setNativeOutline('')
+        setNativeHeadings([])
+        setImageCount(0)
+      })
+    } else {
+      setNativeOutline('')
+      setNativeHeadings([])
+      setImageCount(0)
+    }
+  }, [selectedDoc])
 
   useEffect(() => {
     if (selectedTree) {
@@ -93,6 +127,8 @@ function KnowledgePageInner() {
         setEdges(flow.edges)
         setTimeout(() => fitView({ padding: 0.2, duration: 300 }), 100)
       }
+      // Load cross-reference edges
+      listEdges(selectedTree).then(setKnowledgeEdges).catch(console.error)
     }
   }, [selectedTree, trees])
 
@@ -129,6 +165,20 @@ function KnowledgePageInner() {
       message.error('大纲生成失败')
     } finally {
       setGenerating(false)
+    }
+  }
+
+  const handleAnalyzeImages = async () => {
+    if (!selectedDoc) { message.warning('请先选择文档'); return }
+    if (imageCount === 0) { message.info('该文档未检测到图片'); return }
+    setAnalyzingImages(true)
+    try {
+      const result = await analyzeDocumentImages(selectedDoc)
+      message.success(result.message || `已分析 ${result.images_analyzed} 张图片`)
+    } catch (e: any) {
+      message.error(`图片分析失败: ${e.response?.data?.detail || e.message}`)
+    } finally {
+      setAnalyzingImages(false)
     }
   }
 
@@ -193,6 +243,60 @@ function KnowledgePageInner() {
     }
   }
 
+  const onConnect = useCallback((connection: Connection) => {
+    if (!edgeMode || !selectedTree) return
+    setPendingConnection(connection)
+    setEdgeRelationType('related_to')
+    setEdgeDescription('')
+    setEdgeModalOpen(true)
+  }, [edgeMode, selectedTree])
+
+  const handleConfirmEdge = async () => {
+    if (!pendingConnection || !selectedTree) return
+    try {
+      const result = await createEdge({
+        tree_id: selectedTree,
+        source_node_id: pendingConnection.source!,
+        target_node_id: pendingConnection.target!,
+        relation_type: edgeRelationType,
+        description: edgeDescription,
+      })
+      // Add visual edge to ReactFlow
+      const relationColors: Record<string, string> = {
+        related_to: '#4f46e5',
+        prerequisite: '#faad14',
+        extends: '#52c41a',
+        contradicts: '#ff4d4f',
+        example_of: '#1890ff',
+      }
+      const newEdge: Edge = {
+        id: result.edge_id,
+        source: pendingConnection.source!,
+        target: pendingConnection.target!,
+        type: 'smoothstep',
+        animated: true,
+        style: { stroke: relationColors[edgeRelationType] || '#4f46e5', strokeWidth: 2, strokeDasharray: '6 3' },
+        label: edgeRelationType,
+        labelStyle: { fontSize: 10, fill: '#666' },
+      }
+      setEdges(eds => [...eds, newEdge])
+      setKnowledgeEdges(prev => [...prev, { id: result.edge_id, source_node_id: pendingConnection.source!, target_node_id: pendingConnection.target!, relation_type: edgeRelationType, description: edgeDescription }])
+      setEdgeModalOpen(false)
+      message.success('连线已创建')
+    } catch (e: any) {
+      message.error('创建连线失败')
+    }
+  }
+
+  const handleDeleteEdge = async (edgeId: string) => {
+    try {
+      await deleteEdge(edgeId)
+      setEdges(eds => eds.filter(e => e.id !== edgeId))
+      setKnowledgeEdges(prev => prev.filter(e => e.id !== edgeId))
+      message.success('连线已删除')
+    } catch { message.error('删除失败') }
+  }
+
   const exportItems = [
     { key: 'json', label: '导出 JSON' },
     { key: 'markdown', label: '导出 Markdown' },
@@ -205,6 +309,11 @@ function KnowledgePageInner() {
           <Input placeholder="知识树名称" value={treeName} onChange={e => setTreeName(e.target.value)} style={{ width: 140 }} />
           <Button icon={<RobotOutlined />} type="primary" loading={generating} onClick={handleGenerate}>AI 生成知识树</Button>
           <Button icon={<BranchesOutlined />} onClick={handleGenerateOutline}>生成大纲</Button>
+          {imageCount > 0 && (
+            <Button icon={<PictureOutlined />} loading={analyzingImages} onClick={handleAnalyzeImages}>
+              分析图片 ({imageCount})
+            </Button>
+          )}
           <Button icon={<MergeCellsOutlined />} onClick={handleMerge} disabled={trees.length < 2}>合并</Button>
           <Button onClick={handleSaveChanges}>保存编辑</Button>
           <Dropdown menu={{ items: exportItems, onClick: ({ key }) => handleExport(key) }}>
@@ -213,29 +322,68 @@ function KnowledgePageInner() {
           <Select placeholder="历史知识树" style={{ width: 180 }} value={selectedTree} onChange={setSelectedTree}
             options={trees.map(t => ({ value: t.tree_id, label: t.name }))} allowClear />
           <Button icon={<ExpandOutlined />} onClick={() => fitView({ padding: 0.2, duration: 300 })}>适应画布</Button>
+          <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4, fontSize: 12, color: '#666' }}>
+            <Switch size="small" checked={edgeMode} onChange={setEdgeMode} />
+            连线模式
+          </span>
         </Space>
       } style={{ marginBottom: 0 }}>
-        {!selectedTree && !generating && (
-          <div style={{ textAlign: 'center', padding: 60, color: '#999' }}>
-            <ApartmentOutlined style={{ fontSize: 64, marginBottom: 16 }} />
-            <p>上传文档后点击「AI 生成知识树」开始</p>
-            <p style={{ fontSize: 12 }}>知识树由大模型 API 生成，节点支持拖拽编辑</p>
-          </div>
-        )}
-        {generating && (
-          <div style={{ textAlign: 'center', padding: 60 }}>
-            <Spin size="large" />
-            <p style={{ marginTop: 16, color: '#666' }}>正在调用 AI 生成知识结构...</p>
-          </div>
-        )}
+        <Tabs activeKey={activeTab} onChange={setActiveTab}
+          items={[
+            {
+              key: 'knowledge',
+              label: 'AI 知识树',
+              children: !selectedTree && !generating ? (
+                <div style={{ textAlign: 'center', padding: 60, color: '#999' }}>
+                  <ApartmentOutlined style={{ fontSize: 64, marginBottom: 16 }} />
+                  <p>上传文档后点击「AI 生成知识树」开始</p>
+                  <p style={{ fontSize: 12 }}>知识树由大模型 API 生成，节点支持拖拽编辑</p>
+                </div>
+              ) : generating ? (
+                <div style={{ textAlign: 'center', padding: 60 }}>
+                  <Spin size="large" />
+                  <p style={{ marginTop: 16, color: '#666' }}>正在调用 AI 生成知识结构...</p>
+                </div>
+              ) : null,
+            },
+            {
+              key: 'native',
+              label: '原生大纲',
+              children: nativeOutline ? (
+                <div style={{ maxHeight: 'calc(100vh - 320px)', overflow: 'auto', padding: '16px 24px', background: '#fafafa', borderRadius: 8 }}>
+                  <ReactMarkdown>{nativeOutline}</ReactMarkdown>
+                  {imageCount > 0 && (
+                    <Divider />
+                  )}
+                  {imageCount > 0 && (
+                    <div style={{ fontSize: 13, color: '#888' }}>
+                      文档包含 {imageCount} 张图片。
+                      <Button type="link" size="small" icon={<PictureOutlined />} loading={analyzingImages}
+                        onClick={handleAnalyzeImages} style={{ padding: 0, marginLeft: 8 }}>
+                        点击分析图片内容
+                      </Button>
+                    </div>
+                  )}
+                </div>
+              ) : (
+                <div style={{ textAlign: 'center', padding: 60, color: '#999' }}>
+                  <FileTextOutlined style={{ fontSize: 64, marginBottom: 16 }} />
+                  <p>上传文档后自动提取原生大纲</p>
+                  <p style={{ fontSize: 12 }}>支持 PDF/DOCX/PPTX 格式的结构化文档</p>
+                </div>
+              ),
+            },
+          ]}
+        />
       </Card>
-      {selectedTree && !generating && (
+      {activeTab === 'knowledge' && selectedTree && !generating && (
         <div style={{ height: 'calc(100vh - 260px)', background: '#fff', borderRadius: 8, marginTop: 16 }}>
           <ReactFlow
             nodes={nodes}
             edges={edges}
             onNodesChange={onNodesChange}
             onEdgesChange={onEdgesChange}
+            onConnect={onConnect}
             nodeTypes={nodeTypes}
             fitView
             attributionPosition="bottom-left"
@@ -244,17 +392,87 @@ function KnowledgePageInner() {
             <Controls />
             <MiniMap nodeColor="#4f46e5" maskColor="rgba(0,0,0,0.08)" />
             <Panel position="top-right">
-              <Tag color="blue" style={{ fontSize: 12 }}>拖拽节点编辑 · 滚轮缩放</Tag>
+              <Space direction="vertical" size={4}>
+                <Tag color="blue" style={{ fontSize: 12 }}>拖拽节点编辑 · 滚轮缩放</Tag>
+                {edgeMode && <Tag color="orange" style={{ fontSize: 12 }}>连线模式: 拖拽节点端口创建连线</Tag>}
+              </Space>
             </Panel>
+            {knowledgeEdges.length > 0 && (
+              <Panel position="bottom-left">
+                <Card size="small" title="跨引用连线" style={{ maxHeight: 200, overflow: 'auto', width: 260 }}>
+                  {knowledgeEdges.map((e: any) => {
+                    const relLabels: Record<string, string> = { related_to: '相关', prerequisite: '前置', extends: '扩展', contradicts: '矛盾', example_of: '举例' }
+                    return (
+                      <div key={e.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 4, fontSize: 12 }}>
+                        <Tag>{relLabels[e.relation_type] || e.relation_type}</Tag>
+                        <span style={{ color: '#999' }}>{e.source_node_id?.slice(0, 6)}→{e.target_node_id?.slice(0, 6)}</span>
+                        <Button size="small" type="link" danger icon={<DeleteOutlined />} onClick={() => handleDeleteEdge(e.id)} />
+                      </div>
+                    )
+                  })}
+                </Card>
+              </Panel>
+            )}
           </ReactFlow>
         </div>
       )}
+
+      <Card title="知识树列表" style={{ marginTop: 16 }}>
+        <Table
+          dataSource={trees}
+          rowKey="tree_id"
+          locale={{ emptyText: '暂无知识树' }}
+          columns={[
+            { title: '名称', dataIndex: 'name', ellipsis: true },
+            { title: '创建时间', dataIndex: 'created_at', width: 140, render: (v: string) => v?.slice(0, 10) },
+            {
+              title: '操作', width: 100,
+              render: (_: any, record: any) => (
+                <Button
+                  size="small"
+                  type={selectedTree === record.tree_id ? 'primary' : 'default'}
+                  onClick={() => setSelectedTree(selectedTree === record.tree_id ? null : record.tree_id)}
+                >
+                  {selectedTree === record.tree_id ? '已选择' : '选择'}
+                </Button>
+              ),
+            },
+          ]}
+          pagination={{ pageSize: 10, showSizeChanger: true, showTotal: (total) => `共 ${total} 棵知识树` }}
+          size="middle"
+        />
+      </Card>
 
       <Modal title="生成大纲" open={outlineVisible} onCancel={() => setOutlineVisible(false)}
         footer={<Button onClick={() => setOutlineVisible(false)}>关闭</Button>} width={800}>
         <pre style={{ whiteSpace: 'pre-wrap', maxHeight: 500, overflow: 'auto', background: '#f5f5f5', padding: 16, borderRadius: 8, fontSize: 14, lineHeight: 1.8 }}>
           {outlineContent}
         </pre>
+      </Modal>
+
+      <Modal title="创建知识连线" open={edgeModalOpen} onOk={handleConfirmEdge} onCancel={() => setEdgeModalOpen(false)} okText="创建">
+        <Space direction="vertical" style={{ width: '100%' }}>
+          <div>
+            <span style={{ fontWeight: 500 }}>源节点: </span>
+            <Tag>{pendingConnection?.source?.slice(0, 12)}</Tag>
+          </div>
+          <div>
+            <span style={{ fontWeight: 500 }}>目标节点: </span>
+            <Tag>{pendingConnection?.target?.slice(0, 12)}</Tag>
+          </div>
+          <div>
+            <span style={{ fontWeight: 500 }}>关系类型:</span>
+            <Select value={edgeRelationType} onChange={setEdgeRelationType} style={{ width: '100%', marginTop: 4 }}
+              options={[
+                { value: 'related_to', label: '相关' },
+                { value: 'prerequisite', label: '前置知识' },
+                { value: 'extends', label: '扩展延伸' },
+                { value: 'contradicts', label: '矛盾对立' },
+                { value: 'example_of', label: '举例说明' },
+              ]} />
+          </div>
+          <Input placeholder="描述 (可选)" value={edgeDescription} onChange={e => setEdgeDescription(e.target.value)} />
+        </Space>
       </Modal>
     </div>
   )

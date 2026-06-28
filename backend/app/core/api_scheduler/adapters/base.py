@@ -47,8 +47,12 @@ class BaseModelAdapter(ABC):
         ...
 
     def validate_response(self, raw: Any) -> AdapterResponse:
-        """Validate and normalize API response"""
-        raise NotImplementedError
+        """Validate and normalize API response. Override in subclasses for provider-specific logic."""
+        return raw if isinstance(raw, AdapterResponse) else AdapterResponse(
+            content=str(raw),
+            raw_content=str(raw),
+            model="unknown",
+        )
 
     def _build_headers(self) -> dict[str, str]:
         return {

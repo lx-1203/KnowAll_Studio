@@ -1,9 +1,12 @@
 """Document parsing engine - local file parsing, no API calls"""
 import hashlib
+import logging
 import re
 from pathlib import Path
 from dataclasses import dataclass, field
 from app.config import settings
+
+logger = logging.getLogger(__name__)
 
 
 @dataclass
@@ -12,6 +15,9 @@ class ParsedDocument:
     text: str
     page_count: int
     metadata: dict = field(default_factory=dict)
+    headings: list = field(default_factory=list)   # list[HeadingNode] from docling
+    images: list = field(default_factory=list)     # list[ImageItem] from docling
+    tables: list = field(default_factory=list)     # list[TableItem] from docling
 
 
 @dataclass
@@ -28,6 +34,14 @@ class DocumentParser:
     """Parse various document formats to plain text (100% local)."""
 
     async def parse(self, file_path: str, file_type: str) -> ParsedDocument:
+        # Try Docling first for formats it excels at
+        if settings.use_docling and file_type in ("pdf", "docx", "pptx", "html"):
+            try:
+                return await self._parse_with_docling(file_path, file_type)
+            except Exception as e:
+                logger.warning("Docling parse failed for %s (%s), falling back: %s",
+                               file_type, file_path, e)
+
         parsers = {
             "pdf": self._parse_pdf,
             "docx": self._parse_docx,
@@ -263,6 +277,19 @@ class DocumentParser:
         text = re.sub(r"<[^>]+>", " ", text)
         text = re.sub(r"\s+", " ", text).strip()
         return ParsedDocument(text=text, page_count=1, metadata={"parser": "html"})
+
+    async def _parse_with_docling(self, file_path: str, file_type: str) -> ParsedDocument:
+        """Parse using Docling for structure-aware extraction."""
+        from app.core.parsing.docling_parser import docling_parser as dl_parser
+        structured = await dl_parser.parse(file_path, file_type)
+        return ParsedDocument(
+            text=structured.text,
+            page_count=structured.page_count,
+            metadata=structured.metadata,
+            headings=structured.headings,
+            images=structured.images,
+            tables=structured.tables,
+        )
 
 
 class TextCleaner:

@@ -2,7 +2,7 @@
 import json
 import httpx
 from typing import AsyncGenerator
-from app.core.api_scheduler import api_client, TaskType, GenerationConfig
+from app.core.api_scheduler import api_client, TaskType, GenerationConfig, RequestContext
 from app.core.api_scheduler.adapters.base import AdapterConfig
 
 ROLE_PRESETS = {
@@ -40,6 +40,7 @@ class Assistant:
         role_preset: str = "tutor",
         history: list[dict] | None = None,
         model: str = "deepseek-chat",
+        user_id: str | None = None,
     ) -> AsyncGenerator[str, None]:
         """Stream chat response using SSE via httpx streaming."""
         from app.core.api_scheduler.adapters.anthropic import AnthropicAdapter
@@ -50,7 +51,7 @@ class Assistant:
             messages.extend(history[-20:])
         messages.append({"role": "user", "content": user_message})
 
-        adapter = api_client.get_adapter(model)
+        adapter = api_client.get_adapter(model, user_id=user_id)
 
         if isinstance(adapter, AnthropicAdapter):
             # Anthropic Messages API streaming format
@@ -124,6 +125,7 @@ class Assistant:
         role_preset: str = "tutor",
         history: list[dict] | None = None,
         model: str = "deepseek-chat",
+        user_id: str | None = None,
     ) -> str:
         """Non-streaming chat. Returns full response."""
         preset = ROLE_PRESETS.get(role_preset, ROLE_PRESETS["tutor"])
@@ -132,7 +134,7 @@ class Assistant:
             messages.extend(history[-20:])
         messages.append({"role": "user", "content": user_message})
 
-        adapter = api_client.get_adapter(model)
+        adapter = api_client.get_adapter(model, user_id=user_id)
         response = await adapter.chat_completion(
             messages,
             AdapterConfig(temperature=0.7, max_tokens=2048, timeout=120),
@@ -146,6 +148,7 @@ class Assistant:
         role_preset: str = "tutor",
         history: list[dict] | None = None,
         model: str = "deepseek-chat",
+        user_id: str | None = None,
     ) -> str:
         """Chat with additional knowledge context."""
         preset = ROLE_PRESETS.get(role_preset, ROLE_PRESETS["tutor"])
@@ -162,6 +165,7 @@ class Assistant:
             prompt_template_id=f"assistant.{role_preset}",
             generation_content=user_message,
             config=GenerationConfig(max_tokens=2048),
+            context=RequestContext(user_id=user_id or "local_user"),
         )
         return result.content
 

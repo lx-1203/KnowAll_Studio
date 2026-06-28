@@ -37,6 +37,7 @@ class PipelineState:
     chunk_ids: list[str] = field(default_factory=list)
     chunk_texts: list[str] = field(default_factory=list)
     tree_id: str = ""
+    outline_id: str = ""
     question_ids: list[str] = field(default_factory=list)
     deck_id: str = ""
 
@@ -65,6 +66,19 @@ class PipelineOrchestrator:
     ) -> AsyncGenerator[PipelineState, None]:
         """Run the complete pipeline. Yields progress updates at each stage."""
         state = PipelineState(doc_id=document_id)
+
+        # Check for existing pipeline results
+        cache_key = f"pipeline:{document_id}:{question_type}:{difficulty}:{card_type}"
+        from app.database import async_session
+        async with async_session() as db:
+            from sqlalchemy import select as sel_check
+            from app.models import KnowledgeTree as KT
+            result = await db.execute(
+                sel_check(KT).where(KT.generation_cache_key == cache_key)
+            )
+            existing_tree = result.scalar_one_or_none()
+            if existing_tree:
+                logger.info("Document %s already has pipeline results (tree %s)", document_id, existing_tree.id)
 
         # ---- Stage 1: Load document chunks ----
         yield self._progress(state, PipelineStage.PARSE, 5, "加载文档分片...")
@@ -110,6 +124,7 @@ class PipelineOrchestrator:
                     name=f"Pipeline-{document_id[:8]}",
                     doc_ids=[document_id],
                     tree_data=tree_data,
+                    generation_cache_key=cache_key,
                 )
                 db.add(tree)
                 await db.commit()
@@ -119,7 +134,30 @@ class PipelineOrchestrator:
             yield self._error(state, PipelineStage.KNOWLEDGE_TREE, str(e))
             return
 
-        yield self._progress(state, PipelineStage.KNOWLEDGE_TREE, 35, "知识树生成完成")
+        yield self._progress(state, PipelineStage.KNOWLEDGE_TREE, 30, "知识树生成完成")
+
+        # ---- Stage 2.5: Generate outline ----
+        yield self._progress(state, PipelineStage.OUTLINE, 37, "正在生成知识大纲...")
+        try:
+            from app.core.knowledge import knowledge_generator
+            from app.models import Outline
+
+            outline_md = await knowledge_generator.generate_outline(state.chunk_texts, model)
+
+            async with async_session() as db:
+                outline = Outline(
+                    title=f"Outline-{document_id[:8]}",
+                    content_markdown=outline_md,
+                )
+                db.add(outline)
+                await db.commit()
+                state.outline_id = outline.id
+                logger.info("Outline created: %s", outline.id)
+        except Exception as e:
+            yield self._error(state, PipelineStage.OUTLINE, str(e))
+            return
+
+        yield self._progress(state, PipelineStage.OUTLINE, 40, "知识大纲生成完成")
 
         # ---- Stage 3: Generate quiz questions ----
         yield self._progress(state, PipelineStage.QUIZ, 40, f"正在生成 {question_count} 道题目...")
@@ -127,7 +165,11 @@ class PipelineOrchestrator:
             from app.core.quiz import quiz_generator, QuizGenerationConfig
             from app.models import QuestionBank
 
-            knowledge_text = "\n\n".join(state.chunk_texts[:5])
+            # Use all chunks, cap at reasonable token budget
+            MAX_CHARS = 12000
+            knowledge_text = "\n\n".join(state.chunk_texts)
+            if len(knowledge_text) > MAX_CHARS:
+                knowledge_text = knowledge_text[:MAX_CHARS] + "\n\n...(content truncated)"
             config = QuizGenerationConfig(
                 question_type=question_type,
                 count=question_count,
@@ -145,7 +187,7 @@ class PipelineOrchestrator:
                         options=q.get("options", []),
                         correct_answer=str(q.get("answer", q.get("correct_answer", ""))),
                         analysis=q.get("analysis", ""),
-                        source_chunk_id=state.chunk_ids[0] if state.chunk_ids else None,
+                        source_chunk_id=None,  # combined multi-chunk source
                     )
                     db.add(db_q)
                     await db.flush()
@@ -159,12 +201,16 @@ class PipelineOrchestrator:
         yield self._progress(state, PipelineStage.QUIZ, 65, f"已生成 {len(state.question_ids)} 道题目")
 
         # ---- Stage 4: Generate flashcards ----
-        yield self._progress(state, PipelineStage.FLASHCARDS, 70, f"正在生成 {card_count} 张闪卡...")
+        yield self._progress(state, PipelineStage.FLASHCARDS, 65, f"正在生成 {card_count} 张闪卡...")
         try:
             from app.core.memory import card_generator as cg
             from app.models import Flashcard, Deck, ReviewSchedule
 
-            knowledge_text = "\n\n".join(state.chunk_texts[:5])
+            # Use all chunks, cap at reasonable token budget
+            MAX_CHARS = 12000
+            knowledge_text = "\n\n".join(state.chunk_texts)
+            if len(knowledge_text) > MAX_CHARS:
+                knowledge_text = knowledge_text[:MAX_CHARS] + "\n\n...(content truncated)"
             cards = await cg.generate(knowledge_text, card_type, card_count, model)
 
             async with async_session() as db:
@@ -205,6 +251,8 @@ class PipelineOrchestrator:
         except Exception as e:
             yield self._error(state, PipelineStage.FLASHCARDS, str(e))
             return
+
+        yield self._progress(state, PipelineStage.FLASHCARDS, 95, f"已生成 {card_count} 张闪卡")
 
         yield self._progress(state, PipelineStage.DONE, 100, "全链路生成完成！")
         state.result = {

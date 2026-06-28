@@ -52,6 +52,12 @@ async def index_document_chunks(doc_id: str = Query(...), db: AsyncSession = Dep
     ]
 
     count = index_chunks(chunk_dicts)
+
+    # Update vector_id in database for tracking/deletion
+    for c in chunks:
+        c.vector_id = c.id  # ChromaDB uses the chunk UUID as the vector ID
+    await db.commit()
+
     return {"indexed": count, "doc_id": doc_id}
 
 

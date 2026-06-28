@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react'
 import { Card, Button, Input, Select, Space, App, Table, Tag, Statistic, Row, Col } from 'antd'
-import { KeyOutlined, ApiOutlined, DatabaseOutlined, BarChartOutlined } from '@ant-design/icons'
+import { KeyOutlined, ApiOutlined, DatabaseOutlined, BarChartOutlined, DeleteOutlined } from '@ant-design/icons'
 import { addAPIKey, getQuotaStatus, getCacheStats } from '../api'
 
 export default function SettingsPage() {
@@ -10,6 +10,9 @@ export default function SettingsPage() {
   const [quota, setQuota] = useState<any>({})
   const [cacheStats, setCacheStats] = useState<any>({})
   const { message } = App.useApp()
+  const [apiLogs, setApiLogs] = useState<any[]>([])
+  const [logsLoading, setLogsLoading] = useState(false)
+  const [clearingCache, setClearingCache] = useState(false)
 
   useEffect(() => {
     getQuotaStatus().then(setQuota).catch(console.error)
@@ -29,6 +32,27 @@ export default function SettingsPage() {
       setSaving(false)
     }
   }
+
+  const loadLogs = async () => {
+    setLogsLoading(true)
+    try {
+      const res = await fetch('/api/v1/admin/logs?limit=20')
+      setApiLogs(await res.json())
+    } catch { message.error('加载日志失败') }
+    finally { setLogsLoading(false) }
+  }
+
+  const handleClearCache = async () => {
+    setClearingCache(true)
+    try {
+      await fetch('/api/v1/admin/cache/clear', { method: 'DELETE' })
+      message.success('缓存已清除')
+      getCacheStats().then(setCacheStats)
+    } catch { message.error('清除失败') }
+    finally { setClearingCache(false) }
+  }
+
+  useEffect(() => { loadLogs() }, [])
 
   return (
     <div>
@@ -86,6 +110,34 @@ export default function SettingsPage() {
             { title: '输入价格', dataIndex: 'input', key: 'input' },
             { title: '输出价格', dataIndex: 'output', key: 'output' },
             { title: '适用场景', dataIndex: 'suitable', key: 'suitable' },
+          ]}
+        />
+      </Card>
+
+      <Card title={<Space><BarChartOutlined /> API 调用日志</Space>}
+        extra={<Space>
+          <Button size="small" onClick={loadLogs} loading={logsLoading}>刷新</Button>
+          <Button size="small" icon={<DeleteOutlined />} danger loading={clearingCache} onClick={handleClearCache}>清除缓存</Button>
+        </Space>}
+        style={{ marginBottom: 16 }}>
+        <Table
+          dataSource={apiLogs}
+          rowKey="id"
+          loading={logsLoading}
+          size="small"
+          pagination={{ pageSize: 5 }}
+          columns={[
+            { title: '任务', dataIndex: 'task_type', width: 100, render: (v: string) => {
+              const labels: Record<string, string> = { knowledge_tree: '知识树', quiz_gen: '出题', flashcard_gen: '闪卡', game_gen: '游戏', chat: '对话' }
+              return <Tag>{labels[v] || v}</Tag>
+            }},
+            { title: '模型', dataIndex: 'model_name', width: 120 },
+            { title: '输入', dataIndex: 'tokens_input', width: 70 },
+            { title: '输出', dataIndex: 'tokens_output', width: 70 },
+            { title: '耗时', dataIndex: 'duration_ms', width: 80, render: (v: number) => `${v}ms` },
+            { title: '状态', dataIndex: 'success', width: 60, render: (v: boolean) => v ? <Tag color="green">成功</Tag> : <Tag color="red">失败</Tag> },
+            { title: '缓存', dataIndex: 'from_cache', width: 60, render: (v: boolean) => v ? <Tag color="blue">缓存</Tag> : <Tag>实时</Tag> },
+            { title: '时间', dataIndex: 'created_at', width: 120, render: (v: string) => v?.slice(0, 16).replace('T', ' ') },
           ]}
         />
       </Card>

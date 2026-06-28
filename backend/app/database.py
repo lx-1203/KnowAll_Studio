@@ -56,7 +56,7 @@ async def init_db():
             if stderr:
                 logger.warning("Alembic stderr: %s", stderr[:500])
         logger.info("Alembic migrations complete. stdout: %s", result.stdout.strip()[:200] or "(no output)")
-    else:
-        logger.warning("alembic.ini not found, using create_all (no migration support)")
-        async with engine.begin() as conn:
-            await conn.run_sync(Base.metadata.create_all)
+
+    # Always create any tables not yet covered by migrations (idempotent)
+    async with engine.begin() as conn:
+        await conn.run_sync(Base.metadata.create_all)

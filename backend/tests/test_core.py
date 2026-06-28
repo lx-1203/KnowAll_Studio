@@ -82,7 +82,7 @@ class TestFSRS:
         updated = fsrs.review(state, fsrs.GOOD)
         assert updated["review_count"] == 1
         assert updated["state"] == "review"
-        assert updated["stability"] >= 1.0
+        assert updated["stability"] == 0.6  # w[1] from DEFAULT_W
         assert updated["next_review_at"] is not None
 
     def test_first_review_again(self):

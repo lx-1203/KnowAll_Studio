@@ -8,6 +8,7 @@ from app.models import APIKey, APICache, APICallLog
 from app.core.api_scheduler.cache import cache_manager
 from app.core.api_scheduler.rate_limiter import rate_limiter
 from app.core.crypto import encrypt_api_key, decrypt_api_key
+from app.core.auth import get_optional_user, get_user_id
 
 router = APIRouter(prefix="/api/v1/admin", tags=["admin"])
 
@@ -115,9 +116,10 @@ async def clear_cache(db: AsyncSession = Depends(get_db)):
 # ===== Quota Management =====
 
 @router.get("/quota/status")
-async def quota_status():
+async def quota_status(current_user = Depends(get_optional_user)):
     """Get API quota status."""
-    return await rate_limiter.get_quota_status("local_user")
+    user_id = get_user_id(current_user)
+    return await rate_limiter.get_quota_status(user_id)
 
 
 # ===== Usage Logs =====

@@ -1,5 +1,5 @@
 import { Progress, Tag, Spin } from 'antd'
-import { CheckCircleOutlined, CloseCircleOutlined, LoadingOutlined } from '@ant-design/icons'
+import { CheckCircleOutlined, CloseCircleOutlined, LoadingOutlined, FileTextOutlined } from '@ant-design/icons'
 
 interface PipelineProgressProps {
   stage: string
@@ -13,7 +13,7 @@ const stageLabels: Record<string, { label: string; icon: React.ReactNode }> = {
   knowledge_tree: { label: '生成知识树', icon: '🌳' },
   quiz: { label: '生成题目', icon: '📝' },
   flashcards: { label: '生成闪卡', icon: '🃏' },
-  outline: { label: '生成大纲', icon: '📋' },
+  outline: { label: '知识大纲', icon: <FileTextOutlined style={{ color: '#722ed1' }} /> },
   done: { label: '完成', icon: <CheckCircleOutlined style={{ color: '#52c41a' }} /> },
   error: { label: '出错', icon: <CloseCircleOutlined style={{ color: '#ff4d4f' }} /> },
 }

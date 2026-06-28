@@ -9,6 +9,7 @@ from app.database import get_db
 from app.models import Flashcard, Deck, ReviewSchedule, ReviewLog
 from app.core.memory import card_generator, fsrs
 from app.core.anki_export import export_apkg
+from app.core.auth import get_optional_user, get_user_id, load_user_api_keys
 
 router = APIRouter(prefix="/api/v1/flashcards", tags=["flashcards"])
 
@@ -27,8 +28,14 @@ class ReviewRequest(BaseModel):
 
 
 @router.post("/generate")
-async def generate_cards(req: GenerateCardsRequest, db: AsyncSession = Depends(get_db)):
+async def generate_cards(
+    req: GenerateCardsRequest,
+    db: AsyncSession = Depends(get_db),
+    current_user = Depends(get_optional_user),
+):
     """Generate flashcards from knowledge text via API."""
+    await load_user_api_keys(get_user_id(current_user), db)
+
     # Ensure deck exists — commit immediately so the AI call below
     # (which writes to quota/cache/log tables via its own sessions)
     # is not blocked by this transaction's write lock.
@@ -173,9 +180,15 @@ async def get_due_cards(limit: int = 20, db: AsyncSession = Depends(get_db)):
 
 
 @router.get("/decks")
-async def list_decks(db: AsyncSession = Depends(get_db)):
+async def list_decks(
+    limit: int = 1000,
+    offset: int = 0,
+    db: AsyncSession = Depends(get_db),
+):
     """List all flashcard decks."""
-    result = await db.execute(select(Deck).order_by(Deck.created_at.desc()))
+    result = await db.execute(
+        select(Deck).order_by(Deck.created_at.desc()).offset(offset).limit(limit)
+    )
     decks = result.scalars().all()
     return [
         {"id": d.id, "name": d.name, "card_count": d.card_count, "created_at": d.created_at.isoformat()}

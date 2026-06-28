@@ -1,7 +1,8 @@
-import { useState } from 'react'
-import { Card, Button, Select, App, Space, Tag, InputNumber, Progress, Input } from 'antd'
-import { PlayCircleOutlined, CheckCircleOutlined, TrophyOutlined, ArrowRightOutlined } from '@ant-design/icons'
+import { useState, useEffect } from 'react'
+import { Card, Button, Select, App, Space, Tag, InputNumber, Progress, Input, Table } from 'antd'
+import { PlayCircleOutlined, CheckCircleOutlined, TrophyOutlined, ArrowRightOutlined, HistoryOutlined } from '@ant-design/icons'
 import { useAppStore } from '../stores'
+import { saveGameProgress, getGameProgress } from '../api'
 
 const apiBase = '/api/v1'
 
@@ -28,6 +29,19 @@ export default function GamePage() {
   const [gameStarted, setGameStarted] = useState(false)
   const [score, setScore] = useState(0)
   const [attempts, setAttempts] = useState(0)
+  const [progressHistory, setProgressHistory] = useState<any[]>([])
+  // Fix game state
+  const [fixItems, setFixItems] = useState<any[]>([])
+  const [fixIdx, setFixIdx] = useState(0)
+  const [fixAnswer, setFixAnswer] = useState('')
+  const [fixRevealed, setFixRevealed] = useState(false)
+  // Coding game state
+  const [codingItems, setCodingItems] = useState<any[]>([])
+  const [codingIdx, setCodingIdx] = useState(0)
+  const [codingAnswer, setCodingAnswer] = useState('')
+  const [codingRevealed, setCodingRevealed] = useState(false)
+
+  useEffect(() => { getGameProgress().then(setProgressHistory).catch(console.error) }, [])
 
   const handleGenerate = async () => {
     if (!selectedDoc) { message.warning('请先在资料导入页面选择文档'); return }
@@ -55,6 +69,32 @@ export default function GamePage() {
         })) : []
         if (gamePairs.length === 0) { message.warning('未生成匹配对，请重试'); return }
         setPairs(gamePairs)
+      } else if (gameType === 'fix') {
+        const rawPairs = data.pairs || data
+        const items = Array.isArray(rawPairs) ? rawPairs.map((p: any, i: number) => ({
+          id: p.id || `f_${i}`,
+          incorrect: p.incorrect || p.wrong || p.text || p.passage || '',
+          correct: p.correct || p.answer || p.fixed || '',
+          hint: p.hint || '',
+        })) : []
+        if (items.length === 0) { message.warning('未生成修正题目，请重试'); return }
+        setFixItems(items)
+        setFixIdx(0)
+        setFixRevealed(false)
+        setFixAnswer('')
+      } else if (gameType === 'coding') {
+        const rawPairs = data.pairs || data
+        const items = Array.isArray(rawPairs) ? rawPairs.map((p: any, i: number) => ({
+          id: p.id || `c_${i}`,
+          question: p.question || p.problem || p.description || '',
+          answer: p.answer || p.solution || p.code || '',
+          hint: p.hint || p.test_cases || '',
+        })) : []
+        if (items.length === 0) { message.warning('未生成编程题，请重试'); return }
+        setCodingItems(items)
+        setCodingIdx(0)
+        setCodingRevealed(false)
+        setCodingAnswer('')
       } else {
         const levels = data.levels || data
         if (!levels.length) { message.warning('未生成关卡，请重试'); return }
@@ -125,6 +165,8 @@ export default function GamePage() {
             options={[
               { value: 'matching', label: '概念匹配' },
               { value: 'cloze_ladder', label: '填空闯关' },
+              { value: 'fix', label: '错误修正' },
+              { value: 'coding', label: '编程挑战' },
             ]} />
           <Space.Compact>
             <InputNumber value={count} onChange={v => setCount(v || 8)} min={4} max={20} />
@@ -159,7 +201,14 @@ export default function GamePage() {
                 <TrophyOutlined style={{ fontSize: 32, color: '#faad14' }} />
                 <h3>恭喜完成！</h3>
                 <p>尝试 {attempts} 次，得分 {score} 分</p>
-                <Button type="primary" onClick={handleGenerate}>再来一局</Button>
+                <Space>
+                  <Button type="primary" onClick={handleGenerate}>再来一局</Button>
+                  <Button onClick={() => {
+                    saveGameProgress({ game_type: 'matching', level_id: 'default', best_score: score, stars: Math.min(3, Math.ceil(score / pairs.length * 3)), completed: true })
+                      .then(() => getGameProgress().then(setProgressHistory))
+                    message.success('成绩已保存')
+                  }}>保存成绩</Button>
+                </Space>
               </Card>
             )}
 
@@ -247,11 +296,160 @@ export default function GamePage() {
                 <Button type="primary" block onClick={handleClozeSubmit}>
                   {clozeRevealed ? (isLast ? '完成' : '下一关') : '提交'}
                 </Button>
+                {isLast && clozeRevealed && (
+                  <Button onClick={() => {
+                    saveGameProgress({ game_type: 'cloze_ladder', level_id: 'default', best_score: score, stars: Math.min(3, Math.ceil(score / clozeLevels.length * 3)), completed: true })
+                      .then(() => getGameProgress().then(setProgressHistory))
+                    message.success('成绩已保存')
+                  }}>保存成绩</Button>
+                )}
+              </Space>
+            </div>
+          )
+        })()}
+
+        {gameStarted && gameType === 'fix' && fixItems.length > 0 && (() => {
+          const item = fixItems[fixIdx] || {}
+          const incorrectText = item.incorrect || ''
+          const correctText = item.correct || ''
+          const isLast = fixIdx >= fixItems.length - 1
+
+          const handleFixSubmit = () => {
+            setAttempts(a => a + 1)
+            const correct = fixAnswer.trim().toLowerCase() === correctText.trim().toLowerCase()
+            if (correct || fixRevealed) {
+              if (correct) setScore(s => s + 1)
+              if (isLast) {
+                setFixRevealed(true)
+              } else {
+                setFixIdx(i => i + 1)
+                setFixAnswer('')
+                setFixRevealed(false)
+              }
+            } else {
+              setFixRevealed(true)
+              message.warning('修正不正确，已显示答案')
+            }
+          }
+
+          return (
+            <div style={{ maxWidth: 700, margin: '0 auto' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 16 }}>
+                <Space>
+                  <Tag color="red">错误修正: {fixIdx + 1}/{fixItems.length}</Tag>
+                  <Tag color="orange">尝试: {attempts}</Tag>
+                  <Tag color="green">得分: {score}</Tag>
+                </Space>
+                <Progress percent={Math.round(((fixIdx + 1) / fixItems.length) * 100)} style={{ width: 200 }} />
+              </div>
+              <Card style={{ background: '#fff2f0', marginBottom: 16, border: '1px solid #ffccc7' }}>
+                <Tag color="red" style={{ marginBottom: 8 }}>找出并修正错误:</Tag>
+                <div style={{ fontSize: 16, lineHeight: 2, whiteSpace: 'pre-wrap' }}>{incorrectText}</div>
+              </Card>
+              <Space direction="vertical" style={{ width: '100%' }}>
+                <Input.TextArea rows={3} value={fixAnswer} onChange={e => setFixAnswer(e.target.value)}
+                  placeholder="请输入修正后的正确内容..." disabled={fixRevealed} />
+                {fixRevealed && (
+                  <Card size="small" style={{ background: '#f6ffed' }}>
+                    <div style={{ fontWeight: 600 }}>正确答案: {correctText}</div>
+                    {item.hint && <div style={{ color: '#666', marginTop: 4 }}>提示: {item.hint}</div>}
+                  </Card>
+                )}
+                <Button type="primary" block onClick={handleFixSubmit}>
+                  {fixRevealed ? (isLast ? '完成' : '下一题') : '提交'}
+                </Button>
+                {isLast && fixRevealed && (
+                  <Button onClick={() => {
+                    saveGameProgress({ game_type: 'fix', level_id: 'default', best_score: score, stars: Math.min(3, Math.ceil(score / fixItems.length * 3)), completed: true })
+                      .then(() => getGameProgress().then(setProgressHistory))
+                    message.success('成绩已保存')
+                  }}>保存成绩</Button>
+                )}
+              </Space>
+            </div>
+          )
+        })()}
+
+        {gameStarted && gameType === 'coding' && codingItems.length > 0 && (() => {
+          const item = codingItems[codingIdx] || {}
+          const questionText = item.question || ''
+          const answerCode = item.answer || ''
+          const isLast = codingIdx >= codingItems.length - 1
+
+          const handleCodingSubmit = () => {
+            setAttempts(a => a + 1)
+            setCodingRevealed(true)
+            setScore(s => s + 1)
+          }
+
+          return (
+            <div style={{ maxWidth: 700, margin: '0 auto' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 16 }}>
+                <Space>
+                  <Tag color="purple">编程挑战: {codingIdx + 1}/{codingItems.length}</Tag>
+                  <Tag color="orange">尝试: {attempts}</Tag>
+                  <Tag color="green">完成: {score}</Tag>
+                </Space>
+                <Progress percent={Math.round(((codingIdx + 1) / codingItems.length) * 100)} style={{ width: 200 }} />
+              </div>
+              <Card style={{ background: '#f0f5ff', marginBottom: 16, border: '1px solid #d6e4ff' }}>
+                <Tag color="purple" style={{ marginBottom: 8 }}>编程题目:</Tag>
+                <div style={{ fontSize: 16, lineHeight: 2, whiteSpace: 'pre-wrap' }}>{questionText}</div>
+              </Card>
+              <Space direction="vertical" style={{ width: '100%' }}>
+                <Input.TextArea rows={6} value={codingAnswer} onChange={e => setCodingAnswer(e.target.value)}
+                  placeholder="请输入代码..." disabled={codingRevealed}
+                  style={{ fontFamily: 'monospace', fontSize: 13 }} />
+                {codingRevealed && (
+                  <Card size="small" style={{ background: '#f6ffed' }}>
+                    <div style={{ fontWeight: 600, marginBottom: 4 }}>参考答案:</div>
+                    <pre style={{ background: '#000', color: '#0f0', padding: 12, borderRadius: 6, fontSize: 12, overflow: 'auto', maxHeight: 200 }}>{answerCode}</pre>
+                    {item.hint && <div style={{ color: '#666', marginTop: 4 }}>提示: {item.hint}</div>}
+                  </Card>
+                )}
+                {!codingRevealed ? (
+                  <Button type="primary" block onClick={handleCodingSubmit}>提交并查看答案</Button>
+                ) : (
+                  <Button type="primary" block onClick={() => {
+                    if (isLast) {
+                      saveGameProgress({ game_type: 'coding', level_id: 'default', best_score: score, stars: Math.min(3, Math.ceil(score / codingItems.length * 3)), completed: true })
+                        .then(() => getGameProgress().then(setProgressHistory))
+                      message.success('成绩已保存')
+                    } else {
+                      setCodingIdx(i => i + 1)
+                      setCodingAnswer('')
+                      setCodingRevealed(false)
+                    }
+                  }}>
+                    {isLast ? '完成' : '下一题'}
+                  </Button>
+                )}
               </Space>
             </div>
           )
         })()}
       </Card>
+
+      {progressHistory.length > 0 && (
+        <Card title={<Space><HistoryOutlined /> 历史成绩</Space>} style={{ marginTop: 16 }}>
+          <Table
+            dataSource={progressHistory}
+            rowKey="id"
+            size="small"
+            pagination={false}
+            columns={[
+              { title: '游戏类型', dataIndex: 'game_type', width: 100, render: (v: string) => {
+                const labels: Record<string, string> = { matching: '概念匹配', cloze_ladder: '填空闯关', fix: '错误修正', coding: '编程挑战' }
+                return <Tag>{labels[v] || v}</Tag>
+              }},
+              { title: '最高分', dataIndex: 'best_score', width: 80 },
+              { title: '星级', dataIndex: 'stars', width: 80, render: (v: number) => '★'.repeat(v || 0) + '☆'.repeat(3 - (v || 0)) },
+              { title: '状态', dataIndex: 'completed', width: 80, render: (v: boolean) => v ? <Tag color="green">已完成</Tag> : <Tag>进行中</Tag> },
+              { title: '更新时间', dataIndex: 'updated_at', width: 120, render: (v: string) => v?.slice(0, 10) },
+            ]}
+          />
+        </Card>
+      )}
     </div>
   )
 }

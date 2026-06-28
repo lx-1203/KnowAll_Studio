@@ -174,3 +174,69 @@ export interface GameLevel {
   level_data: any
   unlock_condition: any
 }
+
+// ===== Personal Center Types =====
+
+export interface UserProfile {
+  id: string
+  username: string
+  email: string
+  nickname: string
+  phone: string
+  avatar_url: string
+  is_active: boolean
+  created_at: string
+  updated_at: string | null
+}
+
+export interface UpdateProfileRequest {
+  nickname?: string
+  phone?: string
+  avatar_url?: string
+  email?: string
+}
+
+export interface ChangePasswordRequest {
+  old_password: string
+  new_password: string
+}
+
+export interface UserBind {
+  id: string
+  provider: string
+  provider_name: string
+  is_bound: boolean
+  bound_at: string | null
+}
+
+export interface Notification {
+  id: string
+  title: string
+  content: string
+  category: string
+  is_read: boolean
+  resource_type: string
+  resource_id: string
+  created_at: string
+}
+
+export interface NotificationListResponse {
+  total: number
+  unread_count: number
+  items: Notification[]
+}
+
+export interface UserHistory {
+  id: string
+  action_type: string
+  action_label: string
+  resource_type: string
+  resource_id: string
+  detail: string
+  created_at: string
+}
+
+export interface UserHistoryListResponse {
+  total: number
+  items: UserHistory[]
+}

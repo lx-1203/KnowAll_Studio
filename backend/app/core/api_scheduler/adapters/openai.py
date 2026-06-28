@@ -2,25 +2,8 @@
 import json
 import asyncio
 import tiktoken
-from typing import Any
-from urllib.request import Request, urlopen
-from urllib.error import HTTPError, URLError
 from .base import BaseModelAdapter, AdapterConfig, AdapterResponse
-
-
-def _sync_post(url: str, headers: dict, payload: dict, timeout: int) -> dict:
-    """Synchronous HTTP POST using urllib (most reliable cross-platform)."""
-    data = json.dumps(payload).encode("utf-8")
-    req = Request(url, data=data, headers=headers, method="POST")
-    try:
-        with urlopen(req, timeout=timeout) as resp:
-            body = resp.read().decode("utf-8")
-            return json.loads(body)
-    except HTTPError as e:
-        body = e.read().decode("utf-8", errors="replace")
-        raise RuntimeError(f"HTTP {e.code}: {body[:500]}")
-    except URLError as e:
-        raise RuntimeError(f"Connection failed: {e.reason}")
+from .http_utils import sync_post
 
 
 class OpenAICompatAdapter(BaseModelAdapter):
@@ -52,7 +35,7 @@ class OpenAICompatAdapter(BaseModelAdapter):
         }
         payload.update(config.extra)
 
-        data = await asyncio.to_thread(_sync_post, url, headers, payload, config.timeout)
+        data = await asyncio.to_thread(sync_post, url, headers, payload, config.timeout)
         return self._parse_response(data)
 
     def count_tokens(self, text: str) -> int:

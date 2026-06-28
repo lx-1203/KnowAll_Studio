@@ -1,6 +1,7 @@
 """Document upload and parsing API routes"""
 import os
 import hashlib
+import json
 from fastapi import APIRouter, UploadFile, File, HTTPException, Depends, Form
 from fastapi.responses import FileResponse, Response
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -9,6 +10,8 @@ from pydantic import BaseModel
 from app.database import get_db
 from app.models import Document, DocumentChunk
 from app.core.parsing import parser, cleaner, splitter
+from app.core.parsing.outline_extractor import outline_extractor
+from app.core.auth import get_optional_user, get_user_id, load_user_api_keys
 from app.config import settings
 
 router = APIRouter(prefix="/api/v1/documents", tags=["documents"])
@@ -77,6 +80,18 @@ async def upload_document(file: UploadFile = File(...), db: AsyncSession = Depen
     chunks = splitter.split(cleaned_text, parsed.page_count)
 
     # Save to database
+    # Enhance metadata with structured document info if available
+    doc_metadata = dict(parsed.metadata)
+    native_outline = None
+
+    if parsed.headings:
+        outline_result = outline_extractor.extract(parsed.headings)
+        doc_metadata["headings"] = [h.to_dict() for h in parsed.headings]
+        doc_metadata["native_outline_md"] = outline_result.markdown
+        doc_metadata["image_count"] = len(parsed.images)
+        doc_metadata["table_count"] = len(parsed.tables)
+        native_outline = outline_result.markdown
+
     doc = Document(
         filename=file.filename,
         file_type=ext,
@@ -85,20 +100,25 @@ async def upload_document(file: UploadFile = File(...), db: AsyncSession = Depen
         local_path=local_path,
         status="ready",
         page_count=parsed.page_count,
-        metadata_=parsed.metadata,
+        metadata_=doc_metadata,
     )
     db.add(doc)
     await db.flush()  # ensure doc.id is generated before creating chunks
 
+    orm_chunks = []
     for chunk in chunks:
-        db.add(DocumentChunk(
+        orm_chunk = DocumentChunk(
             doc_id=doc.id,
             chunk_index=chunk.index,
             content_hash=chunk.content_hash,
             text_content=chunk.text,
             token_count=chunk.token_count,
             page_range=chunk.page_range,
-        ))
+        )
+        db.add(orm_chunk)
+        orm_chunks.append(orm_chunk)
+
+    await db.flush()  # generate IDs for ORM objects
 
     await db.commit()
 
@@ -108,17 +128,20 @@ async def upload_document(file: UploadFile = File(...), db: AsyncSession = Depen
         "file_type": ext,
         "status": "ready",
         "page_count": parsed.page_count,
+        "native_outline": native_outline,
+        "image_count": len(parsed.images),
+        "table_count": len(parsed.tables),
         "chunks": [
             {
-                "id": None,  # will be filled after refresh
-                "index": c.index,
+                "id": c.id,
+                "index": c.chunk_index,
                 "token_count": c.token_count,
                 "page_range": c.page_range,
-                "preview": c.text[:200] + "..." if len(c.text) > 200 else c.text,
+                "preview": c.text_content[:200] + "..." if len(c.text_content) > 200 else c.text_content,
             }
-            for c in chunks
+            for c in orm_chunks
         ],
-        "total_chunks": len(chunks),
+        "total_chunks": len(orm_chunks),
     }
 
 
@@ -174,9 +197,15 @@ async def import_from_url(req: URLImportRequest, db: AsyncSession = Depends(get_
 
 
 @router.get("/")
-async def list_documents(db: AsyncSession = Depends(get_db)):
+async def list_documents(
+    limit: int = 1000,
+    offset: int = 0,
+    db: AsyncSession = Depends(get_db),
+):
     """List all uploaded documents."""
-    result = await db.execute(select(Document).order_by(Document.created_at.desc()))
+    result = await db.execute(
+        select(Document).order_by(Document.created_at.desc()).offset(offset).limit(limit)
+    )
     docs = result.scalars().all()
     return [
         {
@@ -235,6 +264,11 @@ async def delete_document(doc_id: str, db: AsyncSession = Depends(get_db)):
         shutil.rmtree(slide_cache_dir)
 
     await db.delete(doc)
+
+    # Clean up ChromaDB vectors
+    from app.core.rag import delete_vectors_by_doc_id
+    delete_vectors_by_doc_id(doc_id)
+
     await db.commit()
     return {"status": "deleted"}
 
@@ -303,3 +337,127 @@ async def get_pptx_slide_image(doc_id: str, slide_index: int, db: AsyncSession =
 
     from fastapi.responses import Response
     return Response(content=image_bytes, media_type="image/png")
+
+
+# --- Native Outline & Image Analysis endpoints ---
+
+class ImageAnalysisRequest(BaseModel):
+    model: str | None = None
+    max_images: int | None = None
+
+
+@router.get("/{doc_id}/native-outline")
+async def get_native_outline(doc_id: str, db: AsyncSession = Depends(get_db)):
+    """Get the native document outline extracted by Docling (instant, no LLM)."""
+    result = await db.execute(select(Document).where(Document.id == doc_id))
+    doc = result.scalar_one_or_none()
+    if not doc:
+        raise HTTPException(404, "Document not found")
+
+    meta = doc.metadata_ or {}
+    headings = meta.get("headings", [])
+    outline_md = meta.get("native_outline_md", "")
+    image_count = meta.get("image_count", 0)
+    table_count = meta.get("table_count", 0)
+
+    return {
+        "document_id": doc_id,
+        "headings": headings,
+        "outline_markdown": outline_md,
+        "image_count": image_count,
+        "table_count": table_count,
+    }
+
+
+@router.get("/{doc_id}")
+async def get_document_detail(doc_id: str, db: AsyncSession = Depends(get_db)):
+    """Get full document details including metadata counts."""
+    result = await db.execute(select(Document).where(Document.id == doc_id))
+    doc = result.scalar_one_or_none()
+    if not doc:
+        raise HTTPException(404, "Document not found")
+
+    meta = doc.metadata_ or {}
+    return {
+        "id": doc.id,
+        "filename": doc.filename,
+        "file_type": doc.file_type,
+        "file_size": doc.file_size,
+        "status": doc.status,
+        "page_count": doc.page_count,
+        "created_at": doc.created_at.isoformat(),
+        "image_count": meta.get("image_count", 0),
+        "table_count": meta.get("table_count", 0),
+        "has_native_outline": bool(meta.get("native_outline_md", "")),
+        "has_image_analyses": bool(meta.get("image_analyses", [])),
+    }
+
+
+@router.post("/{doc_id}/analyze-images")
+async def analyze_document_images(
+    doc_id: str,
+    req: ImageAnalysisRequest = ImageAnalysisRequest(),
+    db: AsyncSession = Depends(get_db),
+    current_user = Depends(get_optional_user),
+):
+    """Analyze document images using a vision-capable LLM.
+
+    Results (image descriptions) are returned and can be injected into
+    the document content for downstream knowledge tree generation.
+    """
+    await load_user_api_keys(get_user_id(current_user), db)
+    result = await db.execute(select(Document).where(Document.id == doc_id))
+    doc = result.scalar_one_or_none()
+    if not doc:
+        raise HTTPException(404, "Document not found")
+
+    meta = doc.metadata_ or {}
+    headings = meta.get("headings", [])
+
+    # Re-parse with Docling to get images if not already stored
+    if not doc.local_path or not os.path.exists(doc.local_path):
+        raise HTTPException(400, "原始文件不可用，无法提取图片")
+
+    ext = doc.file_type
+    if ext not in ("pdf", "docx", "pptx", "html"):
+        raise HTTPException(400, f"图片分析仅支持 PDF/DOCX/PPTX/HTML，当前格式: {ext}")
+
+    try:
+        parsed = await parser.parse(doc.local_path, ext)
+    except Exception as e:
+        raise HTTPException(500, f"文档解析失败: {str(e)}")
+
+    if not parsed.images:
+        return {"document_id": doc_id, "images_analyzed": 0, "descriptions": [],
+                "message": "文档中未检测到图片"}
+
+    # Analyze images
+    from app.core.parsing.image_analyzer import image_analyzer, ImageAnalysisConfig
+    config = ImageAnalysisConfig(
+        enabled=True,
+        model=req.model or settings.vision_model,
+        max_images=req.max_images or settings.vision_max_images,
+    )
+
+    try:
+        descriptions = await image_analyzer.analyze_images(parsed.images, config)
+    except Exception as e:
+        raise HTTPException(500, f"图片分析失败: {str(e)}")
+
+    # Store analysis results in document metadata
+    analysis_data = [
+        {"index": d.image_index, "page": d.page, "caption": d.caption,
+         "analysis": d.analysis, "model_used": d.model_used}
+        for d in descriptions
+    ]
+    updated_meta = dict(meta)
+    updated_meta["image_analyses"] = analysis_data
+    doc.metadata_ = updated_meta
+    await db.commit()
+
+    return {
+        "document_id": doc_id,
+        "images_analyzed": len(descriptions),
+        "descriptions": analysis_data,
+        "message": f"已分析 {len(descriptions)} 张图片，结果已保存到文档元数据",
+    }

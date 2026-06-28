@@ -222,3 +222,100 @@ class QuotaStatus(BaseModel):
 class CacheStats(BaseModel):
     total_entries: int
     total_tokens_saved: int
+
+
+# ===== User Profile Schemas =====
+
+class UserProfileResponse(BaseModel):
+    id: str
+    username: str
+    email: str
+    nickname: str
+    phone: str
+    avatar_url: str
+    is_active: bool
+    created_at: str
+    updated_at: str | None = None
+
+
+class UpdateProfileRequest(BaseModel):
+    nickname: str | None = None
+    phone: str | None = None
+    avatar_url: str | None = None
+    email: str | None = None
+
+
+class ChangePasswordRequest(BaseModel):
+    old_password: str
+    new_password: str
+
+
+# ===== User Bind Schemas =====
+
+class UserBindItem(BaseModel):
+    id: str
+    provider: str
+    provider_name: str
+    is_bound: bool
+    bound_at: str | None = None
+
+
+class BindAccountRequest(BaseModel):
+    provider: str
+    provider_name: str = ""
+    provider_uid: str = ""
+
+
+# ===== Notification Schemas =====
+
+class NotificationItem(BaseModel):
+    id: str
+    title: str
+    content: str
+    category: str
+    is_read: bool
+    resource_type: str
+    resource_id: str
+    created_at: str
+
+
+class NotificationListResponse(BaseModel):
+    total: int
+    unread_count: int
+    items: list[NotificationItem]
+
+
+# ===== User History Schemas =====
+
+class UserHistoryItem(BaseModel):
+    id: str
+    action_type: str
+    action_label: str
+    resource_type: str
+    resource_id: str
+    detail: str
+    created_at: str
+
+
+class UserHistoryListResponse(BaseModel):
+    total: int
+    items: list[UserHistoryItem]
+
+
+# ===== User API Key Schemas =====
+
+class AddUserAPIKeyRequest(BaseModel):
+    provider: str  # deepseek/openai/anthropic/qwen/...
+    api_key: str
+    key_alias: str = ""
+    base_url: str = ""  # optional custom base URL
+
+
+class UserAPIKeyItem(BaseModel):
+    id: str
+    provider: str
+    key_alias: str
+    key_masked: str
+    base_url: str
+    is_active: bool
+    created_at: str

@@ -89,6 +89,8 @@ from app.api import (
     flashcards_router, chat_router, admin_router,
     search_router, pipeline_router, stats_router,
     backup_router, game_router, study_router, share_router,
+    auth_router, kp_router, user_router, notifications_router,
+    reading_router,
 )
 from app.middleware import setup_middleware
 
@@ -108,6 +110,11 @@ app.include_router(game_router)
 app.include_router(study_router)
 app.include_router(share_router)
 app.include_router(admin_router)
+app.include_router(auth_router)
+app.include_router(kp_router)
+app.include_router(user_router)
+app.include_router(notifications_router)
+app.include_router(reading_router)
 
 
 @app.get("/")
