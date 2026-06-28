@@ -214,6 +214,146 @@ export default function MindMapPage() {
   const [edges, setEdges, onEdgesChange] = useEdgesState([])
   const [showPanel, setShowPanel] = useState(true)
 
+  /** 树形布局：子节点紧跟在父节点周围，同级从左到右递进 */
+  const computeTreeLayout = useCallback((
+    rawNodes: any[], rawEdges: any[]
+  ): { nodes: Node[]; edges: Edge[] } => {
+    // 构建父子关系
+    const childrenMap = new Map<string, string[]>()
+    const parentMap = new Map<string, string>()
+
+    for (const e of rawEdges) {
+      if (e.relation === 'parent_child') {
+        if (!childrenMap.has(e.source)) childrenMap.set(e.source, [])
+        childrenMap.get(e.source)!.push(e.target)
+        parentMap.set(e.target, e.source)
+      }
+    }
+
+    // 找到根节点（无父节点的为一级）
+    const rootIds = new Set<string>()
+    for (const n of rawNodes) {
+      if (!parentMap.has(n.id)) rootIds.add(n.id)
+    }
+    // 如果所有节点都有父节点，回退到 level=1 的节点作为根
+    if (rootIds.size === 0) {
+      for (const n of rawNodes) {
+        if ((n.level || 1) === 1) rootIds.add(n.id)
+      }
+    }
+    if (rootIds.size === 0 && rawNodes.length > 0) {
+      rootIds.add(rawNodes[0].id)
+    }
+
+    // 递归计算每个子树的高度（叶子节点数量）
+    const subtreeLeafCount = new Map<string, number>()
+    function calcLeaves(id: string): number {
+      if (subtreeLeafCount.has(id)) return subtreeLeafCount.get(id)!
+      const children = childrenMap.get(id) || []
+      if (children.length === 0) {
+        subtreeLeafCount.set(id, 1)
+        return 1
+      }
+      const total = children.reduce((sum, c) => sum + calcLeaves(c), 0)
+      subtreeLeafCount.set(id, Math.max(total, 1))
+      return Math.max(total, 1)
+    }
+    for (const n of rawNodes) calcLeaves(n.id)
+
+    // 布局常量
+    const H_GAP = 220          // 层级之间水平间距
+    const V_GAP = 90           // 兄弟节点之间垂直间距
+    const START_Y = 40
+
+    // 为每个节点分配 y 位置：从上到下按子树排列
+    const yPos = new Map<string, number>()
+    const visited = new Set<string>()
+
+    function layoutY(id: string, startY: number): number {
+      if (visited.has(id)) return startY
+      visited.add(id)
+      const children = childrenMap.get(id) || []
+      if (children.length === 0) {
+        yPos.set(id, startY)
+        return startY + V_GAP
+      }
+      let currentY = startY
+      // 先布局所有子节点
+      const childYValues: number[] = []
+      for (const childId of children) {
+        const nextY = layoutY(childId, currentY)
+        childYValues.push((currentY + nextY - V_GAP) / 2) // 子节点中心
+        currentY = nextY
+      }
+      // 父节点居中于子节点
+      const parentY = (childYValues[0] + childYValues[childYValues.length - 1]) / 2
+      yPos.set(id, parentY)
+      return currentY
+    }
+
+    // 对根节点按标签排序后布局
+    const sortedRoots = [...rootIds].sort((a, b) => {
+      const na = rawNodes.find(n => n.id === a)
+      const nb = rawNodes.find(n => n.id === b)
+      return (na?.label || '').localeCompare(nb?.label || '')
+    })
+
+    let globalY = START_Y
+    for (const rootId of sortedRoots) {
+      globalY = layoutY(rootId, globalY) + 20 // 根之间额外间距
+    }
+
+    // 处理未被访问的节点（孤立节点或 cross_reference 边涉及的节点）
+    for (const n of rawNodes) {
+      if (!visited.has(n.id)) {
+        yPos.set(n.id, globalY)
+        globalY += V_GAP
+      }
+    }
+
+    // 计算 x 位置（需要先确定每个节点的深度）
+    const depthMap = new Map<string, number>()
+    function calcDepth(id: string): number {
+      if (depthMap.has(id)) return depthMap.get(id)!
+      const parent = parentMap.get(id)
+      if (!parent) { depthMap.set(id, 0); return 0 }
+      const d = calcDepth(parent) + 1
+      depthMap.set(id, d)
+      return d
+    }
+    for (const n of rawNodes) calcDepth(n.id)
+
+    // 构建 ReactFlow 节点
+    const flowNodes: Node[] = rawNodes.map((n: any) => ({
+      id: n.id,
+      type: 'knowledgeNode',
+      position: {
+        x: (depthMap.get(n.id) || 0) * H_GAP + 30,
+        y: yPos.get(n.id) || START_Y,
+      },
+      data: { label: n.label, level: n.level, tag: n.tag, summary: n.summary },
+    }))
+
+    // 构建带类型的边
+    const flowEdges: Edge[] = rawEdges.map((e: any, i: number) => {
+      const isParentChild = e.relation === 'parent_child'
+      const isCross = e.relation === 'cross_reference'
+      return {
+        id: `${e.source}-${e.target}-${i}`,
+        source: e.source,
+        target: e.target,
+        type: isParentChild ? 'smoothstep' : 'default',
+        animated: !isParentChild,
+        style: {
+          stroke: isParentChild ? '#6366f1' : isCross ? '#f59e0b' : '#94a3b8',
+          strokeWidth: isParentChild ? 2 : 1.5,
+        },
+      }
+    })
+
+    return { nodes: flowNodes, edges: flowEdges }
+  }, [])
+
   useEffect(() => {
     if (!summaryId) return
     loadMindmap()
@@ -225,21 +365,11 @@ export default function MindMapPage() {
       const result = await getSummaryMindmap(summaryId!)
       setData(result)
 
-      const flowNodes: Node[] = (result.nodes || []).map((n: any, i: number) => ({
-        id: n.id,
-        type: 'knowledgeNode',
-        position: { x: n.level * 250, y: i * 80 },
-        data: { label: n.label, level: n.level, tag: n.tag, summary: n.summary },
-      }))
+      const { nodes: flowNodes, edges: flowEdges } = computeTreeLayout(
+        result.nodes || [],
+        result.edges || []
+      )
       setNodes(flowNodes)
-
-      const flowEdges: Edge[] = (result.edges || []).map((e: any, i: number) => ({
-        id: `${e.source}-${e.target}-${i}`,
-        source: e.source,
-        target: e.target,
-        animated: true,
-        style: { stroke: e.relation === 'parent_child' ? '#6366f1' : e.relation === 'cross_reference' ? '#f59e0b' : '#94a3b8' },
-      }))
       setEdges(flowEdges)
     } catch (e: any) {
       message.error('加载思维导图失败: ' + (e.response?.data?.detail || e.message))
@@ -249,17 +379,14 @@ export default function MindMapPage() {
   }
 
   const onLayout = useCallback(() => {
-    const layouted = nodes.map((node) => {
-      const level = node.data?.level || 1
-      const siblings = nodes.filter(n => n.data?.level === level)
-      const idx = siblings.findIndex(n => n.id === node.id)
-      return {
-        ...node,
-        position: { x: (level - 1) * 280, y: (idx >= 0 ? idx : 0) * 90 + 50 },
-      }
-    })
-    setNodes(layouted)
-  }, [nodes, setNodes])
+    if (!data) return
+    const { nodes: flowNodes, edges: flowEdges } = computeTreeLayout(
+      data.nodes || [],
+      data.edges || []
+    )
+    setNodes(flowNodes)
+    setEdges(flowEdges)
+  }, [data, setNodes, setEdges, computeTreeLayout])
 
   if (loading) return <div style={{ textAlign: 'center', padding: 100 }}><Spin size="large" /></div>
   if (!data) return <div style={{ textAlign: 'center', padding: 100 }}><Empty description="无法加载思维导图" /></div>
