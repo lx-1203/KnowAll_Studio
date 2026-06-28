@@ -328,10 +328,10 @@ class PipelineOrchestrator:
             yield self._error(state, PipelineStage.QUIZ, str(e))
             return
 
-        yield self._progress(state, PipelineStage.QUIZ, 65, f"已生成 {len(state.question_ids)} 道题目")
+        yield self._progress(state, PipelineStage.QUIZ, 90, f"已生成 {len(state.question_ids)} 道题目")
 
-        # ---- Stage 4: Generate flashcards ----
-        yield self._progress(state, PipelineStage.FLASHCARDS, 65, f"正在生成 {card_count} 张闪卡...")
+        # ---- Stage 5: Generate flashcards ----
+        yield self._progress(state, PipelineStage.FLASHCARDS, 90, f"正在生成 {card_count} 张闪卡...")
         try:
             from app.core.memory import card_generator as cg
             from app.models import Flashcard, Deck, ReviewSchedule
