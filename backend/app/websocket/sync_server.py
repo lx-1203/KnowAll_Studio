@@ -37,7 +37,11 @@ async def _heartbeat_checker() -> None:
         for room_id, members in list(_rooms.items()):
             for ws, uid, uname in list(members):
                 last = _last_heartbeat.get(id(ws), 0)
-                if last > 0 and now - last > HEARTBEAT_TIMEOUT:
+                # last==0 means no heartbeat received yet (just connected),
+                # give a grace period of HEARTBEAT_TIMEOUT from connection time
+                if last == 0:
+                    continue
+                if now - last > HEARTBEAT_TIMEOUT:
                     stale.append((ws, uid, uname, room_id))
         for ws, uid, uname, room_id in stale:
             logger.warning("心跳超时，断开: user=%s(%s) room=%s", uid, uname, room_id)
