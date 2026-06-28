@@ -567,7 +567,10 @@ async def get_summary_mindmap(
     # Use MindMapAgent or extract nodes
     from app.core.agents.mindmap_agent import MindMapAgent
     agent = MindMapAgent()
-    result = await agent.run(summary_id=summary_id, document_id=summary.document_id)
+    all_document_ids = summary.document_ids or (
+        [summary.document_id] if summary.document_id else []
+    )
+    result = await agent.run(summary_id=summary_id, document_ids=all_document_ids)
 
     if result.status != "success" or not result.result:
         raise HTTPException(500, result.error or "Failed to generate mind map")
