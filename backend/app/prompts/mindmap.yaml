@@ -25,18 +25,18 @@ bois_restructure:
 
     ## 输出格式
     输出严格的 JSON，格式如下：
-    {
-      "bois_analysis": {
+    {{
+      "bois_analysis": {{
         "upper_categories": ["上位阶大类1", "上位阶大类2"],
         "missing_levels": ["检测到的层级缺口"],
         "merge_suggestions": ["可合并的冗余节点"]
-      },
-      "restructured_tree": {
+      }},
+      "restructured_tree": {{
         "title": "重构后的知识树标题",
         "bois_score_before": 60,
         "bois_score_after": 85,
         "nodes": [
-          {
+          {{
             "id": "n1",
             "label": "上位阶大类名（关键词3-8字）",
             "level": 1,
@@ -44,7 +44,7 @@ bois_restructure:
             "summary": "一句话概括该分类",
             "bois_role": "upper_category",
             "children": [
-              {
+              {{
                 "id": "n1-1",
                 "label": "中位阶同类名",
                 "level": 2,
@@ -52,7 +52,7 @@ bois_restructure:
                 "summary": "一句话概括",
                 "bois_role": "peer_category",
                 "children": [
-                  {
+                  {{
                     "id": "n1-1-1",
                     "label": "下位阶具体知识点",
                     "level": 3,
@@ -60,14 +60,14 @@ bois_restructure:
                     "summary": "一句话概括",
                     "bois_role": "lower_detail",
                     "children": []
-                  }
+                  }}
                 ]
-              }
+              }}
             ]
-          }
+          }}
         ]
-      }
-    }
+      }}
+    }}
 
     必须严格遵守：层级不超过 4 层，每个节点 children 数组必须完整（叶子节点为空数组 []）。
     只输出 JSON，不要任何额外说明文字。
@@ -96,9 +96,9 @@ bois_enrich:
 
     ## 输出格式
     输出严格的 JSON：
-    {
+    {{
       "added_nodes": [
-        {
+        {{
           "parent_id": "父节点ID",
           "label": "新节点标题（关键词3-8字）",
           "level": 2,
@@ -106,10 +106,10 @@ bois_enrich:
           "summary": "一句话描述",
           "bois_role": "peer_category",
           "reason": "补充原因（如：该类下缺少xxx分类）"
-        }
+        }}
       ],
       "analysis": "补充说明：此次补充了哪些类型的知识点"
-    }
+    }}
 
     只输出 JSON。
 
@@ -136,16 +136,16 @@ bois_classify:
 
     ## 输出格式
     输出严格的 JSON：
-    {
-      "classifications": {
-        "{node_id}": {
+    {{
+      "classifications": {{
+        "{node_id}": {{
           "bois_role": "upper_category",
           "suggested_parent": null,
           "peer_group": "所属的同类组名",
           "confidence": 0.9
-        }
-      }
-    }
+        }}
+      }}
+    }}
 
   user_template: |
     待分类的知识点：
