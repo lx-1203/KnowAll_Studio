@@ -81,7 +81,7 @@ async def main():
         cognitive_level="L2_understand",
         enable_review=True,
     )
-    questions = await quiz_generator.generate(TEST_KNOWLEDGE, config, model="deepseek-chat")
+    questions = await quiz_generator.generate(TEST_KNOWLEDGE, config, model=MODEL)
     for i, q in enumerate(questions):
         print(f"\n--- 题目 {i+1} ---")
         print(f"认知层次: {q.get('cognitive_level')}  难度: {q.get('difficulty_score')}")
