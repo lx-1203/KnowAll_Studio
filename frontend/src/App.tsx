@@ -149,6 +149,10 @@ export default function App() {
                   <Route path="/settings" element={<SettingsPage />} />
                   <Route path="/personal" element={<PersonalCenterPage />} />
                   <Route path="/reading" element={<ReadingPage />} />
+                  <Route path="/summary/:id" element={<SummaryPage />} />
+                  <Route path="/mindmap/:summaryId" element={<MindMapPage />} />
+                  <Route path="/quiz/interactive/:summaryId" element={<InteractiveQuizPage />} />
+                  <Route path="/coverage/:summaryId" element={<CoverageReportPage />} />
                 </Routes>
               </div>
             </Suspense>
