@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react'
+import { useNavigate } from 'react-router-dom'
 import { Card, Row, Col, Statistic, Table, Tag, Progress, Spin } from 'antd'
 import {
   FileTextOutlined, FormOutlined, CheckCircleOutlined, CloseCircleOutlined,
@@ -8,10 +9,12 @@ import type { DashboardStats, DailyStat, TopicStat } from '../types'
 import { PageSkeleton } from '../components/SkeletonLoader'
 
 export default function DashboardPage() {
+  const navigate = useNavigate()
   const [stats, setStats] = useState<DashboardStats | null>(null)
   const [daily, setDaily] = useState<DailyStat[]>([])
   const [topics, setTopics] = useState<TopicStat[]>([])
   const [loading, setLoading] = useState(true)
+  const [recentSummaries, setRecentSummaries] = useState<any[]>([])
 
   useEffect(() => {
     Promise.all([
