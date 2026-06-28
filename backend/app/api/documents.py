@@ -71,6 +71,42 @@ async def upload_document(file: UploadFile = File(...), db: AsyncSession = Depen
     with open(local_path, "wb") as f:
         f.write(content)
 
+    # Check for duplicate by SHA256
+    dup = await db.execute(select(Document).where(Document.sha256 == sha256))
+    dup_doc = dup.scalar_one_or_none()
+    if dup_doc:
+        # Same file already exists — return it directly
+        # Refresh chunk info
+        chunks_result = await db.execute(
+            select(DocumentChunk)
+            .where(DocumentChunk.doc_id == dup_doc.id)
+            .order_by(DocumentChunk.chunk_index)
+        )
+        existing_chunks = chunks_result.scalars().all()
+        meta = dup_doc.metadata_ or {}
+        return {
+            "document_id": dup_doc.id,
+            "filename": dup_doc.filename,
+            "file_type": dup_doc.file_type,
+            "status": dup_doc.status,
+            "page_count": dup_doc.page_count,
+            "native_outline": meta.get("native_outline_md"),
+            "image_count": meta.get("image_count", 0),
+            "table_count": meta.get("table_count", 0),
+            "chunks": [
+                {
+                    "id": c.id,
+                    "index": c.chunk_index,
+                    "token_count": c.token_count,
+                    "page_range": c.page_range,
+                    "preview": c.text_content[:200] + "..." if len(c.text_content) > 200 else c.text_content,
+                }
+                for c in existing_chunks
+            ],
+            "total_chunks": len(existing_chunks),
+            "duplicate": True,
+        }
+
     # Parse document
     try:
         parsed = await parser.parse(local_path, ext)
