@@ -1,4 +1,4 @@
-"""Quiz generation, exam papers, and grading API routes"""
+"""Quiz generation, exam papers, and grading API routes (v2 with Bloom + Review)"""
 from datetime import datetime, timezone
 from fastapi import APIRouter, HTTPException, Depends
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -14,21 +14,24 @@ router = APIRouter(prefix="/api/v1/quiz", tags=["quiz"])
 class GenerateQuestionsRequest(BaseModel):
     document_id: str
     chunk_ids: list[str] | None = None
-    question_type: str = "single_choice"  # single_choice/multi_choice/true_false/fill_blank/short_answer
+    question_type: str = "single_choice"
     count: int = 10
-    difficulty: str = "medium"
+    difficulty: str = "medium"                    # legacy: easy/medium/hard
+    difficulty_score: float = 0.5                 # NEW: continuous 0.0-1.0
+    cognitive_level: str = "L2_understand"        # NEW: Bloom level
+    enable_review: bool = True                    # NEW: LLM-as-Judge review
     model: str = "deepseek-chat"
 
 
 class CreateExamRequest(BaseModel):
     title: str = "试卷"
-    question_ids: list[str] | None = None  # specific questions, or auto-generate
+    question_ids: list[str] | None = None
     config: dict = {}
 
 
 class SubmitExamRequest(BaseModel):
     paper_id: str
-    answers: dict[str, str]  # question_id -> user_answer
+    answers: dict[str, str]
 
 
 @router.post("/generate")
@@ -37,7 +40,7 @@ async def generate_questions(
     db: AsyncSession = Depends(get_db),
     current_user = Depends(get_optional_user),
 ):
-    """Generate quiz questions from document chunks."""
+    """Generate quiz questions from document chunks (v2 with Bloom + Review)."""
     await load_user_api_keys(get_user_id(current_user), db)
     from sqlalchemy import select
 
@@ -66,6 +69,9 @@ async def generate_questions(
         question_type=req.question_type,
         count=req.count,
         difficulty=req.difficulty,
+        difficulty_score=req.difficulty_score,
+        cognitive_level=req.cognitive_level,
+        enable_review=req.enable_review,
     )
 
     try:
@@ -77,13 +83,17 @@ async def generate_questions(
     saved_questions = []
     for q in questions:
         db_q = QuestionBank(
-            question_type=q.get("type", req.question_type),
+            question_type=q.get("type", q.get("question_type", req.question_type)),
             difficulty=q.get("difficulty", req.difficulty),
+            difficulty_score=q.get("difficulty_score", req.difficulty_score),
+            cognitive_level=q.get("cognitive_level", req.cognitive_level),
             tags=q.get("tags", []),
             question_text=q.get("question_text", ""),
             options=q.get("options", []),
             correct_answer=str(q.get("answer", q.get("correct_answer", ""))),
             analysis=q.get("analysis", ""),
+            review_scores=q.get("review_scores", {}),
+            review_total=q.get("review_total"),
             source_chunk_id=chunks[0].id if len(chunks) == 1 else None,
         )
         db.add(db_q)
@@ -93,16 +103,21 @@ async def generate_questions(
 
     return {
         "generated_count": len(saved_questions),
+        "reviewed_count": sum(1 for q in questions if q.get("reviewed")),
         "questions": [
             {
                 "id": q.id,
                 "question_type": q.question_type,
                 "difficulty": q.difficulty,
+                "difficulty_score": q.difficulty_score,
+                "cognitive_level": q.cognitive_level,
                 "tags": q.tags,
                 "question_text": q.question_text,
                 "options": q.options,
                 "answer": q.correct_answer,
                 "analysis": q.analysis,
+                "review_scores": q.review_scores,
+                "review_total": q.review_total,
             }
             for q in saved_questions
         ],
@@ -115,7 +130,6 @@ async def create_exam(req: CreateExamRequest, db: AsyncSession = Depends(get_db)
     from sqlalchemy import select
 
     if req.question_ids:
-        # Use specified questions
         result = await db.execute(
             select(QuestionBank).where(QuestionBank.id.in_(req.question_ids))
         )
@@ -125,6 +139,8 @@ async def create_exam(req: CreateExamRequest, db: AsyncSession = Depends(get_db)
                 "id": q.id,
                 "question_type": q.question_type,
                 "difficulty": q.difficulty,
+                "difficulty_score": q.difficulty_score,
+                "cognitive_level": q.cognitive_level,
                 "tags": q.tags,
                 "question_text": q.question_text,
                 "options": q.options,
@@ -135,7 +151,6 @@ async def create_exam(req: CreateExamRequest, db: AsyncSession = Depends(get_db)
         ]
         paper_data = {"title": req.title, "questions": question_dicts, "question_ids": [q["id"] for q in question_dicts]}
     else:
-        # Auto-generate from all questions in DB
         result = await db.execute(select(QuestionBank).limit(200))
         all_questions = result.scalars().all()
         question_dicts = [
@@ -143,6 +158,8 @@ async def create_exam(req: CreateExamRequest, db: AsyncSession = Depends(get_db)
                 "id": q.id,
                 "question_type": q.question_type,
                 "difficulty": q.difficulty,
+                "difficulty_score": q.difficulty_score,
+                "cognitive_level": q.cognitive_level,
                 "tags": q.tags,
                 "question_text": q.question_text,
                 "options": q.options,
@@ -177,18 +194,16 @@ async def submit_exam(
     db: AsyncSession = Depends(get_db),
     current_user = Depends(get_optional_user),
 ):
-    """Submit exam answers, get graded results."""
+    """Submit exam answers, get graded results with cognitive analysis."""
     from sqlalchemy import select
 
     user_id = get_user_id(current_user)
 
-    # Get paper
     result = await db.execute(select(ExamPaper).where(ExamPaper.id == req.paper_id))
     paper = result.scalar_one_or_none()
     if not paper:
         raise HTTPException(404, "Paper not found")
 
-    # Get questions
     result = await db.execute(
         select(QuestionBank).where(QuestionBank.id.in_(paper.question_ids))
     )
@@ -202,11 +217,12 @@ async def submit_exam(
             "options": q.options,
             "answer": q.correct_answer,
             "analysis": q.analysis,
+            "cognitive_level": q.cognitive_level,
+            "difficulty_score": q.difficulty_score,
         }
         for q in questions
     ]
 
-    # Grade
     paper_with_qs = {"questions": question_dicts}
     results = exam_engine.grade(paper_with_qs, req.answers)
 
@@ -221,7 +237,6 @@ async def submit_exam(
         )
         db.add(record)
 
-        # Track errors
         if not detail["is_correct"]:
             from sqlalchemy import select as sel
             existing = await db.execute(
@@ -241,6 +256,27 @@ async def submit_exam(
                 ))
 
     await db.commit()
+
+    # Add cognitive breakdown to results
+    cognitive_breakdown = {}
+    for detail in results["details"]:
+        # Find the matching question to get cognitive_level
+        q_dict = next((q for q in question_dicts if q["id"] == detail["question_id"]), None)
+        cl = q_dict.get("cognitive_level", "unknown") if q_dict else "unknown"
+        if cl not in cognitive_breakdown:
+            cognitive_breakdown[cl] = {"total": 0, "correct": 0}
+        cognitive_breakdown[cl]["total"] += 1
+        if detail["is_correct"]:
+            cognitive_breakdown[cl]["correct"] += 1
+
+    results["cognitive_breakdown"] = {
+        cl: {
+            "total": stats["total"],
+            "correct": stats["correct"],
+            "accuracy": round(stats["correct"] / max(1, stats["total"]) * 100, 1),
+        }
+        for cl, stats in cognitive_breakdown.items()
+    }
 
     return results
 
@@ -269,6 +305,9 @@ async def get_error_questions(
             "question": {
                 "id": q.id,
                 "question_type": q.question_type,
+                "difficulty": q.difficulty,
+                "difficulty_score": q.difficulty_score,
+                "cognitive_level": q.cognitive_level,
                 "question_text": q.question_text,
                 "options": q.options,
                 "answer": q.correct_answer,
@@ -306,6 +345,8 @@ async def generate_error_variants(
         "correct_answer": question.correct_answer,
         "analysis": question.analysis,
         "difficulty": question.difficulty,
+        "difficulty_score": question.difficulty_score,
+        "cognitive_level": question.cognitive_level,
     }
 
     try:
@@ -313,12 +354,13 @@ async def generate_error_variants(
     except Exception as e:
         raise HTTPException(500, f"Generation failed: {str(e)}")
 
-    # Save variants to DB, linked to original
     saved = []
     for v in variants:
         db_q = QuestionBank(
             question_type=question.question_type,
             difficulty=question.difficulty,
+            difficulty_score=question.difficulty_score,
+            cognitive_level=question.cognitive_level,
             tags=question.tags,
             question_text=v.get("question_text", ""),
             options=v.get("options", []),
@@ -329,7 +371,6 @@ async def generate_error_variants(
         db.add(db_q)
         saved.append(db_q)
 
-    # Mark variants as generated
     error.variant_generated = True
     await db.commit()
 
@@ -339,6 +380,8 @@ async def generate_error_variants(
             {
                 "id": q.id,
                 "question_type": q.question_type,
+                "difficulty_score": q.difficulty_score,
+                "cognitive_level": q.cognitive_level,
                 "question_text": q.question_text,
                 "options": q.options,
                 "answer": q.correct_answer,
@@ -352,11 +395,12 @@ async def generate_error_variants(
 async def list_questions(
     question_type: str | None = None,
     difficulty: str | None = None,
+    cognitive_level: str | None = None,
     limit: int = 50,
     offset: int = 0,
     db: AsyncSession = Depends(get_db),
 ):
-    """List questions with optional filters."""
+    """List questions with optional filters (v2 with cognitive_level)."""
     from sqlalchemy import select
 
     query = select(QuestionBank)
@@ -364,6 +408,8 @@ async def list_questions(
         query = query.where(QuestionBank.question_type == question_type)
     if difficulty:
         query = query.where(QuestionBank.difficulty == difficulty)
+    if cognitive_level:
+        query = query.where(QuestionBank.cognitive_level == cognitive_level)
     query = query.offset(offset).limit(limit)
 
     result = await db.execute(query)
@@ -373,6 +419,8 @@ async def list_questions(
             "id": q.id,
             "question_type": q.question_type,
             "difficulty": q.difficulty,
+            "difficulty_score": q.difficulty_score,
+            "cognitive_level": q.cognitive_level,
             "tags": q.tags,
             "question_text": q.question_text[:100] + "..." if len(q.question_text or "") > 100 else q.question_text,
         }
