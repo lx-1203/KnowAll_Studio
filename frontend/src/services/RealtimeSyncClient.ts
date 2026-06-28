@@ -233,7 +233,10 @@ export class RealtimeSyncClient {
         if (msg.data?.code === 'VERSION_CONFLICT') {
           this.requestFullSync();
         }
-        this.options.onError(msg.data ?? { code: 'UNKNOWN', msg: '' });
+        this.options.onError({
+          code: msg.data?.code ?? 'UNKNOWN',
+          msg: msg.data?.msg ?? '',
+        });
         break;
     }
 
