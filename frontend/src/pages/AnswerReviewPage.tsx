@@ -403,8 +403,3 @@ export default function AnswerReviewPage() {
     </div>
   )
 }
-
-// Local workaround for missing icons
-function FormOutlined() {
-  return <span style={{ fontSize: 16 }}>📝</span>
-}

@@ -505,7 +505,7 @@ async def delete_questions_batch(
     db: AsyncSession = Depends(get_db),
 ):
     """Delete multiple questions from the bank."""
-    from sqlalchemy import select as sel, delete
+    from sqlalchemy import delete
     await db.execute(delete(QuestionBank).where(QuestionBank.id.in_(ids)))
     await db.commit()
     return {"deleted_count": len(ids)}
