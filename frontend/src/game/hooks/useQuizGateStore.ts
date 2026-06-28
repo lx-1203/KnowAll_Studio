@@ -6,6 +6,7 @@ import type { GameQuestion, QuizGateState, QuestionDifficulty } from '../types'
 import { DEFAULT_GAME_CONFIG } from '../config'
 import { QuestionBankManager } from '../quiz/QuestionBankManager'
 import { QuestionScheduler } from '../quiz/QuestionScheduler'
+import { useGameStore } from './useGameState'
 
 interface QuizGateStore {
   // ---- 状态 ----
