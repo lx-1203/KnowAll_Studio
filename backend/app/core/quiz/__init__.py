@@ -174,21 +174,38 @@ class ExamEngine:
             "config": config,
         }
 
-    def grade(self, paper: dict, user_answers: dict[str, str]) -> dict:
-        """Grade a completed exam paper locally."""
+    def grade(
+        self,
+        paper: dict,
+        user_answers: dict[str, str],
+        time_spent_ms: dict[str, int] | None = None,
+        knowledge_point_ids: dict[str, str] | None = None,
+    ) -> dict:
+        """Grade a completed exam paper locally.
+
+        Args:
+            paper: Exam paper dict with questions
+            user_answers: Dict of question_id -> user answer
+            time_spent_ms: Dict of question_id -> time spent in ms
+            knowledge_point_ids: Dict of question_id -> kp_id
+        """
         questions = paper.get("questions", [])
         results = []
         correct_count = 0
+        total_time = 0
 
         for q in questions:
             qid = q["id"]
             user_answer = user_answers.get(qid, "")
             correct_answer = q.get("answer", q.get("correct_answer", ""))
+            q_time = time_spent_ms.get(qid, 0) if time_spent_ms else 0
+            q_kp = knowledge_point_ids.get(qid, "") if knowledge_point_ids else ""
 
             is_correct = self._check_answer(user_answer, correct_answer, q.get("question_type"))
 
             if is_correct:
                 correct_count += 1
+            total_time += q_time
 
             results.append({
                 "question_id": qid,
@@ -196,6 +213,8 @@ class ExamEngine:
                 "correct_answer": correct_answer,
                 "is_correct": is_correct,
                 "analysis": q.get("analysis", ""),
+                "time_spent_ms": q_time,
+                "knowledge_point_id": q_kp,
             })
 
         return {
@@ -203,6 +222,7 @@ class ExamEngine:
             "correct": correct_count,
             "score": correct_count * 5,
             "percentage": round(correct_count / max(1, len(questions)) * 100, 1),
+            "time_spent_total_ms": total_time,
             "details": results,
         }
 
