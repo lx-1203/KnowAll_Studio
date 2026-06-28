@@ -228,31 +228,6 @@ async def download_file(file_id: str):
     raise HTTPException(404, "文件不存在")
 
 
-# ── 文件版本历史 ───────────────────────────────────────────────────────
-
-@router.get("/file/{file_id}/versions")
-async def file_versions(file_id: str):
-    """获取文件版本历史（简易实现）"""
-    version_key = f"file:{file_id}"
-    current = _upload_sessions.get(version_key, 0)
-    return {
-        "code": 0,
-        "data": {
-            "file_id": file_id,
-            "current_version": current,
-            "versions": [],
-        },
-    }
-
-
-@router.post("/file/{file_id}/rollback")
-async def file_rollback(file_id: str, target_version: int = 1):
-    """回滚到指定版本（简易实现）"""
-    version_key = f"file:{file_id}"
-    _upload_sessions[version_key] = target_version
-    return {"code": 0, "msg": f"已回滚到版本 {target_version}"}
-
-
 # ── 事件补拉 ───────────────────────────────────────────────────────────
 
 @router.get("/events/catchup")
