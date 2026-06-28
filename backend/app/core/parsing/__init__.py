@@ -339,7 +339,6 @@ class TextCleaner:
                 cleaned.append(line)
                 continue
             # Keep if it looks like a heading or numbered item
-            if re.match(r"^#", stripped):       # Markdown heading #
             if re.match(r"^[#]", stripped):     # Markdown heading #
                 cleaned.append(line)
                 continue
