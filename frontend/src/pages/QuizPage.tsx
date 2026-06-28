@@ -93,6 +93,16 @@ export default function QuizPage() {
   const [reviewMode, setReviewMode] = useState<'all' | 'review'>('all')
   const [reviewFilter, setReviewFilter] = useState<'all' | 'wrong'>('all')
 
+  // ---- Exam state ----
+  const [markedQuestions, setMarkedQuestions] = useState<Set<string>>(new Set())
+  const [answerSheetOpen, setAnswerSheetOpen] = useState(false)
+  const autoSaveTimer = useRef<NodeJS.Timeout | null>(null)
+  const toggleMark = (qid: string) => setMarkedQuestions(prev => {
+    const next = new Set(prev)
+    next.has(qid) ? next.delete(qid) : next.add(qid)
+    return next
+  })
+
   // ---- Load bank ----
   useEffect(() => { refreshBank() }, [bankFilter])
   const refreshBank = useCallback(() => {
