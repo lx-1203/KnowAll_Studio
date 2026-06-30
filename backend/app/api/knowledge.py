@@ -502,7 +502,7 @@ async def list_summaries(
         "items": [
             {
                 "summary_id": s.id,
-                "document_ids": s.document_ids or [s.document_id] if s.document_id else [],
+                "document_ids": (s.document_ids or ([s.document_id] if s.document_id else [])),
                 "node_count": s.node_count,
                 "level_stats": s.level_stats,
                 "generated_at": s.generated_at.isoformat() if s.generated_at else None,
