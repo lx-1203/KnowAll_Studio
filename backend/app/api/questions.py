@@ -239,6 +239,16 @@ async def submit_exam(
 
     user_id = get_user_id(current_user)
 
+    # Check for duplicate submission
+    dup_result = await db.execute(
+        select(AnswerRecord).where(
+            AnswerRecord.user_id == user_id,
+            AnswerRecord.paper_id == req.paper_id,
+        )
+    )
+    if dup_result.scalar_one_or_none():
+        raise HTTPException(400, "你已经提交过该试卷，不能重复提交")
+
     result = await db.execute(select(ExamPaper).where(ExamPaper.id == req.paper_id))
     paper = result.scalar_one_or_none()
     if not paper:
