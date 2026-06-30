@@ -246,6 +246,20 @@ async def get_profile(current_user: User = Depends(get_current_user)):
     }
 
 
+# ---- Username Availability ----
+
+@router.post("/check-username")
+async def check_username(req: CheckUsernameRequest, db: AsyncSession = Depends(get_db)):
+    """Check if a username is available (doesn't exist yet)."""
+    username = req.username.strip()
+    if not _USERNAME_RE.match(username):
+        return {"available": False, "reason": "用户名格式不正确（2-50字符，中英文、数字、下划线）"}
+    existing = await db.execute(select(User).where(User.username == username))
+    if existing.scalar_one_or_none():
+        return {"available": False, "reason": "用户名已被注册"}
+    return {"available": True}
+
+
 # ---- Password Reset ----
 
 # In-memory token store (use Redis or DB in production)
