@@ -5,6 +5,19 @@ const api = axios.create({
   timeout: 120000,
 })
 
+// Retry interceptor for transient network failures (max 2 retries with backoff)
+api.interceptors.response.use(undefined, async (error) => {
+  const config = error.config
+  if (!config || config._retryCount >= 2) return Promise.reject(error)
+
+  const shouldRetry = !error.response || (error.response.status >= 500 && error.response.status < 600)
+  if (!shouldRetry) return Promise.reject(error)
+
+  config._retryCount = (config._retryCount || 0) + 1
+  await new Promise(resolve => setTimeout(resolve, config._retryCount * 1000))
+  return api(config)
+})
+
 // Request cancellation support
 const pendingRequests = new Map<string, CancelTokenSource>()
 
