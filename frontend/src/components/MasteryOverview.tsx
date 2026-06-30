@@ -43,7 +43,16 @@ interface Props {
 }
 
 export default function MasteryOverview({ analysis, loading }: Props) {
-  if (loading) return null
+  if (loading) {
+    return (
+      <Card>
+        <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', padding: '40px 0' }}>
+          <Spin size="default" />
+          <span style={{ marginLeft: 12, color: '#999' }}>加载掌握度数据...</span>
+        </div>
+      </Card>
+    )
+  }
 
   if (!analysis || analysis.total_knowledge_points === 0) {
     return (
