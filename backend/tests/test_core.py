@@ -192,7 +192,7 @@ class TestPromptEngine:
         from app.prompts import prompt_engine
         messages = prompt_engine.render("quiz_gen", "single_choice",
                                          knowledge_points="计算机网络", count=5, difficulty="medium",
-                                         cognitive_level_instruction="")
+                                         cognitive_level_instruction="", cognitive_level="L2_understand")
         assert len(messages) == 2
         assert "计算机网络" in messages[1]["content"]
         assert "5" in messages[1]["content"]
