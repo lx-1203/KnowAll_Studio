@@ -71,6 +71,22 @@ class Settings(BaseSettings):
 
 settings = Settings()
 
+# Auto-generate a persistent JWT secret if none is configured
+if not settings.jwt_secret:
+    _secret_path = BASE_DIR / "data" / ".jwt_secret"
+    try:
+        if _secret_path.exists():
+            settings.jwt_secret = _secret_path.read_text(encoding="utf-8").strip()
+        else:
+            import secrets
+            _secret = secrets.token_urlsafe(64)
+            _secret_path.parent.mkdir(parents=True, exist_ok=True)
+            _secret_path.write_text(_secret, encoding="utf-8")
+            settings.jwt_secret = _secret
+    except Exception:
+        import secrets
+        settings.jwt_secret = secrets.token_urlsafe(64)  # fallback: in-memory only
+
 # Ensure data directories exist
 for d in [settings.document_dir, settings.export_dir, settings.chroma_persist_dir]:
     Path(d).mkdir(parents=True, exist_ok=True)
