@@ -86,7 +86,12 @@ export default function ReviewQueuePanel() {
                     <Tag color={item.resource_type === 'question' ? 'blue' : 'purple'}>
                       {item.resource_type === 'question' ? '题目' : '记忆卡'}
                     </Tag>
-                    <Text>{item.knowledge_point_id || item.resource_id}</Text>
+                    <Text>
+                      {item.resource_type === 'question' ? '题目 ' : '记忆卡 '}
+                      {item.knowledge_point_id
+                        ? `知识点 ${(item.knowledge_point_id || '').slice(-8)}`
+                        : (item.resource_id || '').slice(0, 8) + '...'}
+                    </Text>
                   </Space>
                 }
                 description={
