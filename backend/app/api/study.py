@@ -8,6 +8,16 @@ from app.database import get_db
 from app.models import StudyPlan, StudyGoal, StudyReminder
 from app.core.auth import get_optional_user, get_user_id, load_user_api_keys
 
+
+def _parse_iso(date_str: str | None):
+    """Safely parse an ISO datetime string, returning None for empty/invalid input."""
+    if not date_str:
+        return None
+    try:
+        return datetime.fromisoformat(date_str)
+    except (ValueError, TypeError):
+        return None
+
 router = APIRouter(prefix="/api/v1/study", tags=["study"])
 
 
