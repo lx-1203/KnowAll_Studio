@@ -1,6 +1,7 @@
-"""Global middleware: exception handling, request logging, timing, input validation"""
+"""Global middleware: exception handling, request logging, timing, input validation, tracing"""
 import time
 import logging
+import uuid
 from fastapi import Request, Response
 from fastapi.responses import JSONResponse
 from starlette.middleware.base import BaseHTTPMiddleware
@@ -16,6 +17,26 @@ INPUT_LIMITS = {
     "/api/v1/flashcards/generate": 50000,
     "/api/v1/pipeline/run": 200000,
 }
+
+
+class RequestTracingMiddleware(BaseHTTPMiddleware):
+    """Attach X-Request-ID to every request/response for distributed tracing."""
+
+    async def dispatch(self, request: Request, call_next):
+        request_id = request.headers.get("X-Request-ID") or str(uuid.uuid4())[:8]
+        request.state.request_id = request_id
+        response = await call_next(request)
+        response.headers["X-Request-ID"] = request_id
+        response.headers["X-Response-Time-ms"] = str(int((time.time() - getattr(request.state, '_start_time', time.time())) * 1000))
+        return response
+
+
+class RequestTimingMiddleware(BaseHTTPMiddleware):
+    """Track request start time for duration calculation."""
+
+    async def dispatch(self, request: Request, call_next):
+        request.state._start_time = time.time()
+        return await call_next(request)
 
 
 class InputValidationMiddleware(BaseHTTPMiddleware):
