@@ -217,11 +217,13 @@ export const listShareLinks = (limit?: number, offset?: number) =>
 export const deleteShareLink = (shareId: string) => api.delete(`/share/${shareId}`).then(r => r.data)
 
 // Auth
-export const register = (params: { username: string; email: string; password: string }) =>
+export const register = (params: { username: string; email: string; password: string; confirm_password?: string }) =>
   api.post('/auth/register', params).then(r => r.data)
 export const login = (params: { username: string; password: string }) =>
   api.post('/auth/login', params).then(r => r.data)
 export const getProfile = () => api.get('/auth/me').then(r => r.data)
+export const checkUsername = (username: string) =>
+  api.post('/auth/check-username', { username }).then(r => r.data)
 export const getOAuthProviders = () => api.get('/oauth/providers').then(r => r.data)
 
 // OAuth callback handler - process token from URL fragment after third-party login redirect
