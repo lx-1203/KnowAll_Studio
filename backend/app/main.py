@@ -58,6 +58,15 @@ async def startup_init():
         api_client.configure_adapter(provider, api_key, base_url=api_base, model_name=model)
         logger.info("API adapter configured: provider=%s model=%s base=%s", provider, model, api_base)
 
+    # Pre-warm the GraphRAG knowledge graph index
+    if settings.graphrag_enabled:
+        try:
+            from app.core.graph_rag import rebuild_graph
+            node_count = await rebuild_graph()
+            logger.info("GraphRAG index built: %d nodes", node_count)
+        except Exception as e:
+            logger.warning("GraphRAG index build skipped (will lazy-load): %s", e)
+
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
