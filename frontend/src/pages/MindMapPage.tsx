@@ -493,14 +493,16 @@ export default function MindMapPage() {
       }
     }
 
-    const iterations = 80
+    const iterations = 100
     const idealLen = 250
     const repulsionStrength = 8000
     const attractionStrength = 0.01
     const damping = 0.85
+    const convergenceThreshold = 0.5  // stop when max velocity drops below this
+    const minIterations = 20  // always run at least this many
 
     for (let iter = 0; iter < iterations; iter++) {
-      // 重置速度
+      // Reset velocity
       for (const p of positions.values()) { p.vx = 0; p.vy = 0 }
 
       // 斥力：所有节点对
