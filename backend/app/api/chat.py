@@ -229,7 +229,9 @@ async def chat_rag_stream(
 
     async def event_generator():
         from app.database import async_session
+        import asyncio as _asyncio
         full = ""
+        last_hb = _asyncio.get_event_loop().time()
         try:
             async for chunk in rag_assistant.chat_stream_with_rag(
                 req.message, req.role_preset, history, req.model, req.top_k, user_id=user_id,
@@ -321,7 +323,9 @@ async def chat_graphrag_stream(
 
     async def event_generator():
         from app.database import async_session
+        import asyncio as _asyncio
         full = ""
+        last_hb = _asyncio.get_event_loop().time()
         try:
             async for chunk in rag_assistant.chat_stream_with_rag(
                 req.message, req.role_preset, history, req.model,
