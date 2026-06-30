@@ -237,8 +237,12 @@ async def chat_rag_stream(
                 req.message, req.role_preset, history, req.model, req.top_k, user_id=user_id,
             ):
                 full += chunk
+                now = _asyncio.get_event_loop().time()
+                if now - last_hb > 15:
+                    yield f": heartbeat\n\n"
+                    last_hb = now
                 yield f"data: {json.dumps({'token': chunk, 'done': False})}\n\n"
-            # Save full response with independent session
+            # Save full response with independent session (RAG)
             async with async_session() as save_db:
                 save_db.add(Message(conversation_id=conv.id, role="assistant", content=full))
                 await save_db.commit()
