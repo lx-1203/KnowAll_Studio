@@ -1,9 +1,43 @@
-import axios from 'axios'
+import axios, { type CancelTokenSource } from 'axios'
 
 const api = axios.create({
   baseURL: '/api/v1',
   timeout: 120000,
 })
+
+// Request cancellation support
+const pendingRequests = new Map<string, CancelTokenSource>()
+
+/** Create a cancelable request. Call abort() to cancel, or pass the same key again to cancel previous. */
+export function createCancelToken(key: string): { signal: AbortSignal; cancel: () => void } {
+  // Cancel any existing request with the same key
+  const existing = pendingRequests.get(key)
+  if (existing) {
+    existing.cancel('Replaced by newer request')
+  }
+  const controller = new AbortController()
+  pendingRequests.set(key, controller as any)
+  return {
+    signal: controller.signal,
+    cancel: () => {
+      controller.abort()
+      pendingRequests.delete(key)
+    },
+  }
+}
+
+export function cancelRequest(key: string) {
+  const source = pendingRequests.get(key)
+  if (source) {
+    source.cancel('Cancelled by user')
+    pendingRequests.delete(key)
+  }
+}
+
+export function cancelAllRequests() {
+  pendingRequests.forEach((source) => source.cancel('Cancelled all'))
+  pendingRequests.clear()
+}
 
 // 401 interceptor: clear token and redirect to login
 api.interceptors.response.use(
