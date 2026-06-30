@@ -9,7 +9,7 @@ import ReactFlow, {
 import 'reactflow/dist/style.css'
 import ReactMarkdown from 'react-markdown'
 import KnowledgeNode from '../components/KnowledgeNode'
-import { generateTree, listTrees, getTree, updateTree, generateOutline, listEdges, createEdge, deleteEdge, getNativeOutline, analyzeDocumentImages } from '../api'
+import { generateTree, listTrees, getTree, updateTree, generateOutline, listEdges, createEdge, deleteEdge, getNativeOutline, analyzeDocumentImages, mergeTrees } from '../api'
 import { useAppStore } from '../stores'
 
 const nodeTypes = { knowledgeNode: KnowledgeNode }
