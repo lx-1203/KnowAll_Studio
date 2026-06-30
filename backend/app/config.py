@@ -21,6 +21,13 @@ class Settings(BaseSettings):
     chroma_persist_dir: str = str(BASE_DIR / "data" / "vector_db")
     embedding_model: str = "BAAI/bge-small-zh-v1.5"
 
+    # GraphRAG (hybrid vector + knowledge graph retrieval)
+    graphrag_enabled: bool = True
+    graphrag_max_hops: int = 2
+    graphrag_top_k_vector: int = 8
+    graphrag_top_k_graph: int = 20
+    graphrag_max_context_chars: int = 8000
+
     # API Scheduler
     default_model: str = "claude-opus-4-6"
     default_temperature: float = 0.7
