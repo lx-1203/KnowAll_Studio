@@ -21,9 +21,9 @@ export default function SharePage() {
   const fetchLinks = async () => {
     setLoading(true)
     try {
-      const res = await fetch(API + '/my-links')
-      setLinks(await res.json())
-    } catch { message.error('Failed to load share links') }
+      const data = await listShareLinks()
+      setLinks(Array.isArray(data) ? data : data?.items || [])
+    } catch { message.error('加载分享链接失败') }
     setLoading(false)
   }
 
