@@ -95,8 +95,11 @@ async def create_share_link(
 
 
 @router.get("/view/{share_id}")
-async def view_shared_resource(share_id: str, access_code: str = "", db: AsyncSession = Depends(get_db)):
+async def view_shared_resource(share_id: str, access_code: str = "", db: AsyncSession = Depends(get_db), request: Request = None):
     """View a shared resource by share ID and access code."""
+    # Rate limit by client IP to prevent brute-force
+    client_ip = request.client.host if request else "unknown"
+    _check_view_rate(client_ip)
     result = await db.execute(select(ShareLink).where(ShareLink.id == share_id))
     share = result.scalar_one_or_none()
     if not share:
