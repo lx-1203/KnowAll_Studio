@@ -611,3 +611,23 @@ async def get_summary_mindmap(
         raise HTTPException(500, result.error or "Failed to generate mind map")
 
     return result.result
+
+
+@router.delete("/summary/{summary_id}")
+async def delete_summary(
+    summary_id: str,
+    db: AsyncSession = Depends(get_db),
+):
+    """Delete a knowledge summary and its associated nodes."""
+    summary = await db.get(KnowledgeSummary, summary_id)
+    if not summary:
+        raise HTTPException(404, "Summary not found")
+    # Delete associated nodes first
+    nodes_result = await db.execute(
+        select(KnowledgePointNode).where(KnowledgePointNode.summary_id == summary_id)
+    )
+    for node in nodes_result.scalars().all():
+        await db.delete(node)
+    await db.delete(summary)
+    await db.commit()
+    return {"status": "deleted", "summary_id": summary_id}
