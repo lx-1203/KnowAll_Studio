@@ -46,9 +46,11 @@ export default function SharePage() {
   }
 
   const handleDelete = async (id: string) => {
-    await fetch(API + `/${id}`, { method: 'DELETE' })
-    message.success('Deleted')
-    fetchLinks()
+    try {
+      await deleteShareLink(id)
+      message.success('已删除')
+      fetchLinks()
+    } catch { message.error('删除失败') }
   }
 
   const handleCopy = (code: string) => {
