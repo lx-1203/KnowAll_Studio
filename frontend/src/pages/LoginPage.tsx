@@ -207,6 +207,34 @@ export default function LoginPage() {
               },
             ]}
           />
+
+          {/* Social Login */}
+          {providers.length > 0 && (
+            <>
+              <Divider plain style={{ fontSize: 13, color: '#999' }}>
+                第三方登录
+              </Divider>
+              <div style={{ textAlign: 'center', marginBottom: 16 }}>
+                <Space size={12}>
+                  {SOCIAL_LOGINS.filter(s => providers.includes(s.provider)).map(s => (
+                    <Button
+                      key={s.provider}
+                      shape="circle"
+                      size="large"
+                      icon={s.icon}
+                      onClick={() => handleSocialLogin(s.provider)}
+                      style={{
+                        color: s.color,
+                        borderColor: s.color,
+                        fontSize: 22,
+                      }}
+                      title={s.label}
+                    />
+                  ))}
+                </Space>
+              </div>
+            </>
+          )}
         </div>
       </div>
     </div>
