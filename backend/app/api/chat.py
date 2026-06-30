@@ -242,6 +242,115 @@ async def search_documents(query: str, top_k: int = 5):
     return {"query": query, "results": results, "count": len(results)}
 
 
+# ===== GraphRAG Endpoints (hybrid vector + knowledge graph retrieval) =====
+
+class GraphRAGChatRequest(BaseModel):
+    message: str
+    conversation_id: str | None = None
+    role_preset: str = "tutor"
+    model: str = "deepseek-chat"
+    top_k: int = 8
+    max_hops: int = 2
+
+
+@router.post("/assistant/graphrag")
+async def chat_with_graphrag(
+    req: GraphRAGChatRequest,
+    db: AsyncSession = Depends(get_db),
+    current_user = Depends(get_optional_user),
+):
+    """Chat with GraphRAG: hybrid vector + knowledge graph retrieval for richer context."""
+    user_id = get_user_id(current_user)
+    await load_user_api_keys(user_id, db)
+
+    conv = await _get_or_create_conversation(db, ChatRequest(
+        message=req.message, conversation_id=req.conversation_id,
+        role_preset=req.role_preset, model=req.model,
+    ))
+    user_msg = Message(conversation_id=conv.id, role="user", content=req.message)
+    db.add(user_msg)
+    await db.flush()
+    history = await _get_history(db, conv.id)
+
+    try:
+        response_text = await rag_assistant.chat_with_rag(
+            req.message, req.role_preset, history, req.model,
+            req.top_k, user_id=user_id, mode="graphrag",
+        )
+    except Exception as e:
+        raise HTTPException(500, f"GraphRAG chat failed: {str(e)}")
+
+    assistant_msg = Message(conversation_id=conv.id, role="assistant", content=response_text)
+    db.add(assistant_msg)
+    await db.commit()
+    return {"conversation_id": conv.id, "role_preset": conv.role_preset, "message": response_text}
+
+
+@router.post("/assistant/graphrag/stream")
+async def chat_graphrag_stream(
+    req: GraphRAGChatRequest,
+    db: AsyncSession = Depends(get_db),
+    current_user = Depends(get_optional_user),
+):
+    """SSE streaming version of GraphRAG chat."""
+    user_id = get_user_id(current_user)
+    await load_user_api_keys(user_id, db)
+
+    conv = await _get_or_create_conversation(db, ChatRequest(
+        message=req.message, conversation_id=req.conversation_id,
+        role_preset=req.role_preset, model=req.model,
+    ))
+    user_msg = Message(conversation_id=conv.id, role="user", content=req.message)
+    db.add(user_msg)
+    await db.flush()
+    await db.commit()
+    history = await _get_history(db, conv.id)
+
+    async def event_generator():
+        from app.database import async_session
+        full = ""
+        try:
+            async for chunk in rag_assistant.chat_stream_with_rag(
+                req.message, req.role_preset, history, req.model,
+                req.top_k, user_id=user_id, mode="graphrag",
+            ):
+                full += chunk
+                yield f"data: {json.dumps({'token': chunk, 'done': False})}\n\n"
+            async with async_session() as save_db:
+                save_db.add(Message(conversation_id=conv.id, role="assistant", content=full))
+                await save_db.commit()
+            yield f"data: {json.dumps({'token': '', 'done': True, 'conversation_id': conv.id})}\n\n"
+        except Exception as e:
+            yield f"data: {json.dumps({'error': str(e), 'done': True})}\n\n"
+
+    return StreamingResponse(event_generator(), media_type="text/event-stream",
+        headers={"Cache-Control": "no-cache", "X-Accel-Buffering": "no"})
+
+
+@router.post("/search/graphrag")
+async def search_graphrag(query: str, top_k: int = 8):
+    """Search with GraphRAG: returns both raw results and formatted context."""
+    from app.core.graph_rag import get_graph_stats
+    result = await rag_assistant.search_graphrag(query, top_k)
+    return result
+
+
+@router.get("/graphrag/stats")
+async def graphrag_stats():
+    """Get knowledge graph index statistics."""
+    from app.core.graph_rag import get_graph_stats
+    stats = await get_graph_stats()
+    return stats
+
+
+@router.post("/graphrag/rebuild")
+async def graphrag_rebuild():
+    """Force rebuild the knowledge graph index."""
+    from app.core.graph_rag import rebuild_graph
+    count = await rebuild_graph()
+    return {"status": "ok", "node_count": count}
+
+
 # -- helpers --
 
 async def _get_or_create_conversation(db: AsyncSession, req: ChatRequest) -> Conversation:
