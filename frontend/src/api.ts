@@ -256,6 +256,13 @@ export const getUserBinds = () => api.get('/user/binds').then(r => r.data)
 export const bindAccount = (params: { provider: string; provider_name?: string; provider_uid?: string }) =>
   api.post('/user/bind', params).then(r => r.data)
 export const unbindAccount = (provider: string) => api.delete(`/user/bind/${provider}`).then(r => r.data)
+
+// SMS verification
+export const sendSmsCode = (phone: string) => api.post('/sms/send-code', { phone }).then(r => r.data)
+export const verifySmsCode = (phone: string, code: string) => api.post('/sms/verify-code', { phone, code }).then(r => r.data)
+export const bindPhone = (phone: string, code: string) => api.post('/sms/bind-phone', { phone, code }).then(r => r.data)
+export const unbindPhone = () => api.post('/sms/unbind-phone').then(r => r.data)
+export const getPhoneStatus = () => api.get('/sms/phone-status').then(r => r.data)
 export const getUserHistory = (page?: number, pageSize?: number, actionType?: string) =>
   api.get('/user/history', { params: { page: page || 1, page_size: pageSize || 20, action_type: actionType || '' } }).then(r => r.data)
 export const createHistory = (params: { action_type?: string; action_label?: string; resource_type?: string; resource_id?: string; detail?: string }) =>
