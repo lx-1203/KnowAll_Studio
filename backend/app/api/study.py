@@ -259,11 +259,11 @@ async def create_goal(req: CreateGoalRequest, db: AsyncSession = Depends(get_db)
     if not result.scalar_one_or_none():
         raise HTTPException(404, "Study plan not found")
 
-    # Get max order_index
+    # Get max order_index (use MAX, not COUNT - deleted goals leave gaps)
     order_result = await db.execute(
-        select(func.count(StudyGoal.id)).where(StudyGoal.plan_id == req.plan_id)
+        select(func.coalesce(func.max(StudyGoal.order_index), -1)).where(StudyGoal.plan_id == req.plan_id)
     )
-    max_order = order_result.scalar() or 0
+    max_order = (order_result.scalar() or -1) + 1
 
     goal = StudyGoal(
         plan_id=req.plan_id,
