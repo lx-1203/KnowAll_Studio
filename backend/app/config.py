@@ -65,6 +65,16 @@ class Settings(BaseSettings):
     # Override the auto-detected redirect URI base (e.g. "https://yourdomain.com")
     oauth_redirect_base: str = ""
 
+    # SMS Verification (leave empty to disable)
+    sms_provider: str = ""  # aliyun / tencent / custom
+    sms_access_key: str = ""
+    sms_secret_key: str = ""
+    sms_sign_name: str = ""  # 短信签名
+    sms_template_code: str = ""  # 验证码模板ID
+    sms_code_length: int = 6
+    sms_code_expire_seconds: int = 300  # 5 minutes
+    sms_send_limit_per_hour: int = 5  # max SMS per phone per hour
+
     # Docling document parsing
     use_docling: bool = True
     docling_ocr: bool = False
