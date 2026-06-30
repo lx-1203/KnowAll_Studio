@@ -264,10 +264,12 @@ export default function GamePage() {
         title={
           <Space>
             <TrophyOutlined style={{ color: '#faad14' }} />
-            <span>2048 知识闯关</span>
-            <Tag color="default" style={{ fontSize: 11 }}>
-              <ToolOutlined /> 答题系统开发中
-            </Tag>
+            <span>知识闯关</span>
+            {quizStats.total > 0 && (
+              <Tag color="green" style={{ fontSize: 11 }}>
+                答题 {quizStats.correct}/{quizStats.total}
+              </Tag>
+            )}
           </Space>
         }
         extra={
