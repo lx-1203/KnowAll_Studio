@@ -16,8 +16,9 @@ depends_on: Union[str, Sequence[str], None] = None
 
 
 def upgrade() -> None:
-    # User table: add email verification fields
+    # User table: add email verification fields + phone verification
     op.add_column('users', sa.Column('email_verified', sa.Boolean(), nullable=False, server_default='0'))
+    op.add_column('users', sa.Column('phone_verified', sa.Boolean(), nullable=False, server_default='0'))
     op.add_column('users', sa.Column('verification_token', sa.String(64), nullable=True))
 
     # User tiers
