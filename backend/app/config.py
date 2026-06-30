@@ -49,7 +49,7 @@ class Settings(BaseSettings):
     cors_origins: list[str] = ["http://localhost:5173", "http://localhost:3000", "app://."]
 
     # JWT Authentication
-    jwt_secret: str = "knowall-jwt-secret-change-in-production"
+    jwt_secret: str = ""
     jwt_algorithm: str = "HS256"
     jwt_expire_minutes: int = 1440  # 24 hours
 
