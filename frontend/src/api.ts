@@ -265,6 +265,19 @@ export const generateReviewRecommendations = (model?: string) =>
   api.post('/review/recommend', { model: model || 'deepseek-chat' }).then(r => r.data)
 export const getReviewKnowledgePoints = () => api.get('/review/knowledge-points').then(r => r.data)
 
+// ===== Commercial (NEW) =====
+export const getUserTier = () => api.get('/commercial/tier').then(r => r.data)
+export const activateLicense = (licenseKey: string) =>
+  api.post('/commercial/tier/activate-license', null, { params: { license_key: licenseKey } }).then(r => r.data)
+export const createOrder = (tier: string, durationMonths: number = 1) =>
+  api.post('/commercial/orders/create', { tier, duration_months: durationMonths }).then(r => r.data)
+export const payOrder = (orderId: string) =>
+  api.post(`/commercial/orders/${orderId}/pay`).then(r => r.data)
+export const exportMyData = () =>
+  api.get('/commercial/export/my-data', { responseType: 'blob' }).then(r => r.data)
+export const deleteMyData = () =>
+  api.delete('/commercial/delete-my-data').then(r => r.data)
+
 // ===== Enhanced Study Plan (NEW) =====
 export const generateEnhancedPlan = (params: object) =>
   api.post('/study/generate-plan-enhanced', params).then(r => r.data)
