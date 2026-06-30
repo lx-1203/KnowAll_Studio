@@ -689,7 +689,7 @@ export default function MindMapPage() {
   return (
     <div style={{ height: 'calc(100vh - 120px)', display: 'flex', gap: 0 }}>
       {/* 主画布区 */}
-      <div style={{ flex: 1, display: 'flex', flexDirection: 'column' }}>
+      <div style={{ flex: 1, display: 'flex', flexDirection: 'column', position: 'relative' }}>
         {/* 工具栏 */}
         <div style={{ marginBottom: 8, display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
           <Button icon={<ArrowLeftOutlined />} onClick={() => navigate(-1)} type="text">返回</Button>
