@@ -108,15 +108,23 @@ async def register(req: RegisterRequest, request: Request, db: AsyncSession = De
     if existing.scalar_one_or_none():
         raise HTTPException(status_code=409, detail="该邮箱已被注册")
 
-    # 创建用户，密码 bcrypt 哈希
+    # 创建用户，密码 bcrypt 哈希，生成邮箱验证令牌
+    verification_token = secrets.token_urlsafe(32)
     user = User(
         username=req.username,
         email=req.email,
         password_hash=hash_password(req.password),
+        verification_token=verification_token,
+        email_verified=False,
     )
     db.add(user)
     await db.commit()
     await db.refresh(user)
+
+    # Log verification token for dev (in production: send email)
+    import logging
+    _logger = logging.getLogger("knowall.auth")
+    _logger.info("User %s registered. Verification token: %s", user.email, verification_token)
 
     # 注册成功直接返回 token（自动登录）
     token = create_access_token(user.id)
@@ -127,9 +135,53 @@ async def register(req: RegisterRequest, request: Request, db: AsyncSession = De
             "id": user.id,
             "username": user.username,
             "email": user.email,
+            "email_verified": False,
             "created_at": user.created_at.isoformat(),
         },
     }
+
+
+class VerifyEmailRequest(BaseModel):
+    token: str
+
+
+@router.post("/verify-email")
+async def verify_email(req: VerifyEmailRequest, db: AsyncSession = Depends(get_db)):
+    """Verify user email using the verification token."""
+    result = await db.execute(
+        select(User).where(User.verification_token == req.token.strip())
+    )
+    user = result.scalar_one_or_none()
+    if not user:
+        raise HTTPException(400, "无效的验证链接")
+    if user.email_verified:
+        return {"detail": "邮箱已验证，无需重复验证"}
+
+    user.email_verified = True
+    user.verification_token = None  # Clear token after use
+    await db.commit()
+
+    return {"detail": "邮箱验证成功"}
+
+
+@router.post("/resend-verification")
+async def resend_verification(
+    current_user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    """Resend email verification token."""
+    if current_user.email_verified:
+        return {"detail": "邮箱已验证，无需重新发送"}
+
+    verification_token = secrets.token_urlsafe(32)
+    current_user.verification_token = verification_token
+    await db.commit()
+
+    import logging
+    _logger = logging.getLogger("knowall.auth")
+    _logger.info("Resent verification token for %s: %s", current_user.email, verification_token)
+
+    return {"detail": "验证邮件已重新发送，请查收邮箱"}
 
 
 @router.post("/login")
