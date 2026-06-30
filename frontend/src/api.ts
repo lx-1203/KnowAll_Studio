@@ -222,6 +222,27 @@ export const register = (params: { username: string; email: string; password: st
 export const login = (params: { username: string; password: string }) =>
   api.post('/auth/login', params).then(r => r.data)
 export const getProfile = () => api.get('/auth/me').then(r => r.data)
+export const getOAuthProviders = () => api.get('/oauth/providers').then(r => r.data)
+
+// OAuth callback handler - process token from URL fragment after third-party login redirect
+export function handleOAuthCallback(): boolean {
+  const hash = window.location.hash
+  if (!hash.includes('oauth_token=')) return false
+  const params = new URLSearchParams(hash.slice(1))
+  const token = params.get('oauth_token')
+  if (token) {
+    setAuthToken(token)
+    const user = {
+      id: params.get('user_id') || '',
+      username: params.get('username') || '',
+      email: '',
+    }
+    localStorage.setItem('knowall_user', JSON.stringify(user))
+    window.location.hash = ''
+    return true
+  }
+  return false
+}
 
 // User Profile & Settings
 export const getUserProfile = () => api.get('/user/profile').then(r => r.data)
