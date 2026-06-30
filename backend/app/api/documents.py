@@ -340,23 +340,33 @@ async def delete_document(doc_id: str, db: AsyncSession = Depends(get_db)):
     if not doc:
         raise HTTPException(404, "Document not found")
 
-    # Delete local file
-    if doc.local_path and os.path.exists(doc.local_path):
-        os.remove(doc.local_path)
+    # Delete local file (best-effort, don't fail the whole operation)
+    if doc.local_path:
+        try:
+            if os.path.exists(doc.local_path):
+                os.remove(doc.local_path)
+        except Exception as e:
+            logger.warning("Failed to delete local file %s: %s", doc.local_path, e)
 
     # Delete cached slide images if any
     slide_cache_dir = os.path.join(settings.export_dir, doc_id)
     if os.path.exists(slide_cache_dir):
-        import shutil
-        shutil.rmtree(slide_cache_dir)
+        try:
+            import shutil
+            shutil.rmtree(slide_cache_dir)
+        except Exception as e:
+            logger.warning("Failed to delete slide cache %s: %s", slide_cache_dir, e)
 
     await db.delete(doc)
-
-    # Clean up ChromaDB vectors
-    from app.core.rag import delete_vectors_by_doc_id
-    delete_vectors_by_doc_id(doc_id)
-
     await db.commit()
+
+    # Clean up ChromaDB vectors (best-effort after DB commit)
+    try:
+        from app.core.rag import delete_vectors_by_doc_id
+        await delete_vectors_by_doc_id(doc_id)
+    except Exception as e:
+        logger.warning("Failed to delete vectors for doc %s: %s", doc_id, e)
+
     return {"status": "deleted"}
 
 
