@@ -62,6 +62,8 @@ class Settings(BaseSettings):
     oauth_github_client_secret: str = ""
     oauth_google_client_id: str = ""
     oauth_google_client_secret: str = ""
+    # Override the auto-detected redirect URI base (e.g. "https://yourdomain.com")
+    oauth_redirect_base: str = ""
 
     # Docling document parsing
     use_docling: bool = True
