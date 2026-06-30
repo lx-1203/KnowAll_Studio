@@ -114,3 +114,5 @@ def setup_middleware(app):
     app.add_middleware(GlobalExceptionMiddleware)
     app.add_middleware(InputValidationMiddleware)
     app.add_middleware(RequestLoggingMiddleware)
+    app.add_middleware(RequestTracingMiddleware)
+    app.add_middleware(RequestTimingMiddleware)
