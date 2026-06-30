@@ -82,9 +82,6 @@ const GAME_ANIMATION_STYLES = `
 }
 `
 
-export default function GamePage() {
-  const { isDark } = useTheme()
-
   // Calculate board size based on viewport
   useEffect(() => {
     function calc() {
