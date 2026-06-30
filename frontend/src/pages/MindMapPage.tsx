@@ -537,19 +537,27 @@ export default function MindMapPage() {
         pT.vx -= fx; pT.vy -= fy
       }
 
-      // 应用速度 + 阻尼
-      // 根节点固定 x（层次约束）
+      // Apply velocity + damping
+      // Root nodes have reduced horizontal movement (hierarchical constraint)
       const allIds = rawNodes.map(n => n.id)
       const parentMap = new Map<string, string>()
       for (const e of rawEdges) { if (e.relation === 'parent_child') parentMap.set(e.target, e.source) }
 
+      let maxVelocity = 0
       for (const [id, p] of positions) {
-        // 根节点水平位置不参与力导向（保持树形层次）
+        // Root node horizontal position damped more
         if (!parentMap.has(id)) {
           p.vx *= 0.3
         }
         p.x += p.vx * damping
         p.y += p.vy * damping
+        const speed = Math.sqrt(p.vx * p.vx + p.vy * p.vy)
+        if (speed > maxVelocity) maxVelocity = speed
+      }
+
+      // Early convergence: stop if system has settled
+      if (iter >= minIterations && maxVelocity < convergenceThreshold) {
+        break
       }
     }
 
