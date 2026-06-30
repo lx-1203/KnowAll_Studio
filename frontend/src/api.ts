@@ -94,6 +94,8 @@ export const getRelatedFlashcards = (cardId: string, limit?: number) =>
 export const chatWithAssistant = (params: object) => api.post('/chat/assistant', params).then(r => r.data)
 export const listConversations = () => api.get('/chat/conversations').then(r => r.data)
 export const getConversation = (convId: string) => api.get(`/chat/conversations/${convId}`).then(r => r.data)
+export const deleteConversation = (convId: string) => api.delete(`/chat/conversations/${convId}`).then(r => r.data)
+export const renameConversation = (convId: string, title: string) => api.put(`/chat/conversations/${convId}`, { title }).then(r => r.data)
 export const listRoles = () => api.get('/chat/roles').then(r => r.data)
 
 // Admin
