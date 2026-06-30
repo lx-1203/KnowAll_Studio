@@ -59,7 +59,7 @@ export default function ChatPage() {
   const handleSend = async () => {
     if (!input.trim() || loading) return
 
-    const userMsg: Message = { id: Date.now().toString(), role: 'user', content: input, created_at: new Date().toISOString() }
+    const userMsg: Message = { id: nextMsgId(), role: 'user', content: input, created_at: new Date().toISOString() }
     setMessages(prev => [...prev, userMsg])
     const msgText = input
     setInput('')
