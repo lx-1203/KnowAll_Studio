@@ -19,6 +19,14 @@ export default function InteractiveQuizPage() {
   const [loading, setLoading] = useState(true)
   const [submitting, setSubmitting] = useState(false)
   const [completed, setCompleted] = useState(false)
+  const autoAdvanceRef = useRef<ReturnType<typeof setTimeout>>()
+
+  // Cleanup auto-advance timeout on unmount
+  useEffect(() => {
+    return () => {
+      if (autoAdvanceRef.current) clearTimeout(autoAdvanceRef.current)
+    }
+  }, [])
 
   useEffect(() => {
     if (!summaryId) return
