@@ -187,10 +187,25 @@ async def get_due_cards(limit: int = 20, db: AsyncSession = Depends(get_db)):
     # Load balancing: if all cards are due within the same hour, spread them
     if len(due_cards) > 50:
         from app.core.memory import fsrs
-        due_cards = fsrs.balance_load(
-            [{"schedule": c["schedule"]} for c in due_cards],
+        # Only reorder cards, don't replace the list with balance_load output
+        balanced = fsrs.balance_load(
+            [{"schedule": c["schedule"], "_idx": i} for i, c in enumerate(due_cards)],
             max_per_day=50,
         )
+        # Reorder due_cards based on balanced output
+        if isinstance(balanced, list) and len(balanced) == len(due_cards):
+            reordered = []
+            seen = set()
+            for item in balanced:
+                idx = item.get("_idx", 0) if isinstance(item, dict) else 0
+                if idx not in seen and 0 <= idx < len(due_cards):
+                    reordered.append(due_cards[idx])
+                    seen.add(idx)
+            # Append any cards not covered by balanced output
+            for i, card in enumerate(due_cards):
+                if i not in seen:
+                    reordered.append(card)
+            due_cards = reordered
 
     return {
         "due_count": len(due_cards),
