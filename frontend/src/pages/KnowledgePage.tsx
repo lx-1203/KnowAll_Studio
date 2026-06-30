@@ -65,19 +65,65 @@ function treeToFlow(treeData: any): { nodes: Node[]; edges: Edge[] } {
   return { nodes, edges }
 }
 
-function flowToTree(nodes: Node[]): any {
+function flowToTree(nodes: Node[], edges?: any[]): any {
   const nodeMap: Record<string, any> = {}
   const roots: any[] = []
+  const childMap: Record<string, string[]> = {}  // parentId -> [childId, ...]
 
   nodes.forEach(n => {
-    nodeMap[n.id] = { id: n.id, label: n.data?.label || '', level: n.data?.level || 1, tag: n.data?.tag || '', summary: n.data?.summary || '', children: [] }
+    nodeMap[n.id] = {
+      id: n.id,
+      label: n.data?.label || '',
+      level: n.data?.level || 1,
+      tag: n.data?.tag || '',
+      summary: n.data?.summary || '',
+      children: [],
+    }
   })
 
-  // Simple version: return all as flat roots if we can't determine hierarchy from edges
-  // In a real app, you'd reconstruct from edge connections
-  nodes.forEach(n => {
-    roots.push(nodeMap[n.id])
-  })
+  // Reconstruct parent-child relationships from edges
+  if (edges && edges.length > 0) {
+    edges.forEach(e => {
+      const sourceId = e.source || e.sourceNodeId
+      const targetId = e.target || e.targetNodeId
+      if (nodeMap[sourceId] && nodeMap[targetId]) {
+        if (!childMap[sourceId]) childMap[sourceId] = []
+        childMap[sourceId].push(targetId)
+      }
+    })
+    // Build tree: nodes with no incoming edge are roots
+    const childNodeIds = new Set(Object.values(childMap).flat())
+    nodes.forEach(n => {
+      if (!childNodeIds.has(n.id)) {
+        roots.push(nodeMap[n.id])
+      }
+    })
+    // Recursively attach children
+    function attachChildren(parent: any) {
+      const childIds = childMap[parent.id] || []
+      childIds.forEach(cid => {
+        const child = nodeMap[cid]
+        if (child) {
+          parent.children.push(child)
+          attachChildren(child)
+        }
+      })
+    }
+    roots.forEach(r => attachChildren(r))
+  }
+
+  // If no edges or can't reconstruct, use level-based hierarchy
+  if (roots.length === 0) {
+    nodes.forEach(n => {
+      const node = nodeMap[n.id]
+      const parentId = n.data?.parentId
+      if (parentId && nodeMap[parentId]) {
+        nodeMap[parentId].children.push(node)
+      } else {
+        roots.push(node)
+      }
+    })
+  }
 
   return { tree: { title: '', nodes: roots } }
 }
