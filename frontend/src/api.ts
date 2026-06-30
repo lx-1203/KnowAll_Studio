@@ -44,6 +44,7 @@ export const indexDocument = (docId: string) => api.post(`/search/index?doc_id=$
 export const generateTree = (params: object) => api.post('/knowledge/tree/generate', params).then(r => r.data)
 export const getTree = (treeId: string) => api.get(`/knowledge/tree/${treeId}`).then(r => r.data)
 export const updateTree = (treeId: string, data: object) => api.put(`/knowledge/tree/${treeId}`, data).then(r => r.data)
+export const deleteTree = (treeId: string) => api.delete(`/knowledge/tree/${treeId}`).then(r => r.data)
 export const listTrees = (limit?: number, offset?: number) =>
   api.get('/knowledge/trees', { params: { limit: limit || 50, offset: offset || 0 } }).then(r => r.data)
 export const generateOutline = (params: object) => api.post('/knowledge/outline/generate', params).then(r => r.data)
