@@ -1,10 +1,17 @@
-import { useState } from 'react'
-import { Tabs, Form, Input, Button, Typography, App, theme } from 'antd'
-import { UserOutlined, LockOutlined, MailOutlined } from '@ant-design/icons'
+import { useState, useEffect } from 'react'
+import { Tabs, Form, Input, Button, Typography, App, theme, Divider, Space, message as antMsg } from 'antd'
+import { UserOutlined, LockOutlined, MailOutlined, QqOutlined, WechatOutlined, GithubOutlined, GoogleOutlined } from '@ant-design/icons'
 import { login, register } from '../api'
 import { useAuthStore } from '../stores'
 
 const { Title, Text } = Typography
+
+// OAuth providers configuration
+const SOCIAL_LOGINS = [
+  { provider: 'qq', icon: <QqOutlined />, label: 'QQ登录', color: '#12B7F5' },
+  { provider: 'wechat', icon: <WechatOutlined />, label: '微信登录', color: '#07C160' },
+  { provider: 'github', icon: <GithubOutlined />, label: 'GitHub', color: '#24292e' },
+]
 
 export default function LoginPage() {
   const { message } = App.useApp()
