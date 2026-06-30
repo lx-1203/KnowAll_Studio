@@ -96,4 +96,5 @@ def downgrade() -> None:
     op.drop_table('licenses')
     op.drop_table('user_tiers')
     op.drop_column('users', 'verification_token')
+    op.drop_column('users', 'phone_verified')
     op.drop_column('users', 'email_verified')
