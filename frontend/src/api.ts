@@ -104,6 +104,7 @@ export const getCacheStats = () => api.get('/admin/cache/stats').then(r => r.dat
 export const runPipeline = (params: object) => api.post('/pipeline/run', params).then(r => r.data)
 export const runPipelineStream = (params: object) =>
   fetch('/api/v1/pipeline/run/stream', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(params) })
+export const cancelPipeline = (documentId: string) => api.post('/pipeline/cancel', null, { params: { document_id: documentId } }).then(r => r.data)
 
 // Game
 export const generateGameLevels = (params: object) => api.post('/generate/game-levels', params).then(r => r.data)
