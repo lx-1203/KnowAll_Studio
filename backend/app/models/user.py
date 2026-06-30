@@ -25,6 +25,8 @@ class User(Base):
     phone = Column(String(20), default="")
     avatar_url = Column(String(500), default="")
     is_active = Column(Boolean, default=True)  # True=active, False=disabled
+    email_verified = Column(Boolean, default=False)  # Email verification status
+    verification_token = Column(String(64), nullable=True)  # Email verification token
     created_at = Column(DateTime, default=now)
     updated_at = Column(DateTime, default=now, onupdate=now)
 
