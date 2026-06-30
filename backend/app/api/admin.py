@@ -150,3 +150,64 @@ async def usage_logs(limit: int = 50, db: AsyncSession = Depends(get_db)):
         }
         for l in logs
     ]
+
+
+# ===== System Health =====
+
+@router.get("/health")
+async def system_health(db: AsyncSession = Depends(get_db)):
+    """Comprehensive system health check."""
+    import sys
+    import platform
+    from datetime import datetime, timezone
+
+    health = {
+        "status": "ok",
+        "timestamp": datetime.now(timezone.utc).isoformat(),
+        "version": "0.2.0",
+        "python": sys.version,
+        "platform": platform.platform(),
+    }
+
+    # Check database connectivity
+    try:
+        from sqlalchemy import text
+        await db.execute(text("SELECT 1"))
+        health["database"] = "ok"
+    except Exception as e:
+        health["database"] = f"error: {e}"
+        health["status"] = "degraded"
+
+    # Check ChromaDB / vector store
+    try:
+        from app.core.rag import get_index_stats
+        stats = await get_index_stats()
+        health["vector_store"] = {"status": "ok", **stats}
+    except Exception as e:
+        health["vector_store"] = f"error: {e}"
+
+    # Check GraphRAG
+    try:
+        from app.core.graph_rag import get_graph_stats
+        gstats = await get_graph_stats()
+        health["graphrag"] = {"status": "ok", **gstats}
+    except Exception as e:
+        health["graphrag"] = f"error: {e}"
+
+    # Check API scheduler
+    try:
+        from app.core.api_scheduler import api_client
+        health["api_scheduler"] = api_client.get_status()
+    except Exception as e:
+        health["api_scheduler"] = f"error: {e}"
+
+    # Count active users
+    try:
+        from app.models.user import User
+        from sqlalchemy import func
+        result = await db.execute(select(func.count(User.id)).where(User.is_active == True))
+        health["active_users"] = result.scalar() or 0
+    except Exception:
+        health["active_users"] = -1
+
+    return health
