@@ -238,7 +238,7 @@ async def chat_rag_stream(
 @router.post("/search")
 async def search_documents(query: str, top_k: int = 5):
     """Search documents without AI (returns raw chunks)."""
-    results = rag_assistant.search_only(query, top_k)
+    results = await rag_assistant.search_only(query, top_k)
     return {"query": query, "results": results, "count": len(results)}
 
 
