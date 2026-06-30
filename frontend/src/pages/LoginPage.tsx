@@ -17,7 +17,36 @@ export default function LoginPage() {
   const { message } = App.useApp()
   const authLogin = useAuthStore(s => s.login)
   const [loading, setLoading] = useState(false)
+  const [providers, setProviders] = useState<string[]>([])
   const { token } = theme.useToken()
+
+  // Check available OAuth providers
+  useEffect(() => {
+    fetch('/api/v1/oauth/providers')
+      .then(r => r.json())
+      .then(data => setProviders((data.providers || []).map((p: any) => p.provider)))
+      .catch(() => {})
+  }, [])
+
+  // Handle OAuth callback (token in URL fragment after redirect)
+  useEffect(() => {
+    const hash = window.location.hash
+    if (hash.includes('oauth_token=')) {
+      const params = new URLSearchParams(hash.slice(1))
+      const token = params.get('oauth_token')
+      const userId = params.get('user_id')
+      const username = params.get('username')
+      if (token) {
+        authLogin(token, { id: userId || '', username: username || '', email: '' })
+        message.success(`${params.get('provider') || '第三方'}登录成功`)
+        window.location.hash = ''
+      }
+    }
+  }, [])
+
+  const handleSocialLogin = (provider: string) => {
+    window.location.href = `/api/v1/oauth/${provider}/login?redirect_to=/`
+  }
 
   const handleLogin = async (values: { username: string; password: string }) => {
     setLoading(true)
