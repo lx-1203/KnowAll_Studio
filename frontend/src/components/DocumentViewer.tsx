@@ -26,9 +26,8 @@ export default function DocumentViewer({ documentId, title, onSearch }: Props) {
   useEffect(() => {
     if (!documentId) return
     setLoading(true)
-    fetch(`/api/v1/documents/${documentId}/chunks`)
-      .then(r => r.json())
-      .then(data => setChunks(data))
+    api.get(`/documents/${documentId}/chunks`)
+      .then(r => setChunks(r.data))
       .catch(console.error)
       .finally(() => setLoading(false))
   }, [documentId])
