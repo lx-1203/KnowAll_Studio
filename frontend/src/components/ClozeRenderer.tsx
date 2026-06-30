@@ -94,7 +94,9 @@ export default function ClozeRenderer({ front, back, hints, onReveal }: ClozeRen
                     setUserAnswers(prev => ({ ...prev, [idx]: e.target.value }))
                   }}
                   onPressEnter={() => {
-                    setRevealed(prev => ({ ...prev, [idx]: true }))
+                    if (userAnswers[idx]?.trim()) {
+                      setRevealed(prev => ({ ...prev, [idx]: true }))
+                    }
                   }}
                   placeholder="..."
                   style={{
