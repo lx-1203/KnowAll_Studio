@@ -139,12 +139,18 @@ async def create_plan(
     await db.flush()
 
     for i, g in enumerate(req.goals or []):
+        due = None
+        if g.get("due_date"):
+            try:
+                due = datetime.fromisoformat(g["due_date"])
+            except (ValueError, TypeError):
+                pass  # Skip invalid dates
         goal = StudyGoal(
             plan_id=plan.id,
             title=g.get("title", ""),
             description=g.get("description", ""),
             priority=g.get("priority", "medium"),
-            due_date=datetime.fromisoformat(g["due_date"]) if g.get("due_date") else None,
+            due_date=due,
             order_index=i,
         )
         db.add(goal)
