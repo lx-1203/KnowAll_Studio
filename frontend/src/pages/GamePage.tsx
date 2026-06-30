@@ -197,6 +197,67 @@ export default function GamePage() {
     resetGame()
   }
 
+  // ---- Quiz Gate System ----
+
+  // Check for tile milestones and trigger quiz gate
+  useEffect(() => {
+    if (state !== 'playing') return
+    const tiles = grid.flat()
+    for (const tile of tiles) {
+      if (tile && QUIZ_GATE_TILES.includes(tile.value) && !passedGates.has(tile.value)) {
+        pauseGame()
+        loadQuizQuestion()
+        return
+      }
+    }
+  }, [grid, state])
+
+  const loadQuizQuestion = async () => {
+    setQuizLoading(true)
+    try {
+      const data = await getGameQuizQuestions('medium', 1, 'local')
+      const questions = data?.questions || data || []
+      if (questions.length > 0) {
+        setCurrentQuiz(questions[0])
+      } else {
+        // No questions available, skip gate
+        const tileValue = grid.flat().find(t => t && QUIZ_GATE_TILES.includes(t.value))?.value
+        if (tileValue) setPassedGates(prev => new Set(prev).add(tileValue))
+        resumeGame()
+        return
+      }
+      setQuizGateOpen(true)
+    } catch {
+      // Quiz loading failed - skip gate gracefully
+      message.warning('题库加载失败，跳过答题门禁')
+      const tileValue = grid.flat().find(t => t && QUIZ_GATE_TILES.includes(t.value))?.value
+      if (tileValue) setPassedGates(prev => new Set(prev).add(tileValue))
+      resumeGame()
+    } finally {
+      setQuizLoading(false)
+    }
+  }
+
+  const handleQuizSubmit = () => {
+    if (!currentQuiz || !quizAnswer) return
+    const isCorrect = quizAnswer === currentQuiz.correct_answer
+    setQuizResult(isCorrect ? 'correct' : 'wrong')
+    setQuizStats(prev => ({
+      correct: prev.correct + (isCorrect ? 1 : 0),
+      total: prev.total + 1,
+    }))
+  }
+
+  const handleQuizContinue = () => {
+    const tileValue = grid.flat().find(t => t && QUIZ_GATE_TILES.includes(t.value))?.value
+    if (tileValue) setPassedGates(prev => new Set(prev).add(tileValue))
+    setQuizGateOpen(false)
+    setQuizAnswer('')
+    setQuizResult(null)
+    setCurrentQuiz(null)
+    resumeGame()
+  }
+
   return (
     <div>
       <Card
