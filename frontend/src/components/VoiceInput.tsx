@@ -90,10 +90,14 @@ export default function VoiceInput({ onResult, onCommand, disabled, lang = 'zh-C
       console.warn('Voice recognition error:', event.error)
       if (event.error === 'not-allowed') {
         setState('error')
-      } else if (event.error !== 'aborted') {
-        // Auto-restart on non-critical errors
-        try { recognition.start() } catch {}
+      } else if (event.error === 'no-speech') {
+        // No speech detected — silently return to idle, no restart
+        setState('idle')
+      } else if (event.error === 'network') {
+        // Network error — don't auto-restart to avoid loops
+        setState('error')
       }
+      // For all other errors (aborted, audio-capture, etc.): do nothing, let onend handle cleanup
     }
 
     recognition.onend = () => {
