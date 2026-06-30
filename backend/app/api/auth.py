@@ -180,3 +180,83 @@ async def get_profile(current_user: User = Depends(get_current_user)):
         "created_at": current_user.created_at.isoformat(),
         "updated_at": current_user.updated_at.isoformat() if current_user.updated_at else None,
     }
+
+
+# ---- Password Reset ----
+
+# In-memory token store (use Redis or DB in production)
+_reset_tokens: dict[str, dict] = {}
+_RESET_TOKEN_EXPIRE_MINUTES = 30
+
+
+class ForgotPasswordRequest(BaseModel):
+    email: str
+
+
+class ResetPasswordRequest(BaseModel):
+    token: str
+    new_password: str
+
+
+@router.post("/forgot-password")
+async def forgot_password(req: ForgotPasswordRequest, db: AsyncSession = Depends(get_db)):
+    """Request a password reset link. Sends token via email (logs to console in dev)."""
+    _check_rate_limit(f"forgot:{req.email}")
+
+    result = await db.execute(select(User).where(User.email == req.email.strip().lower()))
+    user = result.scalar_one_or_none()
+
+    # Always return success to prevent email enumeration
+    if not user:
+        return {"detail": "如果该邮箱已注册，重置链接已发送"}
+
+    # Generate reset token
+    token = secrets.token_urlsafe(32)
+    _reset_tokens[token] = {
+        "user_id": user.id,
+        "email": user.email,
+        "expires_at": datetime.now(timezone.utc) + timedelta(minutes=_RESET_TOKEN_EXPIRE_MINUTES),
+    }
+
+    # In production: send email with reset link
+    # For dev: log to console
+    import logging
+    logger = logging.getLogger("knowall.auth")
+    logger.info("Password reset token for %s: %s (valid %d min)", user.email, token, _RESET_TOKEN_EXPIRE_MINUTES)
+
+    return {"detail": "如果该邮箱已注册，重置链接已发送"}
+
+
+@router.post("/reset-password")
+async def reset_password(req: ResetPasswordRequest, db: AsyncSession = Depends(get_db)):
+    """Reset password using a valid reset token."""
+    token_data = _reset_tokens.get(req.token)
+    if not token_data:
+        raise HTTPException(400, "无效或已过期的重置链接")
+
+    expires = token_data["expires_at"]
+    # Handle both aware and naive datetimes
+    now = datetime.now(timezone.utc)
+    if expires.tzinfo is None:
+        expires = expires.replace(tzinfo=timezone.utc)
+    if now > expires:
+        _reset_tokens.pop(req.token, None)
+        raise HTTPException(400, "重置链接已过期，请重新申请")
+
+    if len(req.new_password) < 6:
+        raise HTTPException(400, "密码不能少于 6 个字符")
+    if len(req.new_password) > 128:
+        raise HTTPException(400, "密码不能超过 128 个字符")
+
+    result = await db.execute(select(User).where(User.id == token_data["user_id"]))
+    user = result.scalar_one_or_none()
+    if not user:
+        raise HTTPException(404, "用户不存在")
+
+    user.password_hash = hash_password(req.new_password)
+    await db.commit()
+
+    # Clean up used token
+    _reset_tokens.pop(req.token, None)
+
+    return {"detail": "密码重置成功，请使用新密码登录"}
