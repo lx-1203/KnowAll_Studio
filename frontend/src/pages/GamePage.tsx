@@ -364,16 +364,20 @@ const GAME_ANIMATION_STYLES = `
         maskClosable={false}
         footer={null}
         width={560}
+        styles={{
+          content: isDark ? { backgroundColor: '#1f1f1f' } : undefined,
+          header: isDark ? { backgroundColor: '#1f1f1f' } : undefined,
+        }}
       >
         {quizLoading ? (
           <div style={{ textAlign: 'center', padding: 40 }}>
             <Text type="secondary">加载题目中...</Text>
           </div>
         ) : currentQuiz ? (
-          <div>
+          <div style={{ color: isDark ? '#e5e7eb' : undefined }}>
             <div style={{ marginBottom: 16 }}>
               <Tag color="blue">{currentQuiz.question_type === 'single_choice' ? '单选题' : '题目'}</Tag>
-              <Text strong style={{ fontSize: 15 }}>{currentQuiz.question_text}</Text>
+              <Text strong style={{ fontSize: 15, color: isDark ? '#e5e7eb' : undefined }}>{currentQuiz.question_text}</Text>
             </div>
 
             {quizResult ? (
