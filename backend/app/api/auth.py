@@ -47,6 +47,7 @@ class RegisterRequest(BaseModel):
     username: str
     email: str
     password: str
+    confirm_password: str = ""
 
     @field_validator("username")
     @classmethod
@@ -74,6 +75,17 @@ class RegisterRequest(BaseModel):
         if len(v) > 128:
             raise ValueError("密码不能超过 128 个字符")
         return v
+
+    @field_validator("confirm_password")
+    @classmethod
+    def validate_confirm(cls, v: str, info) -> str:
+        if "password" in info.data and v != info.data["password"]:
+            raise ValueError("两次输入的密码不一致")
+        return v
+
+
+class CheckUsernameRequest(BaseModel):
+    username: str
 
 
 class LoginRequest(BaseModel):
