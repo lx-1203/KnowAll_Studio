@@ -435,17 +435,20 @@ export default function ReadingPage() {
           </div>
         </div>
 
-        {/* Manual level selector (for reference) */}
+        {/* Level selector */}
         <div className="reading-level-selector" style={{ margin: '8px 12px', padding: '8px', fontSize: '0.75em' }}>
           {[1, 2, 3].map(lv => (
             <button
               key={lv}
               className={`reading-level-btn${level === lv ? ` active l${lv}` : ''}`}
-              disabled
-              style={{ cursor: 'default', opacity: level === lv ? 1 : 0.7 }}
+              onClick={() => setManualLevel(manualLevel === lv ? null : lv)}
+              style={{ cursor: 'pointer', opacity: level === lv ? 1 : 0.7 }}
+              title={manualLevel === lv ? '点击恢复自动' : '手动切换等级'}
             >
               {levelNames[lv]}
-              <span className="reading-level-label">{lv === 1 ? '掌握50词' : lv === 2 ? '掌握150词' : '已达成'}</span>
+              <span className="reading-level-label">{lv === 1 ? '掌握50词' : lv === 2 ? '掌握150词' : '已达成'}
+                {manualLevel === lv ? ' (手动)' : autoLevel === lv ? ' (自动)' : ''}
+              </span>
             </button>
           ))}
         </div>
