@@ -1,7 +1,9 @@
 import { useState, useEffect, useRef } from 'react'
-import { Card, Button, Input, Select, Space, App, Switch, Tag, Modal } from 'antd'
-import { SendOutlined, RobotOutlined, UserOutlined, PlusOutlined, ThunderboltOutlined, SearchOutlined, FileTextOutlined } from '@ant-design/icons'
-import { listConversations, getConversation, listRoles } from '../api'
+import { Card, Button, Input, Select, Space, App, Switch, Tag, Modal, Popconfirm } from 'antd'
+import { SendOutlined, RobotOutlined, UserOutlined, PlusOutlined, ThunderboltOutlined, SearchOutlined, FileTextOutlined, DeleteOutlined, CopyOutlined } from '@ant-design/icons'
+import ReactMarkdown from 'react-markdown'
+import remarkGfm from 'remark-gfm'
+import { listConversations, getConversation, listRoles, deleteConversation } from '../api'
 import { useAppStore } from '../stores'
 import { ChatSkeleton } from '../components/SkeletonLoader'
 import DocumentViewer from '../components/DocumentViewer'
@@ -9,7 +11,8 @@ import DocumentViewer from '../components/DocumentViewer'
 interface Message { id: string; role: string; content: string; created_at: string; }
 interface Conv { id: string; title: string; role_preset: string; created_at: string; }
 
-const apiBase = '/api/v1'
+let _msgIdCounter = 0
+function nextMsgId() { return `${Date.now()}_${++_msgIdCounter}_${Math.random().toString(36).slice(2, 8)}` }
 
 export default function ChatPage() {
   const { selectedDoc } = useAppStore()
