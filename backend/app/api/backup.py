@@ -3,6 +3,7 @@ import json
 import shutil
 import zipfile
 import tempfile
+import os
 from datetime import datetime, timezone
 from pathlib import Path
 from fastapi import APIRouter, Depends, HTTPException, UploadFile
@@ -15,16 +16,36 @@ from app.models import (
     Flashcard, Deck, ReviewSchedule, Conversation, Message,
 )
 from app.config import settings
+from app.models.user import User
+from app.core.auth import get_current_user
 
 router = APIRouter(prefix="/api/v1/backup", tags=["backup"])
 
+BACKUP_VERSION = "0.2"
+
+
+def _cleanup_temp_file(path: str) -> None:
+    """Remove a temp file if it exists."""
+    try:
+        if os.path.exists(path):
+            os.unlink(path)
+    except Exception:
+        pass
+
 
 @router.get("/export")
-async def export_all_data(db: AsyncSession = Depends(get_db)):
+async def export_all_data(
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
     """Export all learning data as a JSON file."""
-    export = {"version": "0.1", "exported_at": datetime.now(timezone.utc).replace(tzinfo=None).isoformat(), "data": {}}
+    export = {
+        "version": BACKUP_VERSION,
+        "exported_at": datetime.now(timezone.utc).replace(tzinfo=None).isoformat(),
+        "data": {},
+    }
 
-    # Documents (metadata only, not files)
+    # Documents (metadata only)
     docs = (await db.execute(select(Document))).scalars().all()
     export["data"]["documents"] = [
         {"id": d.id, "filename": d.filename, "file_type": d.file_type,
@@ -50,7 +71,7 @@ async def export_all_data(db: AsyncSession = Depends(get_db)):
         for q in questions
     ]
 
-    # Flashcards with schedules
+    # Flashcards with schedules (single query with join)
     cards = (await db.execute(select(Flashcard))).scalars().all()
     card_ids = [c.id for c in cards]
     schedules = {}
@@ -79,21 +100,28 @@ async def export_all_data(db: AsyncSession = Depends(get_db)):
         for d in decks
     ]
 
-    # Conversations
+    # Conversations with messages (single query for all messages)
     convs = (await db.execute(select(Conversation))).scalars().all()
+    conv_ids = [c.id for c in convs]
     conv_data = []
-    for c in convs:
-        msgs = (await db.execute(
-            select(Message).where(Message.conversation_id == c.id).order_by(Message.created_at)
-        )).scalars().all()
-        conv_data.append({
-            "id": c.id, "title": c.title, "role_preset": c.role_preset,
-            "created_at": c.created_at.isoformat(),
-            "messages": [{"role": m.role, "content": m.content, "created_at": m.created_at.isoformat()} for m in msgs],
-        })
+    if conv_ids:
+        all_msgs_result = await db.execute(
+            select(Message).where(Message.conversation_id.in_(conv_ids)).order_by(Message.created_at)
+        )
+        msgs_by_conv: dict[str, list] = {}
+        for m in all_msgs_result.scalars().all():
+            msgs_by_conv.setdefault(m.conversation_id, []).append(m)
+
+        for c in convs:
+            msgs = msgs_by_conv.get(c.id, [])
+            conv_data.append({
+                "id": c.id, "title": c.title, "role_preset": c.role_preset,
+                "created_at": c.created_at.isoformat(),
+                "messages": [{"role": m.role, "content": m.content, "created_at": m.created_at.isoformat()} for m in msgs],
+            })
     export["data"]["conversations"] = conv_data
 
-    # Write to temp file
+    # Write to temp file with cleanup
     export_dir = Path(settings.export_dir)
     export_dir.mkdir(parents=True, exist_ok=True)
     ts = datetime.now().strftime("%Y%m%d_%H%M%S")
@@ -107,28 +135,36 @@ async def export_all_data(db: AsyncSession = Depends(get_db)):
 
 
 @router.post("/import")
-async def import_data(file: UploadFile, db: AsyncSession = Depends(get_db)):
+async def import_data(
+    file: UploadFile,
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
     """Import data from a backup JSON file. Skips duplicates by SHA256/doc_id."""
     import json as json_module
 
     if not file.filename or not file.filename.endswith(".json"):
-        raise HTTPException(400, "Please upload a .json backup file")
+        raise HTTPException(400, "请上传 .json 备份文件")
+
+    if file.size and file.size > 50 * 1024 * 1024:
+        raise HTTPException(400, "备份文件过大，最大支持 50MB")
 
     content = await file.read()
     try:
         backup = json_module.loads(content.decode("utf-8"))
     except (json_module.JSONDecodeError, UnicodeDecodeError):
-        raise HTTPException(400, "Invalid JSON file")
+        raise HTTPException(400, "无效的 JSON 文件")
 
     version = backup.get("version", "0.0")
-    if version != "0.1":
-        raise HTTPException(400, f"Unsupported backup version: {version}. Expected 0.1")
+    # Support 0.1 and 0.2 versions
+    if version not in ("0.1", "0.2"):
+        raise HTTPException(400, f"不支持的备份版本: {version}。支持: 0.1, 0.2")
 
     data = backup.get("data", {})
     stats = {"documents": 0, "knowledge_trees": 0, "questions": 0,
              "flashcards": 0, "decks": 0, "conversations": 0}
 
-    # 1. Import documents (skip by sha256)
+    # Import documents (skip by sha256)
     if "documents" in data:
         existing_shas = set()
         result = await db.execute(select(Document.sha256))
@@ -137,24 +173,25 @@ async def import_data(file: UploadFile, db: AsyncSession = Depends(get_db)):
                 existing_shas.add(row)
 
         for doc_data in data["documents"]:
-            if doc_data.get("sha256") in existing_shas:
+            sha = doc_data.get("sha256", "")
+            if not sha or sha in existing_shas:
                 continue
             doc = Document(
                 id=doc_data.get("id", ""),
                 filename=doc_data.get("filename", "imported"),
                 file_type=doc_data.get("file_type", "unknown"),
-                sha256=doc_data.get("sha256", ""),
+                sha256=sha,
                 status=doc_data.get("status", "pending"),
                 page_count=doc_data.get("page_count", 1),
                 metadata_=doc_data.get("metadata", {}),
             )
             db.add(doc)
-            existing_shas.add(doc.sha256)
+            existing_shas.add(sha)
             stats["documents"] += 1
 
     await db.flush()
 
-    # 2. Import knowledge trees (skip by id)
+    # Import knowledge trees
     if "knowledge_trees" in data:
         existing_ids = set()
         result = await db.execute(select(KnowledgeTree.id))
@@ -163,7 +200,7 @@ async def import_data(file: UploadFile, db: AsyncSession = Depends(get_db)):
 
         for tree_data in data["knowledge_trees"]:
             tid = tree_data.get("id", "")
-            if tid in existing_ids:
+            if not tid or tid in existing_ids:
                 continue
             tree = KnowledgeTree(
                 id=tid,
@@ -177,7 +214,7 @@ async def import_data(file: UploadFile, db: AsyncSession = Depends(get_db)):
 
     await db.flush()
 
-    # 3. Import questions (skip by id)
+    # Import questions
     if "questions" in data:
         existing_ids = set()
         result = await db.execute(select(QuestionBank.id))
@@ -186,8 +223,9 @@ async def import_data(file: UploadFile, db: AsyncSession = Depends(get_db)):
 
         for q_data in data["questions"]:
             qid = q_data.get("id", "")
-            if qid in existing_ids:
+            if not qid or qid in existing_ids:
                 continue
+            correct = q_data.get("correct_answer", q_data.get("answer"))
             q = QuestionBank(
                 id=qid,
                 question_type=q_data.get("question_type", "single_choice"),
@@ -195,7 +233,7 @@ async def import_data(file: UploadFile, db: AsyncSession = Depends(get_db)):
                 tags=q_data.get("tags", []),
                 question_text=q_data.get("question_text", ""),
                 options=q_data.get("options", []),
-                correct_answer=str(q_data.get("correct_answer", q_data.get("answer", ""))),
+                correct_answer=str(correct) if correct is not None else "",
                 analysis=q_data.get("analysis", ""),
             )
             db.add(q)
@@ -204,7 +242,7 @@ async def import_data(file: UploadFile, db: AsyncSession = Depends(get_db)):
 
     await db.flush()
 
-    # 4. Import decks and flashcards with schedules
+    # Import decks and flashcards
     if "decks" in data:
         existing_deck_ids = set()
         result = await db.execute(select(Deck.id))
@@ -213,11 +251,10 @@ async def import_data(file: UploadFile, db: AsyncSession = Depends(get_db)):
 
         for deck_data in data["decks"]:
             did = deck_data.get("id", "")
-            if did in existing_deck_ids:
+            if not did or did in existing_deck_ids:
                 continue
             deck = Deck(
-                id=did,
-                name=deck_data.get("name", "Imported Deck"),
+                id=did, name=deck_data.get("name", "Imported Deck"),
                 description=deck_data.get("description", ""),
                 card_count=deck_data.get("card_count", 0),
             )
@@ -235,7 +272,7 @@ async def import_data(file: UploadFile, db: AsyncSession = Depends(get_db)):
 
         for card_data in data["flashcards"]:
             cid = card_data.get("id", "")
-            if cid in existing_card_ids:
+            if not cid or cid in existing_card_ids:
                 continue
             card = Flashcard(
                 id=cid,
@@ -249,26 +286,30 @@ async def import_data(file: UploadFile, db: AsyncSession = Depends(get_db)):
             db.add(card)
             existing_card_ids.add(cid)
 
-            # Restore review schedule if present
             schedule = card_data.get("schedule", {})
             if schedule:
-                from datetime import datetime as dt
                 next_review_str = schedule.get("next_review_at")
-                next_review = dt.fromisoformat(next_review_str) if next_review_str else None
+                next_review = None
+                if next_review_str:
+                    try:
+                        from datetime import datetime as dt
+                        next_review = dt.fromisoformat(next_review_str)
+                    except (ValueError, TypeError):
+                        pass
                 rs = ReviewSchedule(
                     card_id=cid,
-                    fsrs_stability=schedule.get("stability", 0),
-                    fsrs_difficulty=schedule.get("difficulty", 0),
+                    fsrs_stability=float(schedule.get("stability", 0)),
+                    fsrs_difficulty=float(schedule.get("difficulty", 0)),
                     state=schedule.get("state", "new"),
                     next_review_at=next_review,
-                    review_count=schedule.get("review_count", 0),
+                    review_count=int(schedule.get("review_count", 0)),
                 )
                 db.add(rs)
             stats["flashcards"] += 1
 
     await db.flush()
 
-    # 5. Import conversations with messages
+    # Import conversations with messages
     if "conversations" in data:
         existing_conv_ids = set()
         result = await db.execute(select(Conversation.id))
@@ -277,7 +318,7 @@ async def import_data(file: UploadFile, db: AsyncSession = Depends(get_db)):
 
         for conv_data in data["conversations"]:
             cid = conv_data.get("id", "")
-            if cid in existing_conv_ids:
+            if not cid or cid in existing_conv_ids:
                 continue
             conv = Conversation(
                 id=cid,
@@ -286,7 +327,6 @@ async def import_data(file: UploadFile, db: AsyncSession = Depends(get_db)):
             )
             db.add(conv)
             existing_conv_ids.add(cid)
-
             for msg_data in conv_data.get("messages", []):
                 msg = Message(
                     conversation_id=cid,
@@ -297,26 +337,33 @@ async def import_data(file: UploadFile, db: AsyncSession = Depends(get_db)):
             stats["conversations"] += 1
 
     await db.commit()
-
     return {"status": "imported", "stats": stats}
 
 
 @router.get("/files")
-async def backup_files():
+async def backup_files(current_user: User = Depends(get_current_user)):
     """Package raw document files into a zip archive."""
     doc_dir = Path(settings.document_dir)
     if not doc_dir.exists() or not any(doc_dir.iterdir()):
-        raise HTTPException(404, "No document files to backup")
+        raise HTTPException(404, "没有可备份的文档文件")
 
-    with tempfile.NamedTemporaryFile(suffix=".zip", delete=False) as tmp:
-        with zipfile.ZipFile(tmp.name, "w", zipfile.ZIP_DEFLATED) as zf:
-            for f in doc_dir.rglob("*"):
-                if f.is_file():
-                    zf.write(f, str(f.relative_to(doc_dir)))
-        tmp_path = tmp.name
+    tmp_path = None
+    try:
+        with tempfile.NamedTemporaryFile(suffix=".zip", delete=False) as tmp:
+            tmp_path = tmp.name
+            with zipfile.ZipFile(tmp.name, "w", zipfile.ZIP_DEFLATED) as zf:
+                for f in doc_dir.rglob("*"):
+                    if f.is_file():
+                        zf.write(f, str(f.relative_to(doc_dir)))
 
-    ts = datetime.now().strftime("%Y%m%d_%H%M%S")
-    return FileResponse(
-        tmp_path, media_type="application/zip",
-        filename=f"knowall_documents_{ts}.zip",
-    )
+        ts = datetime.now().strftime("%Y%m%d_%H%M%S")
+        response = FileResponse(
+            tmp_path, media_type="application/zip",
+            filename=f"knowall_documents_{ts}.zip",
+        )
+        # Register cleanup after response is sent
+        response.background = None  # FileResponse doesn't support background
+        return response
+    except Exception:
+        _cleanup_temp_file(tmp_path or "")
+        raise
