@@ -27,6 +27,7 @@ export default function InteractiveQuestionCard({ question, onSubmit, submitting
     setAnswer('')
     setCheckedOptions([])
     setShowResult(false)
+    setStartTime(Date.now())
     if (inputRef.current) inputRef.current?.focus?.()
   }, [question?.id])
 
