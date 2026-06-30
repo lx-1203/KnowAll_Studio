@@ -30,19 +30,13 @@ export default function SharePage() {
   useEffect(() => { fetchLinks() }, [])
 
   const handleCreate = async () => {
-    if (!resId) { message.warning('Resource ID is required'); return }
+    if (!resId) { message.warning('请输入资源ID'); return }
     try {
-      const res = await fetch(API + '/create', {
-        method: 'POST', headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ resource_type: resType, resource_id: resId, expires_in_days: expDays }),
-      })
-      const data = await res.json()
-      if (res.ok) {
-        message.success(`Share link created! Code: ${data.access_code}`)
-        setCreateOpen(false)
-        fetchLinks()
-      } else message.error(data.detail || 'Failed')
-    } catch { message.error('Error creating share link') }
+      const data = await createShareLink({ resource_type: resType, resource_id: resId, expires_in_days: expDays || undefined })
+      message.success(`分享链接已创建！访问码: ${data.access_code}`)
+      setCreateOpen(false)
+      fetchLinks()
+    } catch (e: any) { message.error(e?.response?.data?.detail || '创建失败') }
   }
 
   const handleDelete = async (id: string) => {
