@@ -165,6 +165,7 @@ app.include_router(sync_upload_router)
 app.include_router(version_control_router)
 app.include_router(game_quiz_router)
 app.include_router(commercial_router)
+app.include_router(oauth_router)
 
 
 @app.get("/")
