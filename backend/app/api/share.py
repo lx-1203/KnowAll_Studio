@@ -96,8 +96,10 @@ async def view_shared_resource(share_id: str, access_code: str = "", db: AsyncSe
     if access_code != share.access_code:
         raise HTTPException(403, "Invalid access code")
 
-    # Increment view count
-    share.view_count += 1
+    # Increment view count atomically to avoid race conditions
+    await db.execute(
+        update(ShareLink).where(ShareLink.id == share.id).values(view_count=ShareLink.view_count + 1)
+    )
     await db.commit()
 
     # Return the shared resource content
