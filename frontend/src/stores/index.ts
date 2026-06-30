@@ -136,7 +136,7 @@ export const useFlashcardStore = create<{
   setDueCards: (cards) => set({ dueCards: cards, currentIndex: 0, isFlipped: false }),
   flip: () => set(s => ({ isFlipped: !s.isFlipped })),
   next: () => set(s => ({
-    currentIndex: Math.min(s.currentIndex + 1, s.dueCards.length - 1),
+    currentIndex: s.dueCards.length > 0 ? Math.min(s.currentIndex + 1, s.dueCards.length - 1) : 0,
     isFlipped: false,
   })),
   prev: () => set(s => ({
