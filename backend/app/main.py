@@ -129,6 +129,7 @@ from app.api.sync_upload import router as sync_upload_router
 from app.api.version_control import router as version_control_router
 from app.api.game_quiz import router as game_quiz_router
 from app.api.commercial import router as commercial_router
+from app.api.oauth import router as oauth_router
 from app.websocket import sync_router
 from app.middleware import setup_middleware
 
