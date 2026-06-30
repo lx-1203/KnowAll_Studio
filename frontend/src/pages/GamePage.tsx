@@ -285,21 +285,19 @@ export default function GamePage() {
           <div style={{ textAlign: 'center', padding: '60px 20px' }}>
             <TrophyOutlined style={{ fontSize: 72, color: '#faad14', marginBottom: 16 }} />
             <h2 style={{ color: isDark ? '#e5e7eb' : '#333', marginBottom: 8 }}>
-              2048 知识闯关
+              知识闯关
             </h2>
             <p style={{ color: '#888', fontSize: 14, maxWidth: 400, margin: '0 auto 24px', lineHeight: 1.8 }}>
-              经典 2048 数字合并游戏。使用方向键或滑动屏幕操控瓦片，
-              合成更大的数字，挑战 2048！
+              经典 2048 合并游戏 × 知识答题。合成 {QUIZ_GATE_TILES.join('、')} 时触发知识问答门禁，答对继续前进！
             </p>
 
-            <Alert
-              type="warning"
-              showIcon
-              icon={<ToolOutlined />}
-              message="答题系统开发中"
-              description="知识问答门禁功能正在开发，当前版本为纯 2048 游戏体验。敬请期待答题闯关模式上线！"
-              style={{ maxWidth: 440, margin: '0 auto 24px', textAlign: 'left' }}
-            />
+            {quizStats.total > 0 && (
+              <div style={{ marginBottom: 20 }}>
+                <Tag color="blue">答题 {quizStats.total} 题</Tag>
+                <Tag color="green">正确 {quizStats.correct} 题</Tag>
+                <Tag>正确率 {Math.round((quizStats.correct / quizStats.total) * 100)}%</Tag>
+              </div>
+            )}
 
             <Button
               type="primary"
