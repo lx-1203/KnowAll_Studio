@@ -169,6 +169,7 @@ app.include_router(game_quiz_router)
 app.include_router(commercial_router)
 app.include_router(oauth_router)
 app.include_router(sms_router)
+app.include_router(gamification_router)
 
 
 @app.get("/")
