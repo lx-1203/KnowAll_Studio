@@ -1,13 +1,70 @@
 import { useEffect, useRef, useCallback, useState } from 'react'
-import { Card, Button, App, Space, Tag, Alert } from 'antd'
-import { TrophyOutlined, ToolOutlined, BulbOutlined } from '@ant-design/icons'
+import { Card, Button, App, Space, Tag, Alert, Radio, Modal, Progress, Typography } from 'antd'
+import { TrophyOutlined, ToolOutlined, BulbOutlined, FormOutlined, CheckCircleOutlined, CloseCircleOutlined } from '@ant-design/icons'
 import { useTheme } from '../components/ThemeProvider'
 import { useGameStore } from '../game/hooks/useGameState'
 import { Board2048 } from '../game/components/Board2048'
 import { GameHeader } from '../game/components/GameHeader'
 import { GameOverPanel } from '../game/components/GameOverPanel'
 import { PauseOverlay } from '../game/components/PauseOverlay'
+import { getGameQuizQuestions, getLocalQuizInfo } from '../api'
 import type { Direction } from '../game/types'
+
+const { Text } = Typography
+
+// Tile values that trigger quiz gate
+const QUIZ_GATE_TILES = [256, 512, 1024, 2048]
+
+const GAME_ANIMATION_STYLES = `
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+@keyframes tileAppear {
+  from { opacity: 0; transform: scale(0); }
+  to { opacity: 1; transform: scale(1); }
+}
+@keyframes tilePop {
+  0% { transform: scale(1); }
+  50% { transform: scale(1.2); }
+  100% { transform: scale(1); }
+}
+`
+
+interface QuizQuestion {
+  id: string
+  question_type: string
+  question_text: string
+  options: { label: string; text: string }[]
+  correct_answer: string
+  analysis: string
+}
+
+export default function GamePage() {
+  const { isDark } = useTheme()
+  const { message } = App.useApp()
+  const state = useGameStore(s => s.state)
+  const grid = useGameStore(s => s.grid)
+  const startGame = useGameStore(s => s.startGame)
+  const makeMove = useGameStore(s => s.makeMove)
+  const pauseGame = useGameStore(s => s.pauseGame)
+  const resumeGame = useGameStore(s => s.resumeGame)
+  const tickTimer = useGameStore(s => s.tickTimer)
+  const resetGame = useGameStore(s => s.resetGame)
+
+  const boardRef = useRef<HTMLDivElement>(null)
+  const touchStart = useRef<{ x: number; y: number } | null>(null)
+  const [boardSize, setBoardSize] = useState(400)
+
+  // Quiz gate state
+  const [quizQuestions, setQuizQuestions] = useState<QuizQuestion[]>([])
+  const [quizGateOpen, setQuizGateOpen] = useState(false)
+  const [currentQuiz, setCurrentQuiz] = useState<QuizQuestion | null>(null)
+  const [quizAnswer, setQuizAnswer] = useState('')
+  const [quizResult, setQuizResult] = useState<'correct' | 'wrong' | null>(null)
+  const [quizLoading, setQuizLoading] = useState(false)
+  const [passedGates, setPassedGates] = useState<Set<number>>(new Set())
+  const [quizStats, setQuizStats] = useState({ correct: 0, total: 0 })
 
 const GAME_ANIMATION_STYLES = `
 @keyframes fadeIn {
