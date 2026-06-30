@@ -152,7 +152,7 @@ async def create_plan(
         due = None
         if g.get("due_date"):
             try:
-                due = datetime.fromisoformat(g["due_date"])
+                due = _parse_iso(g["due_date"])
             except (ValueError, TypeError):
                 pass  # Skip invalid dates
         goal = StudyGoal(
