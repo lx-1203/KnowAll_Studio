@@ -83,6 +83,18 @@ async def delete_key(key_id: str, db: AsyncSession = Depends(get_db)):
     return {"status": "deleted"}
 
 
+@router.put("/keys/{key_id}/toggle")
+async def toggle_key(key_id: str, db: AsyncSession = Depends(get_db)):
+    """Toggle an API key's active status."""
+    result = await db.execute(select(APIKey).where(APIKey.id == key_id))
+    key = result.scalar_one_or_none()
+    if not key:
+        raise HTTPException(404, "Key not found")
+    key.is_active = not key.is_active
+    await db.commit()
+    return {"status": "updated", "key_id": key.id, "is_active": bool(key.is_active)}
+
+
 # ===== Model Configuration =====
 
 @router.post("/models")
