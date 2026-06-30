@@ -133,7 +133,7 @@ async def generate_questions(
             analysis=q.get("analysis", ""),
             review_scores=q.get("review_scores", {}),
             review_total=q.get("review_total"),
-            source_chunk_id=chunks[0].id if len(chunks) == 1 else None,
+            source_chunk_id=chunks[0].id if chunks else None,
         )
         db.add(db_q)
         saved_questions.append(db_q)
