@@ -224,34 +224,87 @@ export default function ReadingPage() {
     setVocabState(state)
     const known = getKnownWords(state)
     const seen = getSeenWords(state)
+    const lvl = getLevel(state)
 
-    // Try streaming first if API key is likely configured, otherwise use non-streaming
-    let usedStreaming = false
+    // Try streaming first for real-time word-by-word rendering
+    setStreamingToken('')
     try {
-      // Use non-streaming convertText — reliable, always works with offline dictionary
-      const data = await convertReadingText(
-        text,
-        getLevel(state),
-        known,
-        seen,
-      )
-      if ((data as any).error) {
-        message.error((data as any).error)
-        setShowStats(false)
+      const response = await convertReadingStream({
+        text, known_words: known, seen_words: seen, skip_cache: false,
+      })
+
+      if (!response.ok) {
+        // Fall back to non-streaming
+        const data = await convertReadingText(text, lvl, known, seen)
+        if ((data as any).error) {
+          message.error((data as any).error)
+          setLoading(false)
+          return
+        }
+        setCurrentVocab(data.vocabulary || [])
+        const newState = updateVocabAfterReading(data.vocabulary || [])
+        setVocabState(newState)
+        setStatKnownCount(String(getKnownWords(newState).length))
+        setStatTotalVocab(String(Object.keys(newState.words).length))
+        setRenderedHtml(renderMixedText(data.result, data.vocabulary || [], revealMode))
         setLoading(false)
         return
       }
-      setCurrentVocab(data.vocabulary || [])
-      const newState = updateVocabAfterReading(data.vocabulary || [])
-      setVocabState(newState)
-      setStatKnownCount(String(getKnownWords(newState).length))
-      setStatTotalVocab(String(Object.keys(newState.words).length))
-      const html = renderMixedText(data.result, data.vocabulary || [], revealMode)
-      setRenderedHtml(html)
+
+      // Process SSE stream
+      const reader = response.body?.getReader()
+      const decoder = new TextDecoder()
+      if (!reader) throw new Error('Stream not supported')
+
+      let fullResult = ''
+      let vocabulary: any[] = []
+      let buffer = ''
+
+      while (true) {
+        const { done, value } = await reader.read()
+        if (done) break
+        buffer += decoder.decode(value, { stream: true })
+        const lines = buffer.split('\n')
+        buffer = lines.pop() || ''
+
+        for (const line of lines) {
+          if (line.startsWith('data: ')) {
+            try {
+              const data = JSON.parse(line.slice(6))
+              if (data.token) {
+                setStreamingToken(prev => prev + data.token)
+                fullResult += data.token
+              }
+              if (data.vocabulary) {
+                vocabulary = data.vocabulary
+              }
+              if (data.done) {
+                setCurrentVocab(vocabulary)
+                const newState = updateVocabAfterReading(vocabulary)
+                setVocabState(newState)
+                setStatKnownCount(String(getKnownWords(newState).length))
+                setStatTotalVocab(String(Object.keys(newState.words).length))
+                setRenderedHtml(renderMixedText(fullResult, vocabulary, revealMode))
+              }
+            } catch {}
+          }
+        }
+      }
     } catch (e: any) {
-      message.error('请求失败，请检查服务是否运行: ' + (e.message || '未知错误'))
-      setShowStats(false)
-      setRenderedHtml('')
+      // Fallback: use non-streaming
+      try {
+        const data = await convertReadingText(text, lvl, known, seen)
+        if (!(data as any).error) {
+          setCurrentVocab(data.vocabulary || [])
+          const newState = updateVocabAfterReading(data.vocabulary || [])
+          setVocabState(newState)
+          setStatKnownCount(String(getKnownWords(newState).length))
+          setStatTotalVocab(String(Object.keys(newState.words).length))
+          setRenderedHtml(renderMixedText(data.result, data.vocabulary || [], revealMode))
+        }
+      } catch {
+        message.error('请求失败，请检查服务是否运行')
+      }
     } finally {
       setLoading(false)
       setStreamingToken('')
