@@ -163,7 +163,10 @@ export default function LoginPage() {
                   <Form onFinish={handleRegister} size="large">
                     <Form.Item
                       name="username"
-                      rules={[{ required: true, message: '请输入用户名' }]}
+                      rules={[
+                        { required: true, message: '请输入用户名' },
+                        { pattern: /^[a-zA-Z0-9_\u4e00-\u9fff]{2,50}$/, message: '2-50字符，中英文、数字、下划线' },
+                      ]}
                     >
                       <Input
                         prefix={<UserOutlined />}
@@ -189,11 +192,33 @@ export default function LoginPage() {
                       rules={[
                         { required: true, message: '请输入密码' },
                         { min: 6, message: '密码至少 6 位' },
+                        { max: 128, message: '密码不能超过 128 位' },
                       ]}
                     >
                       <Input.Password
                         prefix={<LockOutlined />}
-                        placeholder="密码"
+                        placeholder="密码（至少6位）"
+                        autoComplete="new-password"
+                      />
+                    </Form.Item>
+                    <Form.Item
+                      name="confirm_password"
+                      dependencies={['password']}
+                      rules={[
+                        { required: true, message: '请确认密码' },
+                        ({ getFieldValue }) => ({
+                          validator(_, value) {
+                            if (!value || getFieldValue('password') === value) {
+                              return Promise.resolve()
+                            }
+                            return Promise.reject(new Error('两次输入的密码不一致'))
+                          },
+                        }),
+                      ]}
+                    >
+                      <Input.Password
+                        prefix={<LockOutlined />}
+                        placeholder="确认密码"
                         autoComplete="new-password"
                       />
                     </Form.Item>
