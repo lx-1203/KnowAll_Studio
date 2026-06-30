@@ -350,6 +350,95 @@ const GAME_ANIMATION_STYLES = `
           </div>
         )}
       </Card>
+
+      {/* Quiz Gate Modal */}
+      <Modal
+        title={
+          <Space>
+            <FormOutlined /> 知识门禁
+            <Tag color="purple">答题闯关</Tag>
+          </Space>
+        }
+        open={quizGateOpen}
+        closable={false}
+        maskClosable={false}
+        footer={null}
+        width={560}
+      >
+        {quizLoading ? (
+          <div style={{ textAlign: 'center', padding: 40 }}>
+            <Text type="secondary">加载题目中...</Text>
+          </div>
+        ) : currentQuiz ? (
+          <div>
+            <div style={{ marginBottom: 16 }}>
+              <Tag color="blue">{currentQuiz.question_type === 'single_choice' ? '单选题' : '题目'}</Tag>
+              <Text strong style={{ fontSize: 15 }}>{currentQuiz.question_text}</Text>
+            </div>
+
+            {quizResult ? (
+              <div>
+                <div style={{ padding: 16, borderRadius: 8, marginBottom: 16,
+                  backgroundColor: quizResult === 'correct' ? '#f6ffed' : '#fff2f0',
+                  border: `1px solid ${quizResult === 'correct' ? '#b7eb8f' : '#ffccc7'}` }}>
+                  <Text strong style={{ color: quizResult === 'correct' ? '#52c41a' : '#ff4d4f' }}>
+                    {quizResult === 'correct' ? <CheckCircleOutlined /> : <CloseCircleOutlined />}
+                    {' '}{quizResult === 'correct' ? '回答正确！' : '回答错误'}
+                  </Text>
+                  {quizResult === 'wrong' && (
+                    <div style={{ marginTop: 8 }}>
+                      <Text>正确答案: {currentQuiz.correct_answer}</Text>
+                      {currentQuiz.analysis && (
+                        <div style={{ marginTop: 4 }}>
+                          <Text type="secondary">{currentQuiz.analysis}</Text>
+                        </div>
+                      )}
+                    </div>
+                  )}
+                </div>
+                <Button type="primary" block onClick={handleQuizContinue} size="large">
+                  继续游戏
+                </Button>
+              </div>
+            ) : (
+              <div>
+                <Radio.Group
+                  onChange={e => setQuizAnswer(e.target.value)}
+                  value={quizAnswer}
+                  style={{ width: '100%' }}
+                >
+                  <Space direction="vertical" style={{ width: '100%' }}>
+                    {(currentQuiz.options || []).map((opt: any) => (
+                      <Radio key={opt.label} value={opt.label}
+                        style={{ padding: '8px 12px', border: '1px solid #d9d9d9', borderRadius: 6, width: '100%' }}>
+                        {opt.label}. {opt.text}
+                      </Radio>
+                    ))}
+                  </Space>
+                </Radio.Group>
+                <Button
+                  type="primary"
+                  block
+                  size="large"
+                  disabled={!quizAnswer}
+                  onClick={handleQuizSubmit}
+                  style={{ marginTop: 16 }}
+                >
+                  提交答案
+                </Button>
+              </div>
+            )}
+          </div>
+        ) : (
+          <div style={{ textAlign: 'center', padding: 40 }}>
+            <Text type="secondary">暂无可用题目</Text>
+            <br />
+            <Button type="primary" onClick={handleQuizContinue} style={{ marginTop: 12 }}>
+              跳过继续
+            </Button>
+          </div>
+        )}
+      </Modal>
     </div>
   )
 }
