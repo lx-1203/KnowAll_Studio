@@ -355,6 +355,15 @@ export const exportMyData = () =>
 export const deleteMyData = () =>
   api.delete('/commercial/delete-my-data').then(r => r.data)
 
+// ===== Gamification (NEW) =====
+export const getGamificationDashboard = () => api.get('/gamification/dashboard').then(r => r.data)
+export const recordActivity = (activityType: string, count?: number, durationMinutes?: number) =>
+  api.post('/gamification/record-activity', { activity_type: activityType, count: count || 1, duration_minutes: durationMinutes || 0 }).then(r => r.data)
+export const startFocusSession = (durationMinutes: number, sessionType?: string) =>
+  api.post('/gamification/focus/start', { duration_minutes: durationMinutes, session_type: sessionType || 'study' }).then(r => r.data)
+export const getFocusHistory = (limit?: number) =>
+  api.get('/gamification/focus/history', { params: { limit: limit || 30 } }).then(r => r.data)
+
 // ===== Enhanced Study Plan (NEW) =====
 export const generateEnhancedPlan = (params: object) =>
   api.post('/study/generate-plan-enhanced', params).then(r => r.data)
