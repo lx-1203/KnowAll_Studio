@@ -62,7 +62,6 @@ async def upload_document(file: UploadFile = File(...), db: AsyncSession = Depen
         raise HTTPException(400, f"File too large. Max {settings.max_upload_size_mb}MB")
 
     # Save original file locally
-    import hashlib
     content = await file.read()
     sha256 = hashlib.sha256(content).hexdigest()
     file_dir = os.path.join(settings.document_dir, sha256[:2])
