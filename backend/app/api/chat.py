@@ -335,6 +335,34 @@ async def search_graphrag(query: str, top_k: int = 8):
     return result
 
 
+@router.delete("/conversations/{conv_id}")
+async def delete_conversation(conv_id: str, db: AsyncSession = Depends(get_db)):
+    """Delete a conversation and all its messages."""
+    result = await db.execute(select(Conversation).where(Conversation.id == conv_id))
+    conv = result.scalar_one_or_none()
+    if not conv:
+        raise HTTPException(404, "Conversation not found")
+    await db.delete(conv)
+    await db.commit()
+    return {"status": "deleted"}
+
+
+class RenameConversationRequest(BaseModel):
+    title: str
+
+
+@router.put("/conversations/{conv_id}")
+async def rename_conversation(conv_id: str, req: RenameConversationRequest, db: AsyncSession = Depends(get_db)):
+    """Rename a conversation."""
+    result = await db.execute(select(Conversation).where(Conversation.id == conv_id))
+    conv = result.scalar_one_or_none()
+    if not conv:
+        raise HTTPException(404, "Conversation not found")
+    conv.title = req.title.strip()[:200]
+    await db.commit()
+    return {"status": "updated", "title": conv.title}
+
+
 @router.get("/graphrag/stats")
 async def graphrag_stats():
     """Get knowledge graph index statistics."""
