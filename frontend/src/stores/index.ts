@@ -132,7 +132,8 @@ export const useFlashcardStore = create<{
   setReviewLimit: (n: number) => void;
 }>(set => ({
   dueCards: [], currentIndex: 0, isFlipped: false,
-  reviewLimit: Number(localStorage.getItem('knowall_review_limit') || 20),
+  const stored = Number(localStorage.getItem('knowall_review_limit'))
+  reviewLimit: isNaN(stored) || stored <= 0 ? 20 : stored,
   setDueCards: (cards) => set({ dueCards: cards, currentIndex: 0, isFlipped: false }),
   flip: () => set(s => ({ isFlipped: !s.isFlipped })),
   next: () => set(s => ({
