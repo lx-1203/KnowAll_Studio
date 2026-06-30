@@ -133,8 +133,10 @@ class KnowledgeGraph:
                 for word in self._tokenize(n.title):
                     self._title_index.setdefault(word, []).append(n.id)
 
+            edge_count = len(edges)
+
         self._built = True
-        logger.info("KnowledgeGraph built: %d nodes, %d edges", len(self._nodes), len(edges))
+        logger.info("KnowledgeGraph built: %d nodes, %d edges", len(self._nodes), edge_count)
         return len(self._nodes)
 
     # ---- Traversal ----
