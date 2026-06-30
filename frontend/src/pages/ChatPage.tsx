@@ -50,7 +50,7 @@ export default function ChatPage() {
         setCurrentConv({ id: result.conversation_id, title: msgText.slice(0, 30), role_preset: role, created_at: new Date().toISOString() })
         setConvs(prev => [{ id: result.conversation_id, title: msgText.slice(0, 30), role_preset: role, created_at: new Date().toISOString() }, ...prev])
       }
-      setMessages(prev => [...prev, { id: (Date.now() + 1).toString(), role: 'assistant', content: result.message || result.detail || '无响应', created_at: new Date().toISOString() }])
+      setMessages(prev => [...prev, { id: nextMsgId(), role: 'assistant', content: result.message || result.detail || '无响应', created_at: new Date().toISOString() }])
     } catch {
       message.error('重试失败，请再试一次')
     }
@@ -145,7 +145,7 @@ export default function ChatPage() {
           setCurrentConv({ id: result.conversation_id, title: msgText.slice(0, 30), role_preset: role, created_at: new Date().toISOString() })
           setConvs(prev => [{ id: result.conversation_id, title: msgText.slice(0, 30), role_preset: role, created_at: new Date().toISOString() }, ...prev])
         }
-        setMessages(prev => [...prev, { id: (Date.now() + 1).toString(), role: 'assistant', content: result.message, created_at: new Date().toISOString() }])
+        setMessages(prev => [...prev, { id: nextMsgId(), role: 'assistant', content: result.message, created_at: new Date().toISOString() }])
       } catch (e: any) {
         message.error('发送失败')
       }
