@@ -215,9 +215,9 @@ class KnowledgeGraph:
                 continue
             # Simple word overlap score
             title_tokens = set(self._tokenize(node.title))
-            overlap = len(tokens & title_tokens)
+            overlap = len(set(tokens) & title_tokens)
             if overlap > 0:
-                scored.append((node, overlap / len(tokens)))
+                scored.append((node, overlap / max(len(tokens), 1)))
 
         scored.sort(key=lambda x: x[1], reverse=True)
         return [s[0] for s in scored[:max_results]]
