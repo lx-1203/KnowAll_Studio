@@ -75,9 +75,11 @@ OAUTH_PROVIDERS = {
 
 
 def _get_redirect_uri(request: Request, provider: str) -> str:
-    """Build the OAuth callback URL from the request origin."""
-    base = str(request.base_url).rstrip("/")
-    # In development, use the same origin
+    """Build the OAuth callback URL. Uses OAUTH_REDIRECT_BASE if configured, otherwise auto-detects."""
+    if settings.oauth_redirect_base:
+        base = settings.oauth_redirect_base.rstrip("/")
+    else:
+        base = str(request.base_url).rstrip("/")
     return f"{base}/api/v1/oauth/{provider}/callback"
 
 
