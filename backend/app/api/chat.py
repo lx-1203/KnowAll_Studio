@@ -92,36 +92,15 @@ async def chat_stream(
         from app.database import async_session
         full_response = ""
         try:
-            stream_args = {
-                "message": req.message,
-                "role_preset": req.role_preset,
-                "history": history,
-                "model": req.model,
-                "user_id": user_id,
-            }
-            # Use knowledge_context if provided
             if req.knowledge_context:
-                stream_fn = ai_assistant.chat_stream_with_context
-                stream_args["context"] = req.knowledge_context
+                stream = ai_assistant.chat_stream_with_context(
+                    req.message, req.knowledge_context, req.role_preset, history, req.model, user_id=user_id
+                )
             else:
-                stream_fn = ai_assistant.chat_stream
-                del stream_args["user_id"]
-                stream_args = (req.message, req.role_preset, history, req.model)
-                stream_kwargs = {"user_id": user_id}
-                async for chunk in ai_assistant.chat_stream(*stream_args, **stream_kwargs):
-                    full_response += chunk
-                    yield f"data: {json.dumps({'token': chunk, 'done': False})}\n\n"
-                # Save full response with independent session
-                async with async_session() as save_db:
-                    assistant_msg = Message(
-                        conversation_id=conv.id, role="assistant", content=full_response
-                    )
-                    save_db.add(assistant_msg)
-                    await save_db.commit()
-                yield f"data: {json.dumps({'token': '', 'done': True, 'conversation_id': conv.id})}\n\n"
-                return
-
-            async for chunk in stream_fn(**stream_args):
+                stream = ai_assistant.chat_stream(
+                    req.message, req.role_preset, history, req.model, user_id=user_id
+                )
+            async for chunk in stream:
                 full_response += chunk
                 yield f"data: {json.dumps({'token': chunk, 'done': False})}\n\n"
             # Save full response with independent session
