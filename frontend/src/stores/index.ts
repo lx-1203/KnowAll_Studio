@@ -47,16 +47,23 @@ export const useAuthStore = create<AuthState>((set) => ({
     const token = localStorage.getItem('knowall_token')
     if (!token) return false
     try {
-      const user = JSON.parse(localStorage.getItem('knowall_user') || '')
+      setAuthToken(token)
+      const raw = localStorage.getItem('knowall_user')
+      if (!raw) {
+        // Token exists but user data missing - token still valid, fetch from /me
+        set({ token, isAuthenticated: true })
+        return true
+      }
+      const user = JSON.parse(raw)
       if (user && user.id) {
-        setAuthToken(token)
         set({ token, user, isAuthenticated: true })
         return true
       }
     } catch {}
-    // Token exists but no user data — clear stale token
+    // Corrupted data — clear and start fresh
     setAuthToken(null)
     localStorage.removeItem('knowall_user')
+    localStorage.removeItem('knowall_token')
     return false
   },
 }))
