@@ -1,10 +1,10 @@
 """Share / Collaboration API routes"""
-import random
+import secrets
 import string
-from datetime import datetime, timezone
+from datetime import datetime, timezone, timedelta
 from fastapi import APIRouter, HTTPException, Depends
 from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy import select
+from sqlalchemy import select, update
 from pydantic import BaseModel
 from app.database import get_db
 from app.models import ShareLink, KnowledgeTree, QuestionBank, Deck, Flashcard
@@ -20,8 +20,8 @@ class CreateShareRequest(BaseModel):
 
 
 def _generate_access_code() -> str:
-    """Generate a 6-digit access code."""
-    return "".join(random.choices(string.digits, k=6))
+    """Generate a cryptographically secure 6-digit access code."""
+    return "".join(secrets.choice(string.digits) for _ in range(6))
 
 
 @router.post("/create")
