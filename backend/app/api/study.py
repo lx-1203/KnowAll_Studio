@@ -143,7 +143,7 @@ async def create_plan(
         user_id=user_id,
         name=req.name,
         description=req.description,
-        target_end_date=datetime.fromisoformat(req.target_end_date) if req.target_end_date else None,
+        target_end_date=_parse_iso(req.target_end_date),
     )
     db.add(plan)
     await db.flush()
