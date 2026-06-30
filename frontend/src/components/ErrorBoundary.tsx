@@ -18,6 +18,32 @@ export default class ErrorBoundary extends Component<Props, State> {
     return { hasError: true, error }
   }
 
+  componentDidCatch(error: Error, info: React.ErrorInfo) {
+    // Log error for debugging and monitoring
+    console.error(
+      '[ErrorBoundary]',
+      `Message: ${error.message}`,
+      `Stack: ${error.stack?.slice(0, 500)}`,
+      `Component: ${info.componentStack?.slice(0, 500)}`,
+    )
+    // In production, send to error tracking service (e.g., Sentry, Datadog)
+    if (import.meta.env.PROD) {
+      try {
+        const payload = {
+          error: error.message,
+          stack: error.stack?.slice(0, 1000),
+          componentStack: info.componentStack?.slice(0, 1000),
+          url: window.location.href,
+          timestamp: new Date().toISOString(),
+        }
+        // Fire-and-forget to avoid blocking
+        navigator.sendBeacon?.('/api/v1/admin/error-report', JSON.stringify(payload))
+      } catch {
+        // Silent - don't break error boundary for reporting failures
+      }
+    }
+  }
+
   handleReset = () => {
     this.setState({ hasError: false, error: null })
   }
