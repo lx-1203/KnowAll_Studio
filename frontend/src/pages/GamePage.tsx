@@ -84,21 +84,6 @@ const GAME_ANIMATION_STYLES = `
 
 export default function GamePage() {
   const { isDark } = useTheme()
-  const { message } = App.useApp()
-  const state = useGameStore(s => s.state)
-  const startGame = useGameStore(s => s.startGame)
-  const makeMove = useGameStore(s => s.makeMove)
-  const pauseGame = useGameStore(s => s.pauseGame)
-  const resumeGame = useGameStore(s => s.resumeGame)
-  const tickTimer = useGameStore(s => s.tickTimer)
-  const resetGame = useGameStore(s => s.resetGame)
-
-  const boardRef = useRef<HTMLDivElement>(null)
-  const touchStart = useRef<{ x: number; y: number } | null>(null)
-  const [boardSize, setBoardSize] = useState(400)
-
-  const gap = 8
-  const cellSize = Math.floor((boardSize - gap * 5) / 4)
 
   // Calculate board size based on viewport
   useEffect(() => {
