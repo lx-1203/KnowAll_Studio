@@ -61,7 +61,11 @@ export default function LoginPage() {
     }
   }
 
-  const handleRegister = async (values: { username: string; email: string; password: string }) => {
+  const handleRegister = async (values: { username: string; email: string; password: string; confirm_password: string }) => {
+    if (values.password !== values.confirm_password) {
+      message.error('两次输入的密码不一致')
+      return
+    }
     setLoading(true)
     try {
       const data = await register(values)
