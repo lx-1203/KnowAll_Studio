@@ -55,13 +55,22 @@ def decrypt_api_key(ciphertext: str) -> str:
     except Exception as e:
         raise ValueError(f"加密模块初始化失败: {e}")
     try:
-        # Support both old (double-encoded) and new (single-encoded) format
+        # New format: Fernet token directly (starts with 'gAAAAAB')
+        if ciphertext.startswith("gAAAAAB"):
+            return fernet.decrypt(ciphertext.encode("ascii")).decode("utf-8")
+        # Old format: double base64-encoded (Fernet token wrapped in base64)
         try:
             encrypted = base64.b64decode(ciphertext.encode("ascii"))
         except Exception:
-            # If not valid base64, try direct Fernet decode (new format)
-            encrypted = ciphertext.encode("ascii")
-        return fernet.decrypt(encrypted).decode("utf-8")
+            # Assume new format without the gAAAAAB prefix
+            pass
+        else:
+            try:
+                return fernet.decrypt(encrypted).decode("utf-8")
+            except InvalidToken:
+                pass
+        # Last resort: treat as direct Fernet token
+        return fernet.decrypt(ciphertext.encode("ascii")).decode("utf-8")
     except InvalidToken:
         raise ValueError("API 密钥解密失败，密钥文件可能已损坏或被替换")
     except Exception as e:
