@@ -1,5 +1,5 @@
 import { Progress, Tag, Spin } from 'antd'
-import { CheckCircleOutlined, CloseCircleOutlined, LoadingOutlined, FileTextOutlined } from '@ant-design/icons'
+import { CheckCircleOutlined, CloseCircleOutlined, LoadingOutlined, FileTextOutlined, FilePdfOutlined, ApartmentOutlined, FormOutlined, IdcardOutlined } from '@ant-design/icons'
 
 interface PipelineProgressProps {
   stage: string
@@ -9,10 +9,10 @@ interface PipelineProgressProps {
 }
 
 const stageLabels: Record<string, { label: string; icon: React.ReactNode }> = {
-  parse: { label: '解析文档', icon: '📄' },
-  knowledge_tree: { label: '生成知识树', icon: '🌳' },
-  quiz: { label: '生成题目', icon: '📝' },
-  flashcards: { label: '生成闪卡', icon: '🃏' },
+  parse: { label: '解析文档', icon: <FilePdfOutlined style={{ color: '#1890ff' }} /> },
+  knowledge_tree: { label: '生成知识树', icon: <ApartmentOutlined style={{ color: '#52c41a' }} /> },
+  quiz: { label: '生成题目', icon: <FormOutlined style={{ color: '#fa8c16' }} /> },
+  flashcards: { label: '生成闪卡', icon: <IdcardOutlined style={{ color: '#13c2c2' }} /> },
   outline: { label: '知识大纲', icon: <FileTextOutlined style={{ color: '#722ed1' }} /> },
   done: { label: '完成', icon: <CheckCircleOutlined style={{ color: '#52c41a' }} /> },
   error: { label: '出错', icon: <CloseCircleOutlined style={{ color: '#ff4d4f' }} /> },
