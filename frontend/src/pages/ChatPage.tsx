@@ -223,9 +223,21 @@ export default function ChatPage() {
               <div style={{
                 maxWidth: '70%', padding: '10px 14px', borderRadius: 12,
                 background: m.role === 'user' ? '#f0f5ff' : '#f6ffed',
-                fontSize: 14, lineHeight: 1.8, whiteSpace: 'pre-wrap',
+                fontSize: 14, lineHeight: 1.8,
               }}>
-                {m.content || (loading && m.role === 'assistant' ? '思考中...' : '')}
+                {m.content ? (
+                  m.role === 'assistant' ? (
+                    <div className="chat-markdown">
+                      <ReactMarkdown remarkPlugins={[remarkGfm]}>
+                        {m.content}
+                      </ReactMarkdown>
+                    </div>
+                  ) : (
+                    <span style={{ whiteSpace: 'pre-wrap' }}>{m.content}</span>
+                  )
+                ) : (
+                  loading && m.role === 'assistant' ? <span style={{ color: '#999' }}>思考中...</span> : ''
+                )}
               </div>
             </div>
           ))}
