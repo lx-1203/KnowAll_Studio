@@ -537,6 +537,7 @@ class SyncFileVersion(Base):
 from app.models.subscription import (  # noqa: E402, F401
     UserTier, TierConfig, License, LicenseActivation, PaymentOrder,
 )
+from app.models.system_config import SystemConfig  # noqa: E402, F401
 
 # ==================== Reading Language Models ====================
 
