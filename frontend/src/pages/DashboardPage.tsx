@@ -7,6 +7,7 @@ import {
 } from '@ant-design/icons'
 import type { DashboardStats, DailyStat, TopicStat } from '../types'
 import { PageSkeleton } from '../components/SkeletonLoader'
+import api from '../api'
 
 export default function DashboardPage() {
   const navigate = useNavigate()
