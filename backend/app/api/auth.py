@@ -1,8 +1,10 @@
-"""Authentication API: register, login, profile"""
+"""Authentication API: register, login, profile, password reset"""
 import re
 import html
 import time
+import secrets
 from collections import defaultdict
+from datetime import datetime, timedelta, timezone
 from fastapi import APIRouter, HTTPException, Depends, Request
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select
