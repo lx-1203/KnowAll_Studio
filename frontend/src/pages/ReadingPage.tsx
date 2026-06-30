@@ -191,8 +191,10 @@ export default function ReadingPage() {
   const customTextRef = useRef<HTMLTextAreaElement>(null)
   const abortControllerRef = useRef<AbortController | null>(null)
 
-  // Auto-level
-  const level = getLevel(vocabState)
+  // Auto-level with manual override
+  const [manualLevel, setManualLevel] = useState<number | null>(null)
+  const autoLevel = getLevel(vocabState)
+  const level = manualLevel ?? autoLevel
   const toNext = wordsToNextLevel(vocabState)
   const knownCount = Object.values(vocabState.words).filter(v => v.seen >= KNOW_THRESHOLD).length
   const learningCount = Object.values(vocabState.words).filter(v => v.seen > 0 && v.seen < KNOW_THRESHOLD).length
