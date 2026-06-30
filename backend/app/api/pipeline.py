@@ -1,5 +1,6 @@
 """Pipeline API - one-click full chain automation"""
 import json
+import asyncio
 from fastapi import APIRouter, HTTPException, Depends
 from fastapi.responses import StreamingResponse
 from pydantic import BaseModel, Field
@@ -9,6 +10,9 @@ from app.core.pipeline import pipeline, PipelineStage
 from app.core.auth import get_optional_user, get_user_id, load_user_api_keys
 
 router = APIRouter(prefix="/api/v1/pipeline", tags=["pipeline"])
+
+# Track active pipeline runs for cancellation
+_active_pipelines: dict[str, asyncio.Event] = {}
 
 
 class PipelineRequest(BaseModel):
