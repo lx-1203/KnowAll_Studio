@@ -48,8 +48,22 @@ export default function CoverageReportPage() {
     }
   }
 
-  if (loading) return <div style={{ textAlign: 'center', padding: 100 }}><Spin size="large" /></div>
-  if (!report) return <div style={{ textAlign: 'center', padding: 100 }}>报告未找到</div>
+  if (loading) return <div style={{ textAlign: 'center', padding: 100 }}><Spin size="large" tip="加载覆盖率报告..." /></div>
+  if (!report) return (
+    <div style={{ textAlign: 'center', padding: 100 }}>
+      <Result
+        status="warning"
+        title="报告未找到"
+        subTitle="该知识总纲尚未生成覆盖率报告"
+        extra={
+          <Space>
+            <Button onClick={() => navigate(-1)}>返回</Button>
+            <Button type="primary" onClick={() => { setLoading(true); fetchReport(); }}>重新加载</Button>
+          </Space>
+        }
+      />
+    </div>
+  )
 
   const uncoveredColumns = [
     { title: '知识点 ID', dataIndex: 'id', key: 'id' },
