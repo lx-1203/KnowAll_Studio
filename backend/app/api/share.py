@@ -1,8 +1,10 @@
 """Share / Collaboration API routes"""
 import secrets
 import string
+import time
+from collections import defaultdict
 from datetime import datetime, timezone, timedelta
-from fastapi import APIRouter, HTTPException, Depends
+from fastapi import APIRouter, HTTPException, Depends, Request
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select, update
 from pydantic import BaseModel
@@ -11,6 +13,20 @@ from app.models import ShareLink, KnowledgeTree, QuestionBank, Deck, Flashcard
 from app.core.auth import get_optional_user, get_user_id
 
 router = APIRouter(prefix="/api/v1/share", tags=["share"])
+
+# Rate limit for access code attempts (brute-force prevention)
+_view_rate_limit: dict[str, list[float]] = defaultdict(list)
+_VIEW_RATE_WINDOW = 300  # 5 minutes
+_VIEW_RATE_MAX = 10       # max 10 attempts per window per IP
+
+
+def _check_view_rate(client_ip: str) -> None:
+    now = time.time()
+    window_start = now - _VIEW_RATE_WINDOW
+    _view_rate_limit[client_ip] = [t for t in _view_rate_limit[client_ip] if t > window_start]
+    if len(_view_rate_limit[client_ip]) >= _VIEW_RATE_MAX:
+        raise HTTPException(429, "访问过于频繁，请5分钟后再试")
+    _view_rate_limit[client_ip].append(now)
 
 
 class CreateShareRequest(BaseModel):
