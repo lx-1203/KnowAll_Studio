@@ -23,6 +23,7 @@ class User(Base):
     password_hash = Column(String(255), nullable=False)
     nickname = Column(String(100), default="")
     phone = Column(String(20), default="")
+    phone_verified = Column(Boolean, default=False)
     avatar_url = Column(String(500), default="")
     is_active = Column(Boolean, default=True)  # True=active, False=disabled
     email_verified = Column(Boolean, default=False)  # Email verification status
