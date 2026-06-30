@@ -49,8 +49,8 @@ bcrypt>=4.0.0
 # Database migrations
 alembic>=1.18.0
 
-# Anki import/export (optional)
-# genanki>=0.13.0
+# Anki import/export
+genanki>=0.13.0
 
 # Development
 pytest>=8.2.0
