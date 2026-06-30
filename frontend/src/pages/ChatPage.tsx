@@ -67,15 +67,19 @@ export default function ChatPage() {
 
     if (streamMode) {
       // SSE streaming (RAG or normal)
-      const endpoint = ragMode ? `${apiBase}/chat/assistant/rag/stream` : `${apiBase}/chat/assistant/stream`
-      const aiMsgId = (Date.now() + 1).toString()
+      const endpoint = ragMode ? '/api/v1/chat/assistant/rag/stream' : '/api/v1/chat/assistant/stream'
+      const aiMsgId = nextMsgId()
       const aiMsg: Message = { id: aiMsgId, role: 'assistant', content: '', created_at: new Date().toISOString() }
       setMessages(prev => [...prev, aiMsg])
 
       try {
+        const token = localStorage.getItem('knowall_token')
         const response = await fetch(endpoint, {
           method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
+          headers: {
+            'Content-Type': 'application/json',
+            ...(token ? { Authorization: `Bearer ${token}` } : {}),
+          },
           body: JSON.stringify({
             message: msgText,
             conversation_id: currentConv?.id || null,
