@@ -53,6 +53,16 @@ class Settings(BaseSettings):
     jwt_algorithm: str = "HS256"
     jwt_expire_minutes: int = 1440  # 24 hours
 
+    # OAuth2 Third-party Login (leave empty to disable)
+    oauth_qq_client_id: str = ""
+    oauth_qq_client_secret: str = ""
+    oauth_wechat_client_id: str = ""
+    oauth_wechat_client_secret: str = ""
+    oauth_github_client_id: str = ""
+    oauth_github_client_secret: str = ""
+    oauth_google_client_id: str = ""
+    oauth_google_client_secret: str = ""
+
     # Docling document parsing
     use_docling: bool = True
     docling_ocr: bool = False
