@@ -356,15 +356,15 @@ export default function GamePage() {
               )}
             </div>
 
-            {/* Quiz in development notice */}
-            <Alert
-              type="warning"
-              showIcon
-              icon={<ToolOutlined />}
-              message="答题系统开发中，敬请期待"
-              banner
-              style={{ marginTop: 12, borderRadius: 8 }}
-            />
+            {/* Quiz stats footer */}
+            {quizStats.total > 0 && (
+              <div style={{ textAlign: 'center', marginTop: 12 }}>
+                <Text type="secondary" style={{ fontSize: 12 }}>
+                  <FormOutlined /> 答题: {quizStats.correct}/{quizStats.total} ·
+                  正确率 {Math.round((quizStats.correct / quizStats.total) * 100)}%
+                </Text>
+              </div>
+            )}
           </div>
         )}
       </Card>
