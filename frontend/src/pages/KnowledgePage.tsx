@@ -249,7 +249,7 @@ function KnowledgePageInner() {
   const handleSaveChanges = async () => {
     if (!selectedTree) return
     try {
-      const treeData = flowToTree(nodes)
+      const treeData = flowToTree(nodes, edges)
       await updateTree(selectedTree, { tree_data: treeData })
       message.success('已保存')
     } catch (e: any) {
@@ -262,10 +262,7 @@ function KnowledgePageInner() {
     if (available.length === 0) { message.warning('至少需要一个其他知识树才能合并'); return }
     const otherId = available[0].tree_id
     try {
-      const resp = await fetch('/api/v1/knowledge/tree/merge', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ tree_ids: [selectedTree, otherId], merged_name: '合并的知识树' }),
+      const result = await mergeTrees([selectedTree!, otherId], '合并的知识树')
       })
       if (!resp.ok) throw new Error((await resp.json()).detail || '合并失败')
       const result = await resp.json()
