@@ -342,12 +342,16 @@ async def create_reminder(
 ):
     """Create a study reminder."""
     user_id = get_user_id(current_user)
+    try:
+        remind_at = datetime.fromisoformat(req.remind_at)
+    except (ValueError, TypeError):
+        raise HTTPException(400, "提醒时间格式不正确，请使用ISO格式如 2024-01-01T09:00:00")
     reminder = StudyReminder(
         user_id=user_id,
         plan_id=req.plan_id,
         goal_id=req.goal_id,
         message=req.message,
-        remind_at=datetime.fromisoformat(req.remind_at),
+        remind_at=remind_at,
         repeat_daily=req.repeat_daily,
     )
     db.add(reminder)
