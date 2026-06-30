@@ -84,8 +84,13 @@ async def init_db():
             logger.info("Alembic migrations complete. stdout: %s", result.stdout.strip()[:200] or "(no output)")
 
     if migration_failed:
-        # Drop all tables and recreate from current models
-        logger.warning("Dropping all tables and recreating from models (dev mode)...")
+        # In debug mode, drop and recreate from models (development only)
+        if not settings.debug:
+            logger.error("Alembic migration failed in production mode. Refusing to drop tables.")
+            raise RuntimeError(
+                "数据库迁移失败，无法在非调试模式下自动重建。请手动运行 alembic upgrade head 排查问题。"
+            )
+        logger.warning("Dropping all tables and recreating from models (debug mode)...")
         async with engine.begin() as conn:
             await conn.run_sync(Base.metadata.drop_all)
             await conn.run_sync(Base.metadata.create_all)
