@@ -212,9 +212,35 @@ class URLImportRequest(BaseModel):
     url: str
 
 
+# Blocked URL patterns for SSRF prevention
+_SSRF_BLOCKED_HOSTS = {
+    "localhost", "127.0.0.1", "0.0.0.0", "::1",
+    "169.254.169.254",  # AWS metadata
+    "metadata.google.internal",  # GCP metadata
+    "100.100.100.200",  # Alibaba Cloud metadata
+}
+_SSRF_BLOCKED_SCHEMES = {"file", "ftp", "gopher", "dict"}
+
+
+def _validate_url_safe(url: str) -> None:
+    """Validate URL is safe to fetch (SSRF prevention)."""
+    from urllib.parse import urlparse
+    parsed = urlparse(url)
+    if parsed.scheme.lower() in _SSRF_BLOCKED_SCHEMES:
+        raise HTTPException(400, f"不支持的URL协议: {parsed.scheme}")
+    if parsed.scheme.lower() not in ("http", "https"):
+        raise HTTPException(400, "仅支持 HTTP/HTTPS URL")
+    hostname = (parsed.hostname or "").lower()
+    if not hostname:
+        raise HTTPException(400, "无效的URL，无法解析主机名")
+    if hostname in _SSRF_BLOCKED_HOSTS or hostname.endswith(".local"):
+        raise HTTPException(400, "不允许访问内部网络地址")
+
+
 @router.post("/import-url")
 async def import_from_url(req: URLImportRequest, db: AsyncSession = Depends(get_db)):
     """Import content from a URL (web page)."""
+    _validate_url_safe(req.url)
     import tempfile
     try:
         parsed = await parser.parse(req.url, "url")
