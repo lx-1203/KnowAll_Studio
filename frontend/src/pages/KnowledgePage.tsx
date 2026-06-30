@@ -263,9 +263,6 @@ function KnowledgePageInner() {
     const otherId = available[0].tree_id
     try {
       const result = await mergeTrees([selectedTree!, otherId], '合并的知识树')
-      })
-      if (!resp.ok) throw new Error((await resp.json()).detail || '合并失败')
-      const result = await resp.json()
       message.success(`合并完成: ${result.node_count} 个节点, ${result.source_trees} 棵知识树`)
       setSelectedTree(result.tree_id)
       const updated = await listTrees()
