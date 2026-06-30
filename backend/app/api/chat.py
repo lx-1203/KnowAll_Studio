@@ -336,6 +336,10 @@ async def chat_graphrag_stream(
                 req.top_k, user_id=user_id, mode="graphrag",
             ):
                 full += chunk
+                now = _asyncio.get_event_loop().time()
+                if now - last_hb > 15:
+                    yield f": heartbeat\n\n"
+                    last_hb = now
                 yield f"data: {json.dumps({'token': chunk, 'done': False})}\n\n"
             async with async_session() as save_db:
                 save_db.add(Message(conversation_id=conv.id, role="assistant", content=full))
