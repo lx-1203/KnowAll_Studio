@@ -230,6 +230,8 @@ export const getSummaryNodes = (summaryId: string, level?: number) =>
   api.get(`/knowledge/summary/${summaryId}/nodes`, { params: { level } }).then(r => r.data)
 export const getSummaryMindmap = (summaryId: string) =>
   api.get(`/knowledge/summary/${summaryId}/mindmap`).then(r => r.data)
+export const deleteSummary = (summaryId: string) =>
+  api.delete(`/knowledge/summary/${summaryId}`).then(r => r.data)
 
 // ===== Agent Orchestration (NEW) =====
 export const orchestrateAgents = (params: object) => api.post('/agents/orchestrate', params).then(r => r.data)
