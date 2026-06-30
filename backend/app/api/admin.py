@@ -86,14 +86,58 @@ async def delete_key(key_id: str, db: AsyncSession = Depends(get_db)):
 # ===== Model Configuration =====
 
 @router.post("/models")
-async def configure_model(req: ModelConfigRequest):
-    """Configure model settings."""
-    return {
+async def configure_model(req: ModelConfigRequest, db: AsyncSession = Depends(get_db)):
+    """Configure and persist model settings."""
+    import json
+    from app.models.system_config import SystemConfig
+
+    config_data = {
         "model": req.model,
         "fallback_models": req.fallback_models,
         "daily_token_limit": req.daily_token_limit,
-        "status": "configured",
     }
+
+    # Upsert the model config
+    result = await db.execute(
+        select(SystemConfig).where(SystemConfig.key == "model_config")
+    )
+    existing = result.scalar_one_or_none()
+    if existing:
+        existing.value = json.dumps(config_data, ensure_ascii=False)
+    else:
+        db.add(SystemConfig(key="model_config", value=json.dumps(config_data, ensure_ascii=False),
+                           description="Default model and fallback configuration"))
+
+    await db.commit()
+
+    # Also reconfigure the live API scheduler
+    from app.core.api_scheduler import api_client
+    try:
+        api_client.set_default_model(req.model)
+    except Exception:
+        pass
+
+    return {
+        "status": "configured",
+        **config_data,
+    }
+
+
+@router.get("/models")
+async def get_model_config(db: AsyncSession = Depends(get_db)):
+    """Get the current persisted model configuration."""
+    import json
+    from app.models.system_config import SystemConfig
+    result = await db.execute(
+        select(SystemConfig).where(SystemConfig.key == "model_config")
+    )
+    existing = result.scalar_one_or_none()
+    if existing:
+        try:
+            return json.loads(existing.value)
+        except json.JSONDecodeError:
+            pass
+    return {"model": "deepseek-chat", "fallback_models": [], "daily_token_limit": 1_000_000}
 
 
 # ===== Cache Management =====
