@@ -70,8 +70,8 @@ export default function InteractiveQuizPage() {
         },
       }))
 
-      // Auto-advance after 1.5s
-      setTimeout(() => {
+      // Auto-advance after 1.5s (with cleanup)
+      autoAdvanceRef.current = setTimeout(() => {
         if (currentIndex + 1 < questions.length) {
           setCurrentIndex(prev => prev + 1)
         } else {
