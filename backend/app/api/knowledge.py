@@ -132,6 +132,24 @@ async def update_knowledge_tree(tree_id: str, tree_data: dict, db: AsyncSession 
     return {"status": "updated", "tree_id": tree.id}
 
 
+@router.delete("/tree/{tree_id}")
+async def delete_knowledge_tree(tree_id: str, db: AsyncSession = Depends(get_db)):
+    """Delete a knowledge tree and its associated edges."""
+    result = await db.execute(select(KnowledgeTree).where(KnowledgeTree.id == tree_id))
+    tree = result.scalar_one_or_none()
+    if not tree:
+        raise HTTPException(404, "Knowledge tree not found")
+    # Delete associated edges first
+    edges_result = await db.execute(
+        select(KnowledgeEdge).where(KnowledgeEdge.tree_id == tree_id)
+    )
+    for edge in edges_result.scalars().all():
+        await db.delete(edge)
+    await db.delete(tree)
+    await db.commit()
+    return {"status": "deleted", "tree_id": tree_id}
+
+
 class MergeTreesRequest(BaseModel):
     tree_ids: list[str]
     merged_name: str = "合并知识体系"
