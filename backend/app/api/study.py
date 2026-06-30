@@ -286,7 +286,7 @@ async def create_goal(req: CreateGoalRequest, db: AsyncSession = Depends(get_db)
         title=req.title,
         description=req.description,
         priority=req.priority,
-        due_date=datetime.fromisoformat(req.due_date) if req.due_date else None,
+        due_date=_parse_iso(req.due_date),
         order_index=max_order,
     )
     db.add(goal)
