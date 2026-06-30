@@ -248,7 +248,7 @@ async def update_plan(plan_id: str, data: dict, db: AsyncSession = Depends(get_d
     if "progress" in data:
         plan.progress = data["progress"]
     if "target_end_date" in data and data["target_end_date"]:
-        plan.target_end_date = datetime.fromisoformat(data["target_end_date"])
+        plan.target_end_date = _parse_iso(data["target_end_date"])
 
     await db.commit()
     return {"status": "updated", "plan_id": plan.id}
