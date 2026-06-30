@@ -246,6 +246,7 @@ async def export_deck_anki(deck_id: str, db: AsyncSession = Depends(get_db)):
         for c in cards
     ]
 
+    output_path = None
     try:
         output_path = export_apkg(card_dicts, deck.name)
         return FileResponse(
@@ -255,6 +256,13 @@ async def export_deck_anki(deck_id: str, db: AsyncSession = Depends(get_db)):
             headers={"Content-Disposition": f'attachment; filename="{deck.name}.apkg"'},
         )
     except Exception as e:
+        # Clean up temp file on error
+        if output_path:
+            try:
+                import os
+                os.unlink(output_path)
+            except Exception:
+                pass
         raise HTTPException(500, f"Export failed: {str(e)}")
 
 
