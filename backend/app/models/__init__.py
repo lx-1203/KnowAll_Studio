@@ -533,6 +533,12 @@ class SyncFileVersion(Base):
 
 
 # ==================== Reading Language Models ====================
+# ==================== Subscription & License Models ====================
+from app.models.subscription import (  # noqa: E402, F401
+    UserTier, TierConfig, License, LicenseActivation, PaymentOrder,
+)
+
+# ==================== Reading Language Models ====================
 
 class ReadingArticle(Base):
     """阅读语言 - 用户上传的文章"""
