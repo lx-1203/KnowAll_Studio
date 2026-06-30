@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react'
 import { Card, Button, Tag, Spin, Space, Collapse, Empty } from 'antd'
 import { FileTextOutlined, SearchOutlined } from '@ant-design/icons'
 import { RichText } from './LaTeX'
+import api from '../api'
 
 interface Chunk {
   id: string
