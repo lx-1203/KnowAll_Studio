@@ -90,7 +90,9 @@ async def chat_stream(
 
     async def event_generator():
         from app.database import async_session
+        import asyncio as _asyncio
         full_response = ""
+        last_heartbeat = _asyncio.get_event_loop().time()
         try:
             if req.knowledge_context:
                 stream = ai_assistant.chat_stream_with_context(
@@ -102,6 +104,11 @@ async def chat_stream(
                 )
             async for chunk in stream:
                 full_response += chunk
+                now = _asyncio.get_event_loop().time()
+                # Send heartbeat every 15s to keep connection alive
+                if now - last_heartbeat > 15:
+                    yield f": heartbeat\n\n"
+                    last_heartbeat = now
                 yield f"data: {json.dumps({'token': chunk, 'done': False})}\n\n"
             # Save full response with independent session
             async with async_session() as save_db:
