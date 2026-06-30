@@ -19,7 +19,7 @@ interface Props {
 export default function InteractiveQuestionCard({ question, onSubmit, submitting, lastResult }: Props) {
   const [answer, setAnswer] = useState('')
   const [checkedOptions, setCheckedOptions] = useState<string[]>([])
-  const [startTime] = useState(Date.now())
+  const [startTime, setStartTime] = useState(Date.now())
   const [showResult, setShowResult] = useState(false)
   const inputRef = useRef<any>(null)
 
